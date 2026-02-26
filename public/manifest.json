@@ -1,0 +1,28 @@
+{
+    "manifest_version": 3,
+    "name": "__MSG_appName__",
+    "description": "__MSG_appDesc__",
+    "version": "0.9.0",
+    "default_locale": "ja",
+    "permissions": [
+        "desktopCapture",
+        "activeTab",
+        "scripting",
+        "storage",
+        "unlimitedStorage",
+        "tabs",
+        "clipboardRead"
+    ],
+    "background": {
+        "service_worker": "background.js",
+        "type": "module"
+    },
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    }
+}

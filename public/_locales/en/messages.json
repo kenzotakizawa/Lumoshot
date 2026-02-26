@@ -1,0 +1,262 @@
+{
+    "appName": {
+        "message": "Lumoshot - Smart Screen Capture & Editor",
+        "description": "The name of the application"
+    },
+    "appDesc": {
+        "message": "Instantly design and direct attention on any screen capture.",
+        "description": "The description of the application"
+    },
+    "toolSelect": {
+        "message": "Select (V)"
+    },
+    "toolRect": {
+        "message": "Rectangle (R)"
+    },
+    "toolRoundedRect": {
+        "message": "Rounded Rectangle"
+    },
+    "toolArrow": {
+        "message": "Arrow (A)"
+    },
+    "toolText": {
+        "message": "Text (T)"
+    },
+    "toolStepNumber": {
+        "message": "Step Number (N)"
+    },
+    "toolSpeechBubble": {
+        "message": "Speech Bubble"
+    },
+    "toolPen": {
+        "message": "Pen Tool"
+    },
+    "toolHighlighter": {
+        "message": "Highlighter"
+    },
+    "toolSpotlightRect": {
+        "message": "Spotlight (Rect)"
+    },
+    "toolSpotlightEllipse": {
+        "message": "Spotlight (Ellipse)"
+    },
+    "toolClickIcon": {
+        "message": "Mouse Click"
+    },
+    "toolBlurRect": {
+        "message": "Blur"
+    },
+    "toolInsertImage": {
+        "message": "Insert Image"
+    },
+    "toolWebcam": {
+        "message": "Webcam PiP"
+    },
+    "toolResize": {
+        "message": "Resize"
+    },
+    "toolCrop": {
+        "message": "Crop"
+    },
+    "actionUndo": {
+        "message": "Undo"
+    },
+    "actionRedo": {
+        "message": "Redo"
+    },
+    "actionCopy": {
+        "message": "Copy"
+    },
+    "actionSave": {
+        "message": "Save"
+    },
+    "actionFrame": {
+        "message": "Add Frame"
+    },
+    "alignLeft": {
+        "message": "Align Left"
+    },
+    "alignCenter": {
+        "message": "Align Center"
+    },
+    "alignRight": {
+        "message": "Align Right"
+    },
+    "alignTop": {
+        "message": "Align Top"
+    },
+    "alignMiddle": {
+        "message": "Align Middle"
+    },
+    "alignBottom": {
+        "message": "Align Bottom"
+    },
+    "distributeHorizontal": {
+        "message": "Distribute Horizontally"
+    },
+    "distributeVertical": {
+        "message": "Distribute Vertically"
+    },
+    "popupSectionWindowCapture": {
+        "message": "Window Capture"
+    },
+    "popupVisiblePart": {
+        "message": "Visible Part"
+    },
+    "popupVisiblePartDesc": {
+        "message": "Capture what you see right now"
+    },
+    "popupSelectedArea": {
+        "message": "Selected Area"
+    },
+    "popupSelectedAreaDesc": {
+        "message": "Drag to select a specific region"
+    },
+    "popupSectionSystemCapture": {
+        "message": "System Capture"
+    },
+    "popupEntireScreen": {
+        "message": "Entire Screen"
+    },
+    "popupEntireScreenDesc": {
+        "message": "Capture the whole desktop (System Dialog)"
+    },
+    "popupSectionLocalImage": {
+        "message": "Local Image"
+    },
+    "popupUploadFile": {
+        "message": "Upload File"
+    },
+    "popupUploadFileDesc": {
+        "message": "Choose an image from your computer"
+    },
+    "popupPasteClipboard": {
+        "message": "Paste Clipboard"
+    },
+    "popupPasteClipboardDesc": {
+        "message": "Use image copied to clipboard"
+    },
+    "toolLock": {
+        "message": "Lock Object (Ctrl+L)"
+    },
+    "toolUnlock": {
+        "message": "Unlock Object (Ctrl+L)"
+    },
+    "contextMenuDuplicate": {
+        "message": "Duplicate"
+    },
+    "contextMenuBringForward": {
+        "message": "Bring Forward"
+    },
+    "contextMenuSendBackward": {
+        "message": "Send Backward"
+    },
+    "contextMenuDelete": {
+        "message": "Delete"
+    },
+    "contextMenuPaste": {
+        "message": "Paste"
+    },
+    "tooltipSelect": {
+        "message": "Select (V)"
+    },
+    "tooltipRect": {
+        "message": "Rectangle (R)"
+    },
+    "tooltipBubble": {
+        "message": "Speech Bubble (B)"
+    },
+    "tooltipArrow": {
+        "message": "Arrow (A)"
+    },
+    "tooltipText": {
+        "message": "Text (T)"
+    },
+    "tooltipStep": {
+        "message": "Step Number (N)"
+    },
+    "tooltipSpotlight": {
+        "message": "Spotlight (S)"
+    },
+    "tooltipBlur": {
+        "message": "Blur (U)"
+    },
+    "tooltipCrop": {
+        "message": "Crop (C)"
+    },
+    "tooltipTheme": {
+        "message": "Toggle Theme"
+    },
+    "tooltipUndo": {
+        "message": "Undo (Ctrl+Z)"
+    },
+    "tooltipRedo": {
+        "message": "Redo (Ctrl+Y)"
+    },
+    "tooltipToggleFrame": {
+        "message": "Toggle OS Frame"
+    },
+    "tooltipDownload": {
+        "message": "Save Image (Ctrl+S)"
+    },
+    "tooltipCopy": {
+        "message": "Copy to Clipboard (Ctrl+C)"
+    },
+    "tooltipSnap": {
+        "message": "Snap to Grid"
+    },
+    "tooltipDimensions": {
+        "message": "Show Dimensions"
+    },
+    "contextMenuBeforeAfter": {
+        "message": "Create Before / After"
+    },
+    "helpTitle": {
+        "message": "Keyboard Shortcuts & Help"
+    },
+    "helpShortcuts": {
+        "message": "Shortcuts"
+    },
+    "helpGeneral": {
+        "message": "General"
+    },
+    "helpTools": {
+        "message": "Tools"
+    },
+    "helpActionPan": {
+        "message": "Pan Canvas"
+    },
+    "helpActionPanKey": {
+        "message": "Space + Drag / Middle Click"
+    },
+    "helpActionZoom": {
+        "message": "Zoom In / Out"
+    },
+    "helpActionZoomKey": {
+        "message": "Ctrl + Scroll / +, -"
+    },
+    "helpActionDuplicate": {
+        "message": "Duplicate"
+    },
+    "helpActionSelect": {
+        "message": "Select Tool"
+    },
+    "helpActionRect": {
+        "message": "Rectangle"
+    },
+    "helpActionCircle": {
+        "message": "Circle"
+    },
+    "helpActionArrow": {
+        "message": "Arrow"
+    },
+    "helpActionLine": {
+        "message": "Line"
+    },
+    "helpActionText": {
+        "message": "Text"
+    },
+    "helpActionBubble": {
+        "message": "Speech Bubble"
+    }
+}

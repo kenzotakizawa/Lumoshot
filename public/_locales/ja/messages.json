@@ -1,0 +1,262 @@
+{
+    "appName": {
+        "message": "Lumoshot (ルモショット)",
+        "description": "The name of the application"
+    },
+    "appDesc": {
+        "message": "あらゆる画面の「伝えたい箇所」を瞬時にデザインし、視線を誘導する。",
+        "description": "The description of the application"
+    },
+    "toolSelect": {
+        "message": "選択 (V)"
+    },
+    "toolRect": {
+        "message": "四角形 (R)"
+    },
+    "toolRoundedRect": {
+        "message": "角丸四角形"
+    },
+    "toolArrow": {
+        "message": "矢印 (A)"
+    },
+    "toolText": {
+        "message": "テキスト (T)"
+    },
+    "toolStepNumber": {
+        "message": "順序バッジ (N)"
+    },
+    "toolSpeechBubble": {
+        "message": "吹き出し"
+    },
+    "toolPen": {
+        "message": "ペン"
+    },
+    "toolHighlighter": {
+        "message": "蛍光ペン"
+    },
+    "toolSpotlightRect": {
+        "message": "スポットライト (四角)"
+    },
+    "toolSpotlightEllipse": {
+        "message": "スポットライト (円)"
+    },
+    "toolClickIcon": {
+        "message": "マウスクリック"
+    },
+    "toolBlurRect": {
+        "message": "ボカシ"
+    },
+    "toolInsertImage": {
+        "message": "画像スタンプ"
+    },
+    "toolWebcam": {
+        "message": "ウェブカメラ合成"
+    },
+    "toolResize": {
+        "message": "リサイズ"
+    },
+    "toolCrop": {
+        "message": "クロップ"
+    },
+    "actionUndo": {
+        "message": "元に戻す"
+    },
+    "actionRedo": {
+        "message": "やり直す"
+    },
+    "actionCopy": {
+        "message": "コピー"
+    },
+    "actionSave": {
+        "message": "保存"
+    },
+    "actionFrame": {
+        "message": "フレーム追加"
+    },
+    "alignLeft": {
+        "message": "左揃え"
+    },
+    "alignCenter": {
+        "message": "中央揃え"
+    },
+    "alignRight": {
+        "message": "右揃え"
+    },
+    "alignTop": {
+        "message": "上揃え"
+    },
+    "alignMiddle": {
+        "message": "上下中央揃え"
+    },
+    "alignBottom": {
+        "message": "下揃え"
+    },
+    "distributeHorizontal": {
+        "message": "水平に整列"
+    },
+    "distributeVertical": {
+        "message": "垂直に整列"
+    },
+    "popupSectionWindowCapture": {
+        "message": "ウィンドウキャプチャ"
+    },
+    "popupVisiblePart": {
+        "message": "表示中の画面"
+    },
+    "popupVisiblePartDesc": {
+        "message": "今見えている画面をキャプチャ"
+    },
+    "popupSelectedArea": {
+        "message": "範囲を選択"
+    },
+    "popupSelectedAreaDesc": {
+        "message": "ドラッグで範囲を指定してキャプチャ"
+    },
+    "popupSectionSystemCapture": {
+        "message": "システムキャプチャ"
+    },
+    "popupEntireScreen": {
+        "message": "画面全体"
+    },
+    "popupEntireScreenDesc": {
+        "message": "デスクトップ全体をキャプチャ（システムダイアログ）"
+    },
+    "popupSectionLocalImage": {
+        "message": "ローカル画像"
+    },
+    "popupUploadFile": {
+        "message": "ファイルを開く"
+    },
+    "popupUploadFileDesc": {
+        "message": "PCから画像を選択"
+    },
+    "popupPasteClipboard": {
+        "message": "クリップボードから貼り付け"
+    },
+    "popupPasteClipboardDesc": {
+        "message": "コピーした画像を使用"
+    },
+    "toolLock": {
+        "message": "オブジェクトをロック (Ctrl+L)"
+    },
+    "toolUnlock": {
+        "message": "ロックを解除 (Ctrl+L)"
+    },
+    "contextMenuDuplicate": {
+        "message": "複製"
+    },
+    "contextMenuBringForward": {
+        "message": "前面へ"
+    },
+    "contextMenuSendBackward": {
+        "message": "背面へ"
+    },
+    "contextMenuDelete": {
+        "message": "削除"
+    },
+    "contextMenuPaste": {
+        "message": "貼り付け"
+    },
+    "tooltipSelect": {
+        "message": "選択 (V)"
+    },
+    "tooltipRect": {
+        "message": "四角形 (R)"
+    },
+    "tooltipBubble": {
+        "message": "吹き出し (B)"
+    },
+    "tooltipArrow": {
+        "message": "矢印 (A)"
+    },
+    "tooltipText": {
+        "message": "テキスト (T)"
+    },
+    "tooltipStep": {
+        "message": "ステップ番号 (N)"
+    },
+    "tooltipSpotlight": {
+        "message": "スポットライト (S)"
+    },
+    "tooltipBlur": {
+        "message": "ぼかし (U)"
+    },
+    "tooltipCrop": {
+        "message": "切り抜き (C)"
+    },
+    "tooltipTheme": {
+        "message": "テーマ切り替え"
+    },
+    "tooltipUndo": {
+        "message": "元に戻す (Ctrl+Z)"
+    },
+    "tooltipRedo": {
+        "message": "やり直す (Ctrl+Y)"
+    },
+    "tooltipToggleFrame": {
+        "message": "OSフレーム切替"
+    },
+    "tooltipDownload": {
+        "message": "画像を保存 (Ctrl+S)"
+    },
+    "tooltipCopy": {
+        "message": "クリップボードにコピー (Ctrl+C)"
+    },
+    "tooltipSnap": {
+        "message": "グリッドにスナップ"
+    },
+    "tooltipDimensions": {
+        "message": "寸法を表示"
+    },
+    "contextMenuBeforeAfter": {
+        "message": "Before / After比較を作成"
+    },
+    "helpTitle": {
+        "message": "ショートカットとヘルプ"
+    },
+    "helpShortcuts": {
+        "message": "ショートカットキー"
+    },
+    "helpGeneral": {
+        "message": "一般操作"
+    },
+    "helpTools": {
+        "message": "ツール"
+    },
+    "helpActionPan": {
+        "message": "キャンバスの移動（パン）"
+    },
+    "helpActionPanKey": {
+        "message": "Space + ドラッグ / 中クリック"
+    },
+    "helpActionZoom": {
+        "message": "ズームイン / アウト"
+    },
+    "helpActionZoomKey": {
+        "message": "Ctrl + スクロール / +, -"
+    },
+    "helpActionDuplicate": {
+        "message": "複製"
+    },
+    "helpActionSelect": {
+        "message": "選択ツール"
+    },
+    "helpActionRect": {
+        "message": "四角形"
+    },
+    "helpActionCircle": {
+        "message": "円形"
+    },
+    "helpActionArrow": {
+        "message": "矢印"
+    },
+    "helpActionLine": {
+        "message": "直線"
+    },
+    "helpActionText": {
+        "message": "テキスト"
+    },
+    "helpActionBubble": {
+        "message": "吹き出し"
+    }
+}
