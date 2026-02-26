@@ -609,6 +609,14 @@ const Editor: React.FC = () => {
         const params = new URLSearchParams(window.location.search);
         const mode = params.get('mode') || 'capture';
 
+        // Check if this is the first time the user opens the editor
+        chrome.storage.local.get(["hasSeenHelp"], (result) => {
+            if (!result.hasSeenHelp) {
+                setIsHelpOpen(true);
+                chrome.storage.local.set({ hasSeenHelp: true });
+            }
+        });
+
         if (mode === 'capture' || mode === 'crop') {
             setStatus("Loading image...");
             chrome.storage.local.get(["capturedImage", "cropRect"], (result) => {
