@@ -2,6 +2,13 @@ console.log("Lumoshot capture script loaded");
 
 // Be careful to avoid global scope pollution if injected multiple times
 (async () => {
+    // Bug Fix #4: guard against duplicate injection running capture twice
+    if ((window as any).LUMOSHOT_CAPTURE_RUNNING) {
+        console.warn("Lumoshot capture already in progress, skipping duplicate injection.");
+        return;
+    }
+    (window as any).LUMOSHOT_CAPTURE_RUNNING = true;
+
     try {
         // We expect streamId to be passed via a mechanism. 
         // Chrome scripting API allows passing args, but standard execution context is isolated.

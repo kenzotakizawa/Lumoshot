@@ -17,34 +17,58 @@ chrome.runtime.onMessage.addListener((message, sender) => {
         console.error("No active tab found.");
         return;
       }
-      console.log("Active tab:", activeTab.id, activeTab.url);
 
       if (mode === 'desktop') {
-        // Minimize the browser window so it doesn't appear in the capture
         chrome.windows.getCurrent((win) => {
           if (!win?.id) return;
-          const originalState = win.state; // Remember original state to restore later
+          const winId = win.id;
+
+          // Bug Fix #2: preserve all states including 'maximized', not just fullscreen/normal
+          const originalState = win.state as chrome.windows.WindowState;
+
+          // Bug Fix #5: poll until actually minimized before showing picker
+          const waitForState = (
+            targetState: string,
+            callback: () => void,
+            maxWaitMs = 2000
+          ) => {
+            const started = Date.now();
+            const check = () => {
+              chrome.windows.get(winId, (w) => {
+                if (w?.state === targetState || Date.now() - started > maxWaitMs) {
+                  callback();
+                } else {
+                  setTimeout(check, 50);
+                }
+              });
+            };
+            check();
+          };
 
           const doMinimize = () => {
-            chrome.windows.update(win.id!, { state: 'minimized' }, () => {
-              // Wait for minimize animation to complete
-              setTimeout(() => {
+            chrome.windows.update(winId, { state: 'minimized' as chrome.windows.WindowState }, () => {
+              // Bug Fix #1 & #5: poll until minimized instead of fixed 500ms timeout
+              waitForState('minimized', () => {
                 chrome.desktopCapture.chooseDesktopMedia(
                   ["screen", "window"],
                   activeTab,
                   (streamId) => {
-                    // Restore window to original state
-                    chrome.windows.update(win.id!, {
-                      state: originalState === 'fullscreen' ? 'fullscreen' : 'normal'
-                    });
+                    // Bug Fix #2: restore to original state (including 'maximized')
+                    chrome.windows.update(winId, { state: originalState });
 
                     if (!streamId) {
                       console.log("Capture canceled or failed.");
                       return;
                     }
+
+                    // Bug Fix #4: set stream ID then inject capture script
                     chrome.scripting.executeScript({
                       target: { tabId: activeTab.id! },
-                      func: (id) => { (window as any).LUMOSHOT_STREAM_ID = id; },
+                      func: (id) => {
+                        // Guard: clear any leftover stream ID from a previous run
+                        (window as any).LUMOSHOT_STREAM_ID = id;
+                        (window as any).LUMOSHOT_CAPTURE_RUNNING = false;
+                      },
                       args: [streamId]
                     }, () => {
                       chrome.scripting.executeScript({
@@ -54,22 +78,20 @@ chrome.runtime.onMessage.addListener((message, sender) => {
                     });
                   }
                 );
-              }, 500);
+              });
             });
           };
 
           if (win.state === 'fullscreen') {
-            // Can't go directly from fullscreen to minimized;
-            // exit fullscreen first, then minimize after a delay
-            chrome.windows.update(win.id, { state: 'normal' }, () => {
-              setTimeout(doMinimize, 400);
+            // Bug Fix #5: exit fullscreen then poll until 'normal' before minimizing
+            chrome.windows.update(winId, { state: 'normal' as chrome.windows.WindowState }, () => {
+              waitForState('normal', doMinimize);
             });
           } else {
             doMinimize();
           }
         });
       } else if (mode === 'visible') {
-        // Capture visible tab directly
         chrome.tabs.captureVisibleTab(activeTab.windowId, { format: 'png' }, (dataUrl) => {
           if (chrome.runtime.lastError || !dataUrl) {
             console.error("Failed to capture visible tab:", chrome.runtime.lastError);
@@ -80,12 +102,10 @@ chrome.runtime.onMessage.addListener((message, sender) => {
           });
         });
       } else if (mode === 'selected') {
-        // Inject crop overlayUI
         chrome.scripting.executeScript({
           target: { tabId: activeTab.id! },
           files: ['cropOverlay.js']
         });
-        // We wait for CROP_AREA_SELECTED message
       }
     });
   }
@@ -105,14 +125,9 @@ chrome.runtime.onMessage.addListener((message, sender) => {
           console.error("Failed to capture after crop:", chrome.runtime.lastError);
           return;
         }
-
-        // We need to actually crop the image based on the rect.
-        // We can do this in an Offscreen Document, or send it directly to the Editor
-        // and let the Editor handle the initial crop.
-        // To keep it simple, let's pass the rect to the Editor via storage along with the full image.
         chrome.storage.local.set({
           "capturedImage": dataUrl,
-          "cropRect": rect
+          "cropRect": rect  // already includes devicePixelRatio from cropOverlay.ts
         }, () => {
           chrome.tabs.create({ url: 'editor.html?mode=crop', active: true });
         });
@@ -124,7 +139,6 @@ chrome.runtime.onMessage.addListener((message, sender) => {
     console.log("User canceled crop selection.");
   }
 
-  // Existing callback from capture.js (for desktop mode)
   if (message.type === "CAPTURE_COMPLETE") {
     console.log("Desktop capture complete!");
     chrome.storage.local.set({ "capturedImage": message.dataUrl }, () => {
