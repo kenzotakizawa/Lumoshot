@@ -1643,6 +1643,7 @@ const Editor: React.FC = () => {
                     isDarkMode={isDarkMode}
                     toggleDarkMode={toggleDarkMode}
                     onOpenHelp={() => setIsHelpOpen(true)}
+                    handleCreateBeforeAfter={handleCreateBeforeAfter}
                 />
 
                 {/* Sub-Header Toolbars */}
