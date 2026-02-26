@@ -34,12 +34,15 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
     return (
         <div className="header">
-            <span className="header-title">Lumoshot Editor <span style={{ color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '8px' }}>{status}</span></span>
+            <span className="header-title">
+                <span className="header-title-text">Lumoshot</span>
+                <span className="header-status" style={{ color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '8px' }}>{status}</span>
+            </span>
 
             {/* Zoom Controls */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '13px', flexShrink: 0 }}>
                 <button className="tool-btn" style={{ width: '28px', height: '28px' }} onClick={handleZoomOut}><ZoomOut size={16} /></button>
-                <span>{Math.round(zoomLevel * 100)}%</span>
+                <span className="zoom-label">{Math.round(zoomLevel * 100)}%</span>
                 <button className="tool-btn" style={{ width: '28px', height: '28px' }} onClick={handleZoomIn}><ZoomIn size={16} /></button>
             </div>
 
@@ -51,14 +54,14 @@ const Header: React.FC<HeaderProps> = ({
                 >
                     <Monitor size={16} /> <span className="action-label">{chrome.i18n.getMessage("actionFrame")}</span>
                 </button>
-                <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--border-color)', margin: '0 8px' }} />
+                <div className="header-divider" />
                 <button className="action-btn" onClick={toggleDarkMode} data-tooltip={isDarkMode ? 'Light Mode' : 'Dark Mode'}>
                     {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
                 </button>
                 <button className="action-btn" onClick={onOpenHelp} data-tooltip={chrome.i18n.getMessage("helpTitle")}>
                     <HelpCircle size={16} />
                 </button>
-                <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--border-color)', margin: '0 4px' }} />
+                <div className="header-divider" />
                 <button className="action-btn" onClick={handleUndo} data-tooltip={chrome.i18n.getMessage("actionUndo")}><Undo size={16} /></button>
                 <button className="action-btn" onClick={handleRedo} data-tooltip={chrome.i18n.getMessage("actionRedo")}><Redo size={16} /></button>
                 <button className="action-btn" onClick={handleCopy}><Copy size={16} /> <span className="action-label">{chrome.i18n.getMessage("actionCopy")}</span></button>

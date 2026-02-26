@@ -269,7 +269,18 @@ body {
 
 .header-actions {
     display: flex;
-    gap: 12px;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* Vertical divider inside the header toolbar */
+.header-divider {
+    width: 1px;
+    height: 20px;
+    background-color: var(--border-color);
+    margin: 0 4px;
+    flex-shrink: 0;
 }
 
 .action-btn {
@@ -790,5 +801,45 @@ body {
     to {
         opacity: 1;
         transform: translate(-50%, 0);
+    }
+}
+/* ─── Responsive: Header toolbar ─── */
+
+/* Split-screen / medium widths (~960px): hide text labels, keep icons */
+@media (max-width: 960px) {
+    .action-label {
+        display: none;
+    }
+    .header-actions {
+        gap: 2px;
+    }
+    .header-divider {
+        margin: 0 2px;
+    }
+    .action-btn {
+        padding: 8px 10px;
+    }
+}
+
+/* Narrow (~720px): also hide zoom % and status text */
+@media (max-width: 720px) {
+    .header-status {
+        display: none;
+    }
+    .zoom-label {
+        display: none;
+    }
+    .header {
+        padding: 0 12px;
+    }
+}
+
+/* Very narrow (~600px): further shrink button padding, hide dividers */
+@media (max-width: 600px) {
+    .action-btn {
+        padding: 6px 8px;
+    }
+    .header-divider {
+        display: none;
     }
 }
