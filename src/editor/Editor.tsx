@@ -235,82 +235,6 @@ const Editor: React.FC = () => {
         saveState();
     };
 
-    const handleCreateBeforeAfter = useCallback(() => {
-        const canvas = fabricCanvas.current;
-        if (!canvas) return;
-
-        const activeTarget = canvas.getActiveObject();
-        if (!activeTarget || activeTarget.type !== 'activeSelection') return;
-
-        const activeObjects = (activeTarget as any)._objects;
-        if (!activeObjects || activeObjects.length !== 2) return;
-
-        const imgA = activeObjects[0];
-        const imgB = activeObjects[1];
-
-        const baseWidth = imgA.getScaledWidth();
-        const baseHeight = imgA.getScaledHeight();
-
-        imgB.scaleToWidth(baseWidth);
-        imgB.scaleToHeight(baseHeight);
-
-        const clipRect = new Rect({
-            originX: 'left',
-            originY: 'top',
-            left: -imgB.width! / 2,
-            top: -imgB.height! / 2,
-            width: imgB.width! / 2,
-            height: imgB.height!,
-            absolutePositioned: false
-        });
-        imgB.set({ clipPath: clipRect });
-
-        const sliderLine = new Rect({
-            left: 0,
-            top: 0,
-            originX: 'center',
-            originY: 'center',
-            width: 8,
-            height: baseHeight + 20,
-            fill: '#ffffff',
-            rx: 4,
-            ry: 4,
-            shadow: new Shadow({
-                color: 'rgba(0,0,0,0.5)',
-                blur: 6,
-                offsetX: 0,
-                offsetY: 2
-            }),
-            isSliderLine: true,
-            hoverCursor: 'ew-resize',
-            hasControls: false,
-            hasBorders: false,
-            lockMovementY: true
-        });
-
-        const groupLeft = activeTarget.left;
-        const groupTop = activeTarget.top;
-
-        imgA.set({ left: 0, top: 0, originX: 'center', originY: 'center' });
-        imgB.set({ left: 0, top: 0, originX: 'center', originY: 'center' });
-
-        const beforeAfterGroup = new Group([imgA, imgB, sliderLine], {
-            left: groupLeft,
-            top: groupTop,
-            subTargetCheck: true,
-            // @ts-ignore
-            isBeforeAfter: true,
-            hoverCursor: 'default'
-        });
-
-        canvas.remove(imgA, imgB);
-        canvas.discardActiveObject();
-        canvas.add(beforeAfterGroup);
-        canvas.setActiveObject(beforeAfterGroup);
-
-        saveState();
-    }, [saveState]);
-
     // Initialize custom canvas drawing tools hook
     useCanvasTools(fabricCanvas.current, currentTool, strokeColor, strokeWidth, fontColor, fontSize, blurCanvasRef.current, () => setCurrentTool('select'));
 
@@ -1643,7 +1567,6 @@ const Editor: React.FC = () => {
                     isDarkMode={isDarkMode}
                     toggleDarkMode={toggleDarkMode}
                     onOpenHelp={() => setIsHelpOpen(true)}
-                    handleCreateBeforeAfter={handleCreateBeforeAfter}
                 />
 
                 {/* Sub-Header Toolbars */}
@@ -1701,14 +1624,7 @@ const Editor: React.FC = () => {
                                 }}
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                {contextMenu.target && contextMenu.target.type === 'activeSelection' && contextMenu.target._objects?.length === 2 && contextMenu.target._objects?.every((o: any) => o.type === 'image') && (
-                                    <>
-                                        <div className="context-menu-item" onClick={() => { handleCreateBeforeAfter(); setContextMenu(prev => ({ ...prev, visible: false })); }}>
-                                            {chrome.i18n.getMessage("contextMenuBeforeAfter")}
-                                        </div>
-                                        <div className="context-menu-divider" />
-                                    </>
-                                )}
+
 
                                 {contextMenu.target && (
                                     <>
