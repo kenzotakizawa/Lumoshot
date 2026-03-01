@@ -30,133 +30,319 @@ const Guide: React.FC = () => {
 
             <main className="guide-main">
                 <section className="features-list">
-                    {/* Intro / Hero equivalent */}
                     <div className="release-intro">
                         <h2>{t('10倍速く、明確に伝える', '10x Faster, Crystal Clear')}</h2>
                         <p>
                             {t(
-                                'Lumoshotは、エンジニアやデザイナーがシステムレビューやバグ報告を行うための強力なスクリーンショット拡張機能です。サイドバーやトップバーに配置されている順番に沿って、各機能の特徴を見ていきましょう。',
-                                'Lumoshot is a powerful screenshot extension for engineers and designers to make system reviews and bug reports. Let\'s explore its features in the order they appear on your toolbars.'
+                                'Lumoshotは、システムレビューやバグ報告を行うための強力なスクリーンショット拡張機能です。サイドバーやトップバーに配置されている順番に沿って、全機能を1つずつご紹介します。',
+                                'Lumoshot is a powerful screenshot extension for system reviews and bug reports. Let\'s explore every feature one by one.'
                             )}
                         </p>
                     </div>
 
                     <div className="divider" />
 
-                    {/* Shapes & Bubble Feature */}
+                    {/* 1. 選択ツール */}
                     <article className="feature-section">
-                        <h3>Shapes & Speech Bubble <span className="shortcut-badge">R</span> <span className="shortcut-badge">A</span> <span className="shortcut-badge">B</span></h3>
+                        <h3>{t('選択ツール', 'Select Tool')} <span className="shortcut-badge">V</span></h3>
                         <p>
                             {t(
-                                '四角形や丸角四角形、矢印などの基本的な図形に加え、しっぽ（Tail）のついた吹き出し（Speech Bubble）要素を簡単に作成できます。しっぽの先端にある青い丸をドラッグすれば、指し示す先を自由かつ正確に変更可能です。',
-                                'Easily draw basic shapes like rectangles and arrows, plus text bubbles with customizable tails. Drag the blue control point at the tip to point exactly at the element you are explaining.'
+                                '描画した図形やテキストを選択します。後から何度でも移動・リサイズ・色変更が可能なほか、重なり順（最前面/最背面など）の調整が行えます。',
+                                'Select drawn objects to move, resize, change colors, or adjust their Z-Index.'
                             )}
                         </p>
                         <div className="feature-media-block placeholder">
-                            <p>{t('Shapes & Speech Bubble GIF', 'Shapes & Speech Bubble GIF')}</p>
-                            <small>public/guide/speech-bubble.gif</small>
+                            <p>{t('選択ツールのGIF', 'Select Tool GIF')}</p>
+                            <small>public/guide/tool-select.gif</small>
                         </div>
                     </article>
 
                     <div className="feature-divider" />
 
-                    {/* Text, Steps & Click Icon */}
+                    {/* 2. 四角形 */}
                     <article className="feature-section">
-                        <h3>Text, Steps & Click Icon <span className="shortcut-badge">T</span> <span className="shortcut-badge">C</span></h3>
+                        <h3>{t('四角形', 'Rectangle')} <span className="shortcut-badge">R</span></h3>
                         <p>
                             {t(
-                                '通常のテキスト（Text）や連番スタンプ（Step Number）で手順を示せるほか、マウスカーソルと強調される集中線スタンプを付与するClick Icon機能が備わっています。「ここを左（または右）クリックして」という操作指示が、テキストを書かなくても明確に伝わります。上部ツールバーから左右クリックの切り替えも可能です。',
-                                'Write text, place numbered steps to show workflows, or use the Click Icon tool to place a mouse cursor with dynamic action lines. Instantly conveys "Click Here" without writing any text. Toggle between left and right clicks via the top toolbar.'
+                                '画面上の特定の領域を囲んで強調するための四角形を描画します。線の太さや色は上部ツールバーから簡単に変更できます。',
+                                'Draw a rectangle to highlight specific areas on the screen. Change stroke width and color from the top toolbar.'
                             )}
                         </p>
                         <div className="feature-media-block placeholder">
-                            <p>{t('Click Icon GIF', 'Click Icon GIF')}</p>
-                            <small>public/guide/click-icon.gif</small>
+                            <p>{t('四角形のGIF', 'Rectangle GIF')}</p>
+                            <small>public/guide/tool-rect.gif</small>
                         </div>
                     </article>
 
                     <div className="feature-divider" />
 
-                    {/* Pen & Highlighter */}
+                    {/* 3. 角丸四角形 */}
                     <article className="feature-section">
-                        <h3>Pen & Highlighter <span className="shortcut-badge">P</span></h3>
+                        <h3>{t('角丸四角形', 'Rounded Rectangle')}</h3>
                         <p>
                             {t(
-                                'フリーハンドのペン（Pen）や、半透明のマーカー（Highlighter）機能で、気になった箇所を直感的にマークアップできます。描画した線は滑らかに補正され、見やすい仕上がりになります。',
-                                'Freehand drawing with the Pen tool or translucent marking with the Highlighter tool lets you intuitively mark up areas of interest. Drawn lines are smoothed for a clean look.'
+                                '角が丸い四角形を描画します。モダンなUI要素を囲む際や、柔らかい印象を与えたい場合に最適です。',
+                                'Draw a rectangle with rounded corners, perfect for highlighting modern UI elements with a softer look.'
                             )}
                         </p>
                         <div className="feature-media-block placeholder">
-                            <p>{t('Pen & Highlighter GIF', 'Pen & Highlighter GIF')}</p>
-                            <small>public/guide/draw-tools.gif</small>
+                            <p>{t('角丸四角形のGIF', 'Rounded Rectangle GIF')}</p>
+                            <small>public/guide/tool-rounded-rect.gif</small>
                         </div>
                     </article>
 
                     <div className="feature-divider" />
 
-                    {/* Spotlight & Blur Feature */}
+                    {/* 4. 矢印 */}
                     <article className="feature-section">
-                        <h3>Spotlight & Blur <span className="shortcut-badge">L</span></h3>
+                        <h3>{t('矢印', 'Arrow')} <span className="shortcut-badge">A</span></h3>
                         <p>
                             {t(
-                                '画面全体を暗く落とし、注目してほしい部分だけを綺麗にハイライトするスポットライト（Spotlight）機能です。四角形と楕円形の2種類が用意されており、ドラッグするだけで不要な情報を隠し、レビューアーの視線を瞬時に誘導できます。個人情報を隠すためのモザイク/ぼかし（Blur）機能も搭載しています。',
-                                'The Spotlight tool dims the background and brightly highlights specific areas (rectangular or elliptical). Simply drag to hide unnecessary information and instantly guide the reviewer\'s eyes. A Blur tool is also included to hide personal information.'
+                                '視線を誘導するための美しい矢印を描画します。始点から終点に向かってドラッグするだけで直感的に配置できます。',
+                                'Draw a beautiful arrow to guide the viewer\'s eyes. Simply drag from the start point to the end point.'
                             )}
                         </p>
                         <div className="feature-media-block placeholder">
-                            <p>{t('Spotlight & Blur GIF', 'Spotlight & Blur GIF')}</p>
-                            <small>public/guide/spotlight.gif</small>
+                            <p>{t('矢印のGIF', 'Arrow GIF')}</p>
+                            <small>public/guide/tool-arrow.gif</small>
                         </div>
                     </article>
 
                     <div className="feature-divider" />
 
-                    {/* Media Setup & Canvas Layout */}
+                    {/* 5. 吹き出し */}
                     <article className="feature-section">
-                        <h3>Media Setup & Canvas Layout</h3>
+                        <h3>{t('吹き出し', 'Speech Bubble')} <span className="shortcut-badge">B</span></h3>
                         <p>
                             {t(
-                                '画面キャプチャだけでなく、ローカル画像（Insert Image）を追加したり、Webカメラ（Webcam）からの映像を配置して、顔を出しながらの説明画像を作成できます。全体を見渡して不要な余白を削るクロップ（Crop）や、キャンバスのピクセルサイズ自体を変更するリサイズ（Resize）機能もサイドバー下部に揃っています。',
-                                'Beyond screenshots, you can insert local images or place a webcam feed to create explanations with your face. Tools to crop to remove margins or resize the canvas pixel dimensions are also available at the bottom of the sidebar.'
+                                'しっぽ（Tail）のついた吹き出し要素を作成します。しっぽの先端にある青いコントロールポイントをドラッグして、指し示す先を自由に変更できます。',
+                                'Create a text bubble with a customizable tail. Drag the blue control point to point exactly at what you are explaining.'
                             )}
                         </p>
                         <div className="feature-media-block placeholder">
-                            <p>{t('Media Setup GIF', 'Media Setup GIF')}</p>
-                            <small>public/guide/media-setup.gif</small>
+                            <p>{t('吹き出しのGIF', 'Speech Bubble GIF')}</p>
+                            <small>public/guide/tool-speech-bubble.gif</small>
                         </div>
                     </article>
 
                     <div className="feature-divider" />
 
-                    {/* Advanced Editing (Select Mode) */}
+                    {/* 6. テキスト */}
                     <article className="feature-section">
-                        <h3>Re-editable Objects <span className="shortcut-badge">V</span></h3>
+                        <h3>{t('テキスト', 'Text')} <span className="shortcut-badge">T</span></h3>
                         <p>
                             {t(
-                                '描画した図形やテキストはすべてオブジェクトとして保持されているため、後から再編集可能です。選択ツールで移動・リサイズ・色変更を行ったり、重なり順（Z-Index）の調整を行うことができます。',
-                                'All drawn shapes and text are kept as objects and remain fully editable. Use the Select tool to move, resize, change colors, or adjust the Z-Index of any object at any time.'
+                                'キャンバス上に直接文字を入力します。フォントサイズ、色、太字、斜体、背景色など、上部ツールバーから多彩な装飾が可能です。',
+                                'Type text directly onto the canvas. Adjust font size, color, bold, italic, and background color from the top toolbar.'
                             )}
                         </p>
                         <div className="feature-media-block placeholder">
-                            <p>{t('Editable Features GIF', 'Editable Features GIF')}</p>
-                            <small>public/guide/edit-shapes.gif</small>
+                            <p>{t('テキストのGIF', 'Text GIF')}</p>
+                            <small>public/guide/tool-text.gif</small>
                         </div>
                     </article>
 
                     <div className="feature-divider" />
 
-                    {/* Export capabilities */}
+                    {/* 7. ステップ番号 */}
                     <article className="feature-section">
-                        <h3>Export & Copy <span className="shortcut-badge">Cmd/Ctrl+C</span></h3>
+                        <h3>{t('ステップ番号', 'Step Number')}</h3>
                         <p>
                             {t(
-                                'ヘッダーに配置されたコピーボタンやダウンロードボタンを活用し、完成した画像をワンクリップでクリップボードへ保存。そのままSlackやNotion、GitHubにペーストできます。',
-                                'Use the copy or download buttons on the header to instantly save the finished image to your clipboard. Paste it directly into Slack, GitHub, or Notion.'
+                                'クリックするたびに「1, 2, 3...」とカウントアップする番号スタンプを配置します。操作手順やワークフローを説明する際に非常に便利です。',
+                                'Place a numbered stamp that counts up with each click (1, 2, 3...). Extremely useful for explaining workflows and steps.'
                             )}
                         </p>
                         <div className="feature-media-block placeholder">
-                            <p>{t('Export GIF', 'Export GIF')}</p>
-                            <small>public/guide/export.gif</small>
+                            <p>{t('ステップ番号のGIF', 'Step Number GIF')}</p>
+                            <small>public/guide/tool-step-number.gif</small>
+                        </div>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    {/* 8. クリックアイコン */}
+                    <article className="feature-section">
+                        <h3>{t('クリックアイコン', 'Click Icon')} <span className="shortcut-badge">C</span></h3>
+                        <p>
+                            {t(
+                                'マウスカーソルと強調される集中線スタンプを付与します。「ここを左（右）クリック」という指示がテキスト無しで明確に伝わります。',
+                                'Places a mouse cursor with dynamic action lines. Instantly conveys "Click Here" without writing any text.'
+                            )}
+                        </p>
+                        <div className="feature-media-block placeholder">
+                            <p>{t('クリックアイコンのGIF', 'Click Icon GIF')}</p>
+                            <small>public/guide/tool-click-icon.gif</small>
+                        </div>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    {/* 9. ペン */}
+                    <article className="feature-section">
+                        <h3>{t('ペン', 'Pen')} <span className="shortcut-badge">P</span></h3>
+                        <p>
+                            {t(
+                                'フリーハンドで自由に線を描画します。描いた線は自動で滑らかに補正されるため、マウス操作でも綺麗なマークアップが可能です。',
+                                'Draw freely with your mouse. The drawn lines are automatically smoothed for a clean markup experience.'
+                            )}
+                        </p>
+                        <div className="feature-media-block placeholder">
+                            <p>{t('ペンのGIF', 'Pen GIF')}</p>
+                            <small>public/guide/tool-pen.gif</small>
+                        </div>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    {/* 10. マーカー */}
+                    <article className="feature-section">
+                        <h3>{t('マーカー', 'Highlighter')}</h3>
+                        <p>
+                            {t(
+                                '半透明の太い線を描画します。テキストや特定の要素を、本にマーカーを引くような感覚で目立たせることができます。',
+                                'Draw thick, translucent lines. Perfect for highlighting text or specific elements just like a real highlighter pen.'
+                            )}
+                        </p>
+                        <div className="feature-media-block placeholder">
+                            <p>{t('マーカーのGIF', 'Highlighter GIF')}</p>
+                            <small>public/guide/tool-highlighter.gif</small>
+                        </div>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    {/* 11. スポットライト（四角形・楕円） */}
+                    <article className="feature-section">
+                        <h3>{t('スポットライト', 'Spotlight')} <span className="shortcut-badge">L</span></h3>
+                        <p>
+                            {t(
+                                '画面全体を暗く落とし、ドラッグした部分（四角形または楕円形）だけを明るくハイライトします。不要な情報を隠し、視線を瞬時に誘導できます。',
+                                'Dims the whole screen and brightly highlights only the drawn area (rectangle or ellipse) to instantly guide the reviewer\'s eyes.'
+                            )}
+                        </p>
+                        <div className="feature-media-block placeholder">
+                            <p>{t('スポットライトのGIF', 'Spotlight GIF')}</p>
+                            <small>public/guide/tool-spotlight.gif</small>
+                        </div>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    {/* 12. ぼかし / モザイク */}
+                    <article className="feature-section">
+                        <h3>{t('モザイク / ぼかし', 'Blur')}</h3>
+                        <p>
+                            {t(
+                                '指定した領域に強力なぼかし処理（モザイク）をかけます。個人情報やパスワード、公開できない機密情報を安全に隠すために必須の機能です。',
+                                'Applies a strong blur effect to the specified area. Essential for safely hiding personal information, passwords, or confidential data.'
+                            )}
+                        </p>
+                        <div className="feature-media-block placeholder">
+                            <p>{t('ぼかしのGIF', 'Blur GIF')}</p>
+                            <small>public/guide/tool-blur.gif</small>
+                        </div>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    {/* 13. 画像挿入 */}
+                    <article className="feature-section">
+                        <h3>{t('画像挿入', 'Insert Image')}</h3>
+                        <p>
+                            {t(
+                                'ローカルにある別の画像ファイルをキャンバス上に追加で配置します。参考画像やロゴなどを貼り合わせたい時に使用します。',
+                                'Insert another local image file onto the canvas. Useful for adding reference images or logos to your screenshot.'
+                            )}
+                        </p>
+                        <div className="feature-media-block placeholder">
+                            <p>{t('画像挿入のGIF', 'Insert Image GIF')}</p>
+                            <small>public/guide/tool-insert-image.gif</small>
+                        </div>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    {/* 14. Webカメラ */}
+                    <article className="feature-section">
+                        <h3>{t('Webカメラ', 'Webcam')}</h3>
+                        <p>
+                            {t(
+                                'Webカメラの映像を丸く切り抜いてキャンバスに配置します。顔を出して親しみやすい説明画像（ピクチャーインピクチャー風）を作ることができます。',
+                                'Place a circular cutout of your webcam feed onto the canvas. Create engaging, picture-in-picture style explanations with your face.'
+                            )}
+                        </p>
+                        <div className="feature-media-block placeholder">
+                            <p>{t('WebカメラのGIF', 'Webcam GIF')}</p>
+                            <small>public/guide/tool-webcam.gif</small>
+                        </div>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    {/* 15. リサイズ */}
+                    <article className="feature-section">
+                        <h3>{t('リサイズ', 'Resize')}</h3>
+                        <p>
+                            {t(
+                                'キャンバス（画像）のピクセル寸法自体を変更します。特定の横幅や縦幅のフォーマットに合わせた画像を出力したい場合に便利です。',
+                                'Change the pixel dimensions of the canvas (image). Useful when you need to output an image tailored to specific width or height requirements.'
+                            )}
+                        </p>
+                        <div className="feature-media-block placeholder">
+                            <p>{t('リサイズのGIF', 'Resize GIF')}</p>
+                            <small>public/guide/tool-resize.gif</small>
+                        </div>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    {/* 16. クロップ */}
+                    <article className="feature-section">
+                        <h3>{t('クロップ', 'Crop')}</h3>
+                        <p>
+                            {t(
+                                '画像の不要な余白を切り取ります。ドラッグして必要な部分だけを残し、要点のみが伝わるコンパクトなスクリーンショットに仕上げます。',
+                                'Trim unnecessary margins from the image. Drag to keep only the required parts, making a compact screenshot that conveys just the main point.'
+                            )}
+                        </p>
+                        <div className="feature-media-block placeholder">
+                            <p>{t('クロップのGIF', 'Crop GIF')}</p>
+                            <small>public/guide/tool-crop.gif</small>
+                        </div>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    {/* 17. クリップボードにコピー */}
+                    <article className="feature-section">
+                        <h3>{t('クリップボードにコピー', 'Copy to Clipboard')} <span className="shortcut-badge">Cmd/Ctrl+C</span></h3>
+                        <p>
+                            {t(
+                                'トップバー右側にあるコピーボタン、またはショートカットキーを押すだけで、完成した画像をクリップボードに保存します。そのままSlackやGitHubにペースト可能です。',
+                                'Instantly save the finished image to your clipboard using the copy button on the top right or a shortcut key. Paste the result directly into Slack or GitHub.'
+                            )}
+                        </p>
+                        <div className="feature-media-block placeholder">
+                            <p>{t('コピーのGIF', 'Copy GIF')}</p>
+                            <small>public/guide/tool-copy.gif</small>
+                        </div>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    {/* 18. 画像としてダウンロード */}
+                    <article className="feature-section">
+                        <h3>{t('画像としてダウンロード', 'Download as Image')} <span className="shortcut-badge">Cmd/Ctrl+S</span></h3>
+                        <p>
+                            {t(
+                                '作成した画像をPNGファイルとしてローカルPCにダウンロード保存します。高画質のまま資料などに添付したい時に使用します。',
+                                'Download the created image to your local PC as a PNG file. Use this when you want to attach high-quality images to documents.'
+                            )}
+                        </p>
+                        <div className="feature-media-block placeholder">
+                            <p>{t('ダウンロードのGIF', 'Download GIF')}</p>
+                            <small>public/guide/tool-download.gif</small>
                         </div>
                     </article>
 
