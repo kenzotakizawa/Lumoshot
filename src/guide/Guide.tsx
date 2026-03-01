@@ -29,129 +29,92 @@ const Guide: React.FC = () => {
             </header>
 
             <main className="guide-main">
-                <section className="intro">
-                    <h2>{t('爆速で伝わるスクリーンショット作成ツール', 'Lightning-fast screenshot annotation tool')}</h2>
-                    <p>
-                        {t(
-                            'Lumoshotは、エンジニアやデザイナーが、システムレビューやバグ報告を10倍速く・分かりやすく伝えるために作られたChrome拡張キャプチャツールです。',
-                            'Lumoshot is a Chrome Extension designed to make system reviews, bug reports, and UX feedback 10x faster and clearer.'
-                        )}
-                    </p>
-                </section>
-
-                <div className="divider" />
-
-                <section className="features">
-                    <h2>{t('✨ 主な機能一覧', '✨ Key Features')}</h2>
-                    <div className="features-grid">
-                        {/* Spotlight Feature */}
-                        <div className="feature-grid-card">
-                            <div className="feature-grid-media placeholder">
-                                <p>{t('Spotlight GIF', 'Spotlight GIF')}</p>
-                                <small>public/guide/spotlight.gif</small>
-                            </div>
-                            <div className="feature-grid-content">
-                                <h3>Spotlight <span className="shortcut-badge">L</span></h3>
-                                <p>
-                                    {t(
-                                        '画面全体を暗く落とし、注目してほしい部分だけを綺麗にハイライト。不要な情報を隠し視線を誘導できます。',
-                                        'Dims the background and brightly highlights specific areas. Perfect for guiding the viewer\'s eyes.'
-                                    )}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Click Icon Feature */}
-                        <div className="feature-grid-card">
-                            <div className="feature-grid-media placeholder">
-                                <p>{t('Click Icon GIF', 'Click Icon GIF')}</p>
-                                <small>public/guide/click-icon.gif</small>
-                            </div>
-                            <div className="feature-grid-content">
-                                <h3>Click Icon <span className="shortcut-badge">C</span></h3>
-                                <p>
-                                    {t(
-                                        'マウスカーソルと集中線スタンプを付与。「ここを左/右クリックして」という指示が一目で伝わります。',
-                                        'Places a mouse cursor with action lines. Instantly conveys "Click Here" without writing text.'
-                                    )}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Speech Bubble Feature */}
-                        <div className="feature-grid-card">
-                            <div className="feature-grid-media placeholder">
-                                <p>{t('Speech Bubble GIF', 'Speech Bubble GIF')}</p>
-                                <small>public/guide/speech-bubble.gif</small>
-                            </div>
-                            <div className="feature-grid-content">
-                                <h3>Speech Bubble <span className="shortcut-badge">B</span></h3>
-                                <p>
-                                    {t(
-                                        'しっぽのついた吹き出しを作れます。コントロールポイントをドラッグして、指し示す先を自由に変更可能。',
-                                        'A text bubble with a customizable tail. Drag the control point to point exactly at what you are explaining.'
-                                    )}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Arrow & Pen */}
-                        <div className="feature-grid-card">
-                            <div className="feature-grid-media placeholder">
-                                <p>{t('Arrow & Pen GIF', 'Arrow & Pen GIF')}</p>
-                                <small>public/guide/draw-tools.gif</small>
-                            </div>
-                            <div className="feature-grid-content">
-                                <h3>Arrow & Pen <span className="shortcut-badge">A</span> <span className="shortcut-badge">P</span></h3>
-                                <p>
-                                    {t(
-                                        '美しい矢印と滑らかなフリーハンドペン。線幅や色、透明度もプロパティバーから素早く変更できます。',
-                                        'Beautiful arrows and smooth freehand drawing. Quickly change stroke width and colors from the property bar.'
-                                    )}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Re-editable Shapes */}
-                        <div className="feature-grid-card">
-                            <div className="feature-grid-media placeholder">
-                                <p>{t('Editable GIF', 'Editable GIF')}</p>
-                                <small>public/guide/edit-shapes.gif</small>
-                            </div>
-                            <div className="feature-grid-content">
-                                <h3>Re-editable <span className="shortcut-badge">V</span></h3>
-                                <p>
-                                    {t(
-                                        '描いた図形は後から何度でも移動・リサイズ・色変更が可能。Z-Index（重なり順）の変更にも対応。',
-                                        'All drawn objects remain editable! Use the Select tool to move, resize, change colors, or adjust Z-Index.'
-                                    )}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* High-quality Export */}
-                        <div className="feature-grid-card">
-                            <div className="feature-grid-media placeholder">
-                                <p>{t('Export GIF', 'Export GIF')}</p>
-                                <small>public/guide/export.gif</small>
-                            </div>
-                            <div className="feature-grid-content">
-                                <h3>Quick Export <span className="shortcut-badge">Cmd+C</span></h3>
-                                <p>
-                                    {t(
-                                        '完成した画像はワンクリップでクリップボードへ。そのままSlackやNotion、GitHubにペーストできます。',
-                                        'Instantly copy the finished image to your clipboard and paste it directly into Slack, GitHub, or Notion.'
-                                    )}
-                                </p>
-                            </div>
-                        </div>
+                <section className="features-list">
+                    {/* Intro / Hero equivalent */}
+                    <div className="release-intro">
+                        <h2>{t('10倍速く、明確に伝える', '10x Faster, Crystal Clear')}</h2>
+                        <p>
+                            {t(
+                                'Lumoshotは、エンジニアやデザイナーがシステムレビューやバグ報告を行うための強力なスクリーンショット拡張機能です。VS Codeのリリースノートのように、各機能の特徴を見ていきましょう。',
+                                'Lumoshot is a powerful screenshot extension for engineers and designers to make system reviews and bug reports. Let\'s explore its features, presented in a familiar release-notes style.'
+                            )}
+                        </p>
                     </div>
+
+                    <div className="divider" />
+
+                    {/* Spotlight Feature */}
+                    <article className="feature-section">
+                        <h3>Spotlight <span className="shortcut-badge">L</span></h3>
+                        <p>
+                            {t(
+                                '画面全体を暗く落とし、注目してほしい部分だけを綺麗にハイライトします。ドラッグするだけで不要な情報を隠し、レビューアーの視線を瞬時に誘導できます。複雑なUIの説明に最適です。',
+                                'Dims the background and brightly highlights specific areas. Simply drag to hide unnecessary information and instantly guide the reviewer\'s eyes. Perfect for explaining complex UIs.'
+                            )}
+                        </p>
+                        <div className="feature-media-block placeholder">
+                            <p>{t('Spotlight GIF', 'Spotlight GIF')}</p>
+                            <small>public/guide/spotlight.gif</small>
+                        </div>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    {/* Click Icon Feature */}
+                    <article className="feature-section">
+                        <h3>Click Icon <span className="shortcut-badge">C</span></h3>
+                        <p>
+                            {t(
+                                'マウスカーソルと強調される集中線スタンプをワンクリックで付与。「ここを左（または右）クリックして」という操作指示が、テキストを書かなくても明確に伝わります。上部ツールバーから左右クリックの切り替えも可能です。',
+                                'Places a mouse cursor with dynamic action lines in a single click. Instantly conveys "Click Here" without writing any text. Toggle between left and right clicks via the top toolbar.'
+                            )}
+                        </p>
+                        <div className="feature-media-block placeholder">
+                            <p>{t('Click Icon GIF', 'Click Icon GIF')}</p>
+                            <small>public/guide/click-icon.gif</small>
+                        </div>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    {/* Speech Bubble Feature */}
+                    <article className="feature-section">
+                        <h3>Speech Bubble <span className="shortcut-badge">B</span></h3>
+                        <p>
+                            {t(
+                                'しっぽ（Tail）のついた吹き出し要素を簡単に作成できます。しっぽの先端にある青いコントロールポイントをドラッグすれば、指し示す先を自由かつ正確に変更可能です。',
+                                'Easily create text bubbles with customizable tails. Drag the blue control point at the tip to point exactly at the element you are explaining.'
+                            )}
+                        </p>
+                        <div className="feature-media-block placeholder">
+                            <p>{t('Speech Bubble GIF', 'Speech Bubble GIF')}</p>
+                            <small>public/guide/speech-bubble.gif</small>
+                        </div>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    {/* Advanced Editing */}
+                    <article className="feature-section">
+                        <h3>Re-editable Objects <span className="shortcut-badge">V</span></h3>
+                        <p>
+                            {t(
+                                '描画した図形やテキストは、すべて後から再編集可能です。選択ツールで移動・リサイズ・色変更を行ったり、重なり順（Z-Index）の調整を行うことができます。',
+                                'All drawn shapes and text remain fully editable. Use the Select tool to move, resize, change colors, or adjust the Z-Index of any object at any time.'
+                            )}
+                        </p>
+                        <div className="feature-media-block placeholder">
+                            <p>{t('Editable Features GIF', 'Editable Features GIF')}</p>
+                            <small>public/guide/edit-shapes.gif</small>
+                        </div>
+                    </article>
+
                 </section>
 
                 <div className="divider" />
 
-                <section className="shortcuts">
-                    <h2>{t('💡 プロ向け ショートカット一覧', '💡 Pro Keyboard Shortcuts')}</h2>
+                <section className="shortcuts-section">
+                    <h3>{t('Pro Keyboard Shortcuts', 'Pro Keyboard Shortcuts')}</h3>
                     <div className="table-container">
                         <table>
                             <thead>
