@@ -10,6 +10,7 @@ export default defineConfig({
       input: {
         popup: resolve(__dirname, 'popup.html'),
         editor: resolve(__dirname, 'editor.html'),
+        guide: resolve(__dirname, 'guide.html'),
         background: resolve(__dirname, 'src/background/background.ts'),
         capture: resolve(__dirname, 'src/content/capture.ts'),
         cropOverlay: resolve(__dirname, 'src/content/cropOverlay.ts'),

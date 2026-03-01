@@ -6,7 +6,6 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
 import ResizeModal from './components/ResizeModal';
-import HelpModal from './components/HelpModal';
 import Ruler from './components/Ruler';
 import { Check, X } from 'lucide-react';
 import { initSmartGuides } from './utils/smartGuides';
@@ -44,7 +43,6 @@ const Editor: React.FC = () => {
     const [isBubbleSelected, setIsBubbleSelected] = useState<boolean>(false);
     const [showResizeModal, setShowResizeModal] = useState<boolean>(false);
     const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
-    const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
     const [showRuler, setShowRuler] = useState<boolean>(true);
     const [isCropping, setIsCropping] = useState<boolean>(false);
     const [cropReady, setCropReady] = useState<boolean>(false);
@@ -533,13 +531,7 @@ const Editor: React.FC = () => {
         const params = new URLSearchParams(window.location.search);
         const mode = params.get('mode') || 'capture';
 
-        // Check if this is the first time the user opens the editor
-        chrome.storage.local.get(["hasSeenHelp"], (result) => {
-            if (!result.hasSeenHelp) {
-                setIsHelpOpen(true);
-                chrome.storage.local.set({ hasSeenHelp: true });
-            }
-        });
+
 
         if (mode === 'capture' || mode === 'crop') {
             setStatus("Loading image...");
@@ -1566,7 +1558,7 @@ const Editor: React.FC = () => {
                     handleDownload={handleDownload}
                     isDarkMode={isDarkMode}
                     toggleDarkMode={toggleDarkMode}
-                    onOpenHelp={() => setIsHelpOpen(true)}
+                    onOpenHelp={() => window.open('guide.html', '_blank')}
                 />
 
                 {/* Sub-Header Toolbars */}
@@ -1692,10 +1684,7 @@ const Editor: React.FC = () => {
                 currentHeight={originalSize.current.height}
                 onApply={handleResize}
                 onClose={() => setShowResizeModal(false)}
-            />
-
-            <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
-        </div>
+            />        </div>
     );
 };
 

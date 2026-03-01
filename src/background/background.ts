@@ -1,5 +1,11 @@
 console.log("Lumoshot background script loaded");
 
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === "install") {
+    chrome.tabs.create({ url: "guide.html", active: true });
+  }
+});
+
 chrome.runtime.onMessage.addListener((message, sender) => {
   if (message.type === "OPEN_EDITOR") {
     const mode = message.mode || 'local';
