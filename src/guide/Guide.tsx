@@ -1,5 +1,28 @@
 import React, { useEffect, useState } from 'react';
 
+
+
+const FeatureMedia: React.FC<{ src: string, altJa: string, altEn: string, t: (ja: string, en: string) => string }> = ({ src, altJa, altEn, t }) => {
+    const [error, setError] = React.useState(false);
+
+    if (error) {
+        return (
+            <div className="feature-media-block placeholder">
+                <p>{t(altJa, altEn)}</p>
+                <small>public{src}</small>
+            </div>
+        );
+    }
+
+    return (
+        <React.Fragment>
+            <div className="feature-media-block">
+                <img src={src} alt={t(altJa, altEn)} onError={() => setError(true)} />
+            </div>
+        </React.Fragment>
+    );
+};
+
 const Guide: React.FC = () => {
     const [lang, setLang] = useState<'ja' | 'en'>('ja');
 
@@ -51,10 +74,7 @@ const Guide: React.FC = () => {
                                 'Select drawn objects to move, resize, change colors, or adjust their Z-Index.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('選択ツールのGIF', 'Select Tool GIF')}</p>
-                            <small>public/guide/tool-select.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-select.gif" altJa="選択ツールのGIF" altEn="Select Tool GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -68,10 +88,7 @@ const Guide: React.FC = () => {
                                 'Draw a rectangle to highlight specific areas on the screen. Change stroke width and color from the top toolbar.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('四角形のGIF', 'Rectangle GIF')}</p>
-                            <small>public/guide/tool-rect.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-rect.gif" altJa="四角形のGIF" altEn="Rectangle GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -85,10 +102,7 @@ const Guide: React.FC = () => {
                                 'Draw a rectangle with rounded corners, perfect for highlighting modern UI elements with a softer look.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('角丸四角形のGIF', 'Rounded Rectangle GIF')}</p>
-                            <small>public/guide/tool-rounded-rect.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-rounded-rect.gif" altJa="角丸四角形のGIF" altEn="Rounded Rectangle GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -102,10 +116,7 @@ const Guide: React.FC = () => {
                                 'Draw a beautiful arrow to guide the viewer\'s eyes. Simply drag from the start point to the end point.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('矢印のGIF', 'Arrow GIF')}</p>
-                            <small>public/guide/tool-arrow.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-arrow.gif" altJa="矢印のGIF" altEn="Arrow GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -119,10 +130,7 @@ const Guide: React.FC = () => {
                                 'Create a text bubble with a customizable tail. Drag the blue control point to point exactly at what you are explaining.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('吹き出しのGIF', 'Speech Bubble GIF')}</p>
-                            <small>public/guide/tool-speech-bubble.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-speech-bubble.gif" altJa="吹き出しのGIF" altEn="Speech Bubble GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -136,10 +144,7 @@ const Guide: React.FC = () => {
                                 'Type text directly onto the canvas. Adjust font size, color, bold, italic, and background color from the top toolbar.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('テキストのGIF', 'Text GIF')}</p>
-                            <small>public/guide/tool-text.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-text.gif" altJa="テキストのGIF" altEn="Text GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -153,10 +158,7 @@ const Guide: React.FC = () => {
                                 'Place a numbered stamp that counts up with each click (1, 2, 3...). Extremely useful for explaining workflows and steps.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('ステップ番号のGIF', 'Step Number GIF')}</p>
-                            <small>public/guide/tool-step-number.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-step-number.gif" altJa="ステップ番号のGIF" altEn="Step Number GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -170,10 +172,7 @@ const Guide: React.FC = () => {
                                 'Places a mouse cursor with dynamic action lines. Instantly conveys "Click Here" without writing any text.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('クリックアイコンのGIF', 'Click Icon GIF')}</p>
-                            <small>public/guide/tool-click-icon.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-click-icon.gif" altJa="クリックアイコンのGIF" altEn="Click Icon GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -187,10 +186,7 @@ const Guide: React.FC = () => {
                                 'Draw freely with your mouse. The drawn lines are automatically smoothed for a clean markup experience.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('ペンのGIF', 'Pen GIF')}</p>
-                            <small>public/guide/tool-pen.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-pen.gif" altJa="ペンのGIF" altEn="Pen GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -204,10 +200,7 @@ const Guide: React.FC = () => {
                                 'Draw thick, translucent lines. Perfect for highlighting text or specific elements just like a real highlighter pen.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('マーカーのGIF', 'Highlighter GIF')}</p>
-                            <small>public/guide/tool-highlighter.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-highlighter.gif" altJa="マーカーのGIF" altEn="Highlighter GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -221,10 +214,7 @@ const Guide: React.FC = () => {
                                 'Dims the whole screen and brightly highlights only the drawn area (rectangle or ellipse) to instantly guide the reviewer\'s eyes.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('スポットライトのGIF', 'Spotlight GIF')}</p>
-                            <small>public/guide/tool-spotlight.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-spotlight.gif" altJa="スポットライトのGIF" altEn="Spotlight GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -238,10 +228,7 @@ const Guide: React.FC = () => {
                                 'Applies a strong blur effect to the specified area. Essential for safely hiding personal information, passwords, or confidential data.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('ぼかしのGIF', 'Blur GIF')}</p>
-                            <small>public/guide/tool-blur.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-blur.gif" altJa="ぼかしのGIF" altEn="Blur GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -255,10 +242,7 @@ const Guide: React.FC = () => {
                                 'Insert another local image file onto the canvas. Useful for adding reference images or logos to your screenshot.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('画像挿入のGIF', 'Insert Image GIF')}</p>
-                            <small>public/guide/tool-insert-image.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-insert-image.gif" altJa="画像挿入のGIF" altEn="Insert Image GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -272,10 +256,7 @@ const Guide: React.FC = () => {
                                 'Place a circular cutout of your webcam feed onto the canvas. Create engaging, picture-in-picture style explanations with your face.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('WebカメラのGIF', 'Webcam GIF')}</p>
-                            <small>public/guide/tool-webcam.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-webcam.gif" altJa="WebカメラのGIF" altEn="Webcam GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -289,10 +270,7 @@ const Guide: React.FC = () => {
                                 'Change the pixel dimensions of the canvas (image). Useful when you need to output an image tailored to specific width or height requirements.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('リサイズのGIF', 'Resize GIF')}</p>
-                            <small>public/guide/tool-resize.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-resize.gif" altJa="リサイズのGIF" altEn="Resize GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -306,10 +284,7 @@ const Guide: React.FC = () => {
                                 'Trim unnecessary margins from the image. Drag to keep only the required parts, making a compact screenshot that conveys just the main point.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('クロップのGIF', 'Crop GIF')}</p>
-                            <small>public/guide/tool-crop.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-crop.gif" altJa="クロップのGIF" altEn="Crop GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -323,10 +298,7 @@ const Guide: React.FC = () => {
                                 'Instantly save the finished image to your clipboard using the copy button on the top right or a shortcut key. Paste the result directly into Slack or GitHub.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('コピーのGIF', 'Copy GIF')}</p>
-                            <small>public/guide/tool-copy.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-copy.gif" altJa="コピーのGIF" altEn="Copy GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -340,10 +312,7 @@ const Guide: React.FC = () => {
                                 'Download the created image to your local PC as a PNG file. Use this when you want to attach high-quality images to documents.'
                             )}
                         </p>
-                        <div className="feature-media-block placeholder">
-                            <p>{t('ダウンロードのGIF', 'Download GIF')}</p>
-                            <small>public/guide/tool-download.gif</small>
-                        </div>
+                        <FeatureMedia src="/guide/tool-download.gif" altJa="ダウンロードのGIF" altEn="Download GIF" t={t} />
                     </article>
 
                 </section>
