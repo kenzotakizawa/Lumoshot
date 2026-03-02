@@ -65,20 +65,6 @@ const Guide: React.FC = () => {
 
                     <div className="divider" />
 
-                    {/* 1. 選択ツール */}
-                    <article className="feature-section">
-                        <h3>{t('選択ツール', 'Select Tool')} <span className="shortcut-badge">V</span></h3>
-                        <p>
-                            {t(
-                                '描画した図形やテキストを選択します。後から何度でも移動・リサイズ・色変更が可能なほか、重なり順（最前面/最背面など）の調整が行えます。',
-                                'Select drawn objects to move, resize, change colors, or adjust their Z-Index.'
-                            )}
-                        </p>
-                        <FeatureMedia src="/guide/tool-select.gif" altJa="選択ツールのGIF" altEn="Select Tool GIF" t={t} />
-                    </article>
-
-                    <div className="feature-divider" />
-
                     {/* 2. 四角形 */}
                     <article className="feature-section">
                         <h3>{t('四角形', 'Rectangle')} <span className="shortcut-badge">R</span></h3>
@@ -233,89 +219,7 @@ const Guide: React.FC = () => {
 
                     <div className="feature-divider" />
 
-                    {/* 13. 画像挿入 */}
-                    <article className="feature-section">
-                        <h3>{t('画像挿入', 'Insert Image')}</h3>
-                        <p>
-                            {t(
-                                'ローカルにある別の画像ファイルをキャンバス上に追加で配置します。参考画像やロゴなどを貼り合わせたい時に使用します。',
-                                'Insert another local image file onto the canvas. Useful for adding reference images or logos to your screenshot.'
-                            )}
-                        </p>
-                        <FeatureMedia src="/guide/tool-insert-image.gif" altJa="画像挿入のGIF" altEn="Insert Image GIF" t={t} />
-                    </article>
-
-                    <div className="feature-divider" />
-
-                    {/* 14. Webカメラ */}
-                    <article className="feature-section">
-                        <h3>{t('Webカメラ', 'Webcam')}</h3>
-                        <p>
-                            {t(
-                                'Webカメラの映像を丸く切り抜いてキャンバスに配置します。顔を出して親しみやすい説明画像（ピクチャーインピクチャー風）を作ることができます。',
-                                'Place a circular cutout of your webcam feed onto the canvas. Create engaging, picture-in-picture style explanations with your face.'
-                            )}
-                        </p>
-                        <FeatureMedia src="/guide/tool-webcam.gif" altJa="WebカメラのGIF" altEn="Webcam GIF" t={t} />
-                    </article>
-
-                    <div className="feature-divider" />
-
-                    {/* 15. リサイズ */}
-                    <article className="feature-section">
-                        <h3>{t('リサイズ', 'Resize')}</h3>
-                        <p>
-                            {t(
-                                'キャンバス（画像）のピクセル寸法自体を変更します。特定の横幅や縦幅のフォーマットに合わせた画像を出力したい場合に便利です。',
-                                'Change the pixel dimensions of the canvas (image). Useful when you need to output an image tailored to specific width or height requirements.'
-                            )}
-                        </p>
-                        <FeatureMedia src="/guide/tool-resize.gif" altJa="リサイズのGIF" altEn="Resize GIF" t={t} />
-                    </article>
-
-                    <div className="feature-divider" />
-
-                    {/* 16. クロップ */}
-                    <article className="feature-section">
-                        <h3>{t('クロップ', 'Crop')}</h3>
-                        <p>
-                            {t(
-                                '画像の不要な余白を切り取ります。ドラッグして必要な部分だけを残し、要点のみが伝わるコンパクトなスクリーンショットに仕上げます。',
-                                'Trim unnecessary margins from the image. Drag to keep only the required parts, making a compact screenshot that conveys just the main point.'
-                            )}
-                        </p>
-                        <FeatureMedia src="/guide/tool-crop.gif" altJa="クロップのGIF" altEn="Crop GIF" t={t} />
-                    </article>
-
-                    <div className="feature-divider" />
-
-                    {/* 17. クリップボードにコピー */}
-                    <article className="feature-section">
-                        <h3>{t('クリップボードにコピー', 'Copy to Clipboard')} <span className="shortcut-badge">Cmd/Ctrl+C</span></h3>
-                        <p>
-                            {t(
-                                'トップバー右側にあるコピーボタン、またはショートカットキーを押すだけで、完成した画像をクリップボードに保存します。そのままSlackやGitHubにペースト可能です。',
-                                'Instantly save the finished image to your clipboard using the copy button on the top right or a shortcut key. Paste the result directly into Slack or GitHub.'
-                            )}
-                        </p>
-                        <FeatureMedia src="/guide/tool-copy.gif" altJa="コピーのGIF" altEn="Copy GIF" t={t} />
-                    </article>
-
-                    <div className="feature-divider" />
-
-                    {/* 18. 画像としてダウンロード */}
-                    <article className="feature-section">
-                        <h3>{t('画像としてダウンロード', 'Download as Image')} <span className="shortcut-badge">Cmd/Ctrl+S</span></h3>
-                        <p>
-                            {t(
-                                '作成した画像をPNGファイルとしてローカルPCにダウンロード保存します。高画質のまま資料などに添付したい時に使用します。',
-                                'Download the created image to your local PC as a PNG file. Use this when you want to attach high-quality images to documents.'
-                            )}
-                        </p>
-                        <FeatureMedia src="/guide/tool-download.gif" altJa="ダウンロードのGIF" altEn="Download GIF" t={t} />
-                    </article>
-
-                </section>
+                    </section>
 
                 <div className="divider" />
 

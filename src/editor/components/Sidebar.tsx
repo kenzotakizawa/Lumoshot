@@ -2,7 +2,7 @@ import React from 'react';
 import {
     MousePointer2, Square, ArrowUpRight, Type,
     Focus, Circle, Droplet, ListOrdered, PenTool, Highlighter, MessageSquare, Mouse,
-    Image as ImageIcon, Video, Scaling, Crop
+    Image as ImageIcon, Scaling, Crop
 } from 'lucide-react';
 import type { ToolType } from '../hooks/useCanvasTools';
 
@@ -12,7 +12,6 @@ interface SidebarProps {
     strokeWidth: number;
     setStrokeWidth: (width: number) => void;
     fileInputRef: React.RefObject<HTMLInputElement | null>;
-    handleAddWebcam: () => void;
     onOpenResize: () => void;
     onStartCrop: () => void;
     isCropping: boolean;
@@ -20,10 +19,10 @@ interface SidebarProps {
 
 /* ─── Tool definitions grouped by functional similarity ─── */
 interface ToolDef {
-    id: ToolType | 'resize' | 'crop' | 'insert-image' | 'webcam' | 'click-icon';
+    id: ToolType | 'resize' | 'crop' | 'insert-image' | 'click-icon';
     icon: React.ReactNode;
     i18nKey: string;
-    action?: 'tool' | 'resize' | 'crop' | 'image' | 'webcam';
+    action?: 'tool' | 'resize' | 'crop' | 'image';
     setStrokeWidth?: number;
     resetStrokeIfThick?: boolean;
 }
@@ -54,9 +53,6 @@ const TOOL_GROUPS: ToolDef[][] = [
     ],
     [
         { id: 'insert-image', icon: <ImageIcon size={20} />, i18nKey: 'toolInsertImage', action: 'image' },
-        { id: 'webcam', icon: <Video size={20} />, i18nKey: 'toolWebcam', action: 'webcam' },
-    ],
-    [
         { id: 'resize', icon: <Scaling size={20} />, i18nKey: 'toolResize', action: 'resize' },
         { id: 'crop', icon: <Crop size={20} />, i18nKey: 'toolCrop', action: 'crop' },
     ],
@@ -64,14 +60,13 @@ const TOOL_GROUPS: ToolDef[][] = [
 
 const Sidebar: React.FC<SidebarProps> = ({
     currentTool, setCurrentTool, strokeWidth, setStrokeWidth,
-    fileInputRef, handleAddWebcam, onOpenResize, onStartCrop, isCropping
+    fileInputRef, onOpenResize, onStartCrop, isCropping
 }) => {
     const handleClick = (def: ToolDef) => {
         switch (def.action) {
             case 'resize': onOpenResize(); return;
             case 'crop': onStartCrop(); return;
             case 'image': fileInputRef.current?.click(); return;
-            case 'webcam': handleAddWebcam(); return;
         }
         const toolId = def.id as ToolType;
         setCurrentTool(toolId);

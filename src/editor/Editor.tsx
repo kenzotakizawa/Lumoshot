@@ -1228,64 +1228,6 @@ const Editor: React.FC = () => {
         reader.readAsDataURL(file);
     };
 
-    const handleAddWebcam = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-            const videoEl = document.createElement('video');
-            videoEl.srcObject = stream;
-            videoEl.autoplay = true;
-            videoEl.muted = true;
-
-            videoEl.onloadedmetadata = () => {
-                videoEl.play();
-                const canvas = fabricCanvas.current;
-                if (!canvas) return;
-
-                const img = new FabricImage(videoEl, {
-                    left: canvas.getCenterPoint().x,
-                    top: canvas.getCenterPoint().y,
-                    originX: 'center',
-                    originY: 'center',
-                    objectCaching: false,
-                    cornerStyle: 'circle',
-                    transparentCorners: false,
-                    borderColor: '#0066ff',
-                    cornerColor: '#ffffff',
-                    cornerStrokeColor: '#0066ff'
-                });
-
-                const maxDim = 300;
-                if (img.width! > maxDim || img.height! > maxDim) {
-                    const scale = Math.min(maxDim / img.width!, maxDim / img.height!);
-                    img.scale(scale);
-                }
-
-                canvas.add(img);
-                canvas.setActiveObject(img);
-
-                // Animation loop to redraw canvas while video is playing
-                const renderLoop = () => {
-                    if (canvas.getObjects().indexOf(img) === -1) {
-                        // Image was deleted
-                        stream.getTracks().forEach(t => t.stop());
-                        return;
-                    }
-                    if (img.getElement() !== videoEl) {
-                        img.setElement(videoEl);
-                    }
-                    canvas.requestRenderAll();
-                    window.requestAnimationFrame(renderLoop);
-                };
-                window.requestAnimationFrame(renderLoop);
-                saveState();
-            };
-        } catch (err) {
-            console.error("Failed to access webcam", err);
-            setStatus("Webcam Error");
-            setTimeout(() => setStatus("Ready"), 2000);
-        }
-    };
-
 
     // ─── Resize Handler ────────────────────────────────────────
     const handleResize = (newWidth: number, newHeight: number) => {
@@ -1529,7 +1471,6 @@ const Editor: React.FC = () => {
                 strokeWidth={strokeWidth}
                 setStrokeWidth={setStrokeWidth}
                 fileInputRef={fileInputRef}
-                handleAddWebcam={handleAddWebcam}
                 onOpenResize={() => setShowResizeModal(true)}
                 onStartCrop={startCrop}
                 isCropping={isCropping}
