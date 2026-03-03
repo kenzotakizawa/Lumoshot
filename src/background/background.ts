@@ -92,12 +92,17 @@ chrome.runtime.onMessage.addListener((message, sender) => {
         });
 
       } else if (mode === 'visible') {
-        chrome.tabs.captureVisibleTab(activeTab.windowId, { format: 'png' }, (dataUrl) => {
-          if (chrome.runtime.lastError || !dataUrl) return;
-          chrome.storage.local.set({ "capturedImage": dataUrl }, () => {
-            chrome.tabs.create({ url: 'editor.html?mode=capture', active: true });
+        setTimeout(() => {
+          chrome.tabs.captureVisibleTab(activeTab.windowId, { format: 'png' }, (dataUrl) => {
+            if (chrome.runtime.lastError || !dataUrl) {
+              console.error("Visible tab capture failed:", chrome.runtime.lastError);
+              return;
+            }
+            chrome.storage.local.set({ "capturedImage": dataUrl }, () => {
+              chrome.tabs.create({ url: 'editor.html?mode=capture', active: true });
+            });
           });
-        });
+        }, 300);
 
       } else if (mode === 'selected') {
         chrome.scripting.executeScript({
