@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
     Monitor,
     AppWindow,
@@ -12,6 +12,19 @@ import './Popup.css';
 const Popup: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [overrideMessages, setOverrideMessages] = useState<Record<string, { message: string }> | null>(null);
+
+    useEffect(() => {
+        // Allow forcing English UI via URL parameter like ?lang=en
+        const params = new URLSearchParams(window.location.search);
+        const forceLang = params.get('lang');
+        if (forceLang) {
+            fetch(`/_locales/${forceLang}/messages.json`)
+                .then(res => res.json())
+                .then(data => setOverrideMessages(data))
+                .catch(err => console.error("Failed to load forced locale:", err));
+        }
+    }, []);
 
     const handleAction = (actionType: string) => {
         chrome.runtime.sendMessage({ type: "START_CAPTURE", captureMode: actionType });
@@ -69,7 +82,12 @@ const Popup: React.FC = () => {
         }
     };
 
-    const t = (key: string) => chrome.i18n.getMessage(key) || key;
+    const t = (key: string) => {
+        if (overrideMessages && overrideMessages[key]) {
+            return overrideMessages[key].message;
+        }
+        return chrome.i18n.getMessage(key) || key;
+    };
 
     return (
         <div className="popup-container">
