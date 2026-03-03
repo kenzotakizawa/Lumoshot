@@ -38,7 +38,7 @@ Lumoshot（以下「本拡張機能」）は、ユーザーのプライバシー
 ### 6. お問い合わせ
 本プライバシーポリシーに関するご質問や、不具合の報告につきましては、以下のGitHub Issuesまでお願いいたします。
 
-* **GitHub Issues:** [https://github.com/takukimatsuda/Lumoshot/issues](https://github.com/takukimatsuda/Lumoshot/issues)
+* **GitHub Issues:** [https://github.com/kenzotakizawa/Lumoshot/issues](https://github.com/kenzotakizawa/Lumoshot/issues)
 
 ---
 
@@ -75,4 +75,4 @@ The developer shall not be held liable for any damages (including data loss or b
 ### 6. Contact Information
 If you have any questions regarding this Privacy Policy or wish to report a bug, please contact us via GitHub Issues:
 
-* **GitHub Issues:** [https://github.com/takukimatsuda/Lumoshot/issues](https://github.com/takukimatsuda/Lumoshot/issues)
+* **GitHub Issues:** [https://github.com/kenzotakizawa/Lumoshot/issues](https://github.com/kenzotakizawa/Lumoshot/issues)
