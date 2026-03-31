@@ -58,7 +58,7 @@ const SubHeader: React.FC<SubHeaderProps> = ({
     handleToggleRuler
 }) => {
     return (
-        <div style={{ position: 'absolute', top: '80px', left: '88px', right: '16px', zIndex: 100, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {/* Sub-Header Toolbar (Alignment) */}
             {currentTool === 'select' && isMultiSelection && (
                 <div className="sub-header" style={{

@@ -1485,8 +1485,17 @@ const Editor: React.FC = () => {
                     accept="image/*"
                     onChange={handleImageUpload}
                 />
-                {/* Header Actions */}
-                <Header
+                
+                {/* Top Bars Container (Fixed layout to avoid canvas overlap) */}
+                <div style={{
+                    padding: '16px 16px 16px 0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    zIndex: 100,
+                    flexShrink: 0
+                }}>
+                    <Header
                     status={status}
                     zoomLevel={zoomLevel}
                     handleZoomIn={handleZoomIn}
@@ -1529,6 +1538,7 @@ const Editor: React.FC = () => {
                     showRuler={showRuler}
                     handleToggleRuler={() => setShowRuler(!showRuler)}
                 />
+                </div>
 
                 {/* Canvas Area with Ruler Support */}
                 <div style={{ position: 'relative', flex: 1, display: 'flex', borderRadius: '16px', overflow: 'hidden' }}>

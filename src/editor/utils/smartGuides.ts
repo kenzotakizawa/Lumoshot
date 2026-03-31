@@ -25,6 +25,9 @@ export const initSmartGuides = (canvas: Canvas) => {
         // Skip snapping if background or if multiple objects are selected
         if (activeObject.type === 'activeSelection') return;
 
+        // For step numbers, we want a stronger, magnetic "snap" feeling
+        const currentSnapDist = activeObject.get('isStepNumber') ? 12 : snapDistance;
+
         // Find reference objects
         const referenceObjects = canvas.getObjects().filter(o =>
             o !== activeObject &&
@@ -63,19 +66,19 @@ export const initSmartGuides = (canvas: Canvas) => {
 
             // X-Axis Alignment
             if (snapX === null) {
-                if (Math.abs(aC - oC) < snapDistance) {
+                if (Math.abs(aC - oC) < currentSnapDist) {
                     snapX = oC - activeBounds.width / 2;
                     linesToDraw.push({ x: oC, type: 'y' });
-                } else if (Math.abs(aL - oL) < snapDistance) {
+                } else if (Math.abs(aL - oL) < currentSnapDist) {
                     snapX = oL;
                     linesToDraw.push({ x: oL, type: 'y' });
-                } else if (Math.abs(aR - oR) < snapDistance) {
+                } else if (Math.abs(aR - oR) < currentSnapDist) {
                     snapX = oR - activeBounds.width;
                     linesToDraw.push({ x: oR, type: 'y' });
-                } else if (Math.abs(aL - oR) < snapDistance) {
+                } else if (Math.abs(aL - oR) < currentSnapDist) {
                     snapX = oR;
                     linesToDraw.push({ x: oR, type: 'y' });
-                } else if (Math.abs(aR - oL) < snapDistance) {
+                } else if (Math.abs(aR - oL) < currentSnapDist) {
                     snapX = oL - activeBounds.width;
                     linesToDraw.push({ x: oL, type: 'y' });
                 }
@@ -83,19 +86,19 @@ export const initSmartGuides = (canvas: Canvas) => {
 
             // Y-Axis Alignment
             if (snapY === null) {
-                if (Math.abs(aM - oM) < snapDistance) {
+                if (Math.abs(aM - oM) < currentSnapDist) {
                     snapY = oM - activeBounds.height / 2;
                     linesToDraw.push({ y: oM, type: 'x' });
-                } else if (Math.abs(aT - oT) < snapDistance) {
+                } else if (Math.abs(aT - oT) < currentSnapDist) {
                     snapY = oT;
                     linesToDraw.push({ y: oT, type: 'x' });
-                } else if (Math.abs(aB - oB) < snapDistance) {
+                } else if (Math.abs(aB - oB) < currentSnapDist) {
                     snapY = oB - activeBounds.height;
                     linesToDraw.push({ y: oB, type: 'x' });
-                } else if (Math.abs(aT - oB) < snapDistance) {
+                } else if (Math.abs(aT - oB) < currentSnapDist) {
                     snapY = oB;
                     linesToDraw.push({ y: oB, type: 'x' });
-                } else if (Math.abs(aB - oT) < snapDistance) {
+                } else if (Math.abs(aB - oT) < currentSnapDist) {
                     snapY = oT - activeBounds.height;
                     linesToDraw.push({ y: oT, type: 'x' });
                 }
@@ -182,7 +185,7 @@ export const initSmartGuides = (canvas: Canvas) => {
 
                         // Active is Right of rightObj
                         const expectedRightLeft = rightObj.left + rightObj.width + gap;
-                        if (Math.abs(aL - expectedRightLeft) < snapDistance) {
+                        if (Math.abs(aL - expectedRightLeft) < currentSnapDist) {
                             snapX = expectedRightLeft - aL + aL; // Simplify: snapX = expectedRightLeft
                             // Add gap indicators
                             addGapIndicator({ x1: leftObj.left + leftObj.width, x2: rightObj.left, gap, coord: leftObj.top + leftObj.height / 2, dir: 'horizontal' });
@@ -191,7 +194,7 @@ export const initSmartGuides = (canvas: Canvas) => {
 
                         // Active is Left of leftObj
                         const expectedLeftRight = leftObj.left - gap - activeBounds.width;
-                        if (Math.abs(aL - expectedLeftRight) < snapDistance) {
+                        if (Math.abs(aL - expectedLeftRight) < currentSnapDist) {
                             snapX = expectedLeftRight;
                             addGapIndicator({ x1: expectedLeftRight + activeBounds.width, x2: leftObj.left, gap, coord: leftObj.top + leftObj.height / 2, dir: 'horizontal' });
                             addGapIndicator({ x1: leftObj.left + leftObj.width, x2: rightObj.left, gap, coord: leftObj.top + leftObj.height / 2, dir: 'horizontal' });
@@ -216,7 +219,7 @@ export const initSmartGuides = (canvas: Canvas) => {
 
                         // Active is Below bottomObj
                         const expectedBelowTop = bottomObj.top + bottomObj.height + gap;
-                        if (Math.abs(aT - expectedBelowTop) < snapDistance) {
+                        if (Math.abs(aT - expectedBelowTop) < currentSnapDist) {
                             snapY = expectedBelowTop;
                             addGapIndicator({ y1: topObj.top + topObj.height, y2: bottomObj.top, gap, coord: topObj.left + topObj.width / 2, dir: 'vertical' });
                             addGapIndicator({ y1: bottomObj.top + bottomObj.height, y2: expectedBelowTop, gap, coord: topObj.left + topObj.width / 2, dir: 'vertical' });
@@ -224,7 +227,7 @@ export const initSmartGuides = (canvas: Canvas) => {
 
                         // Active is Above topObj
                         const expectedAboveBottom = topObj.top - gap - activeBounds.height;
-                        if (Math.abs(aT - expectedAboveBottom) < snapDistance) {
+                        if (Math.abs(aT - expectedAboveBottom) < currentSnapDist) {
                             snapY = expectedAboveBottom;
                             addGapIndicator({ y1: expectedAboveBottom + activeBounds.height, y2: topObj.top, gap, coord: topObj.left + topObj.width / 2, dir: 'vertical' });
                             addGapIndicator({ y1: topObj.top + topObj.height, y2: bottomObj.top, gap, coord: topObj.left + topObj.width / 2, dir: 'vertical' });

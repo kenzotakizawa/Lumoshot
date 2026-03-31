@@ -26,9 +26,14 @@ const Popup: React.FC = () => {
         }
     }, []);
 
-    const handleAction = (actionType: string) => {
-        chrome.runtime.sendMessage({ type: "START_CAPTURE", captureMode: actionType });
-        window.close();
+    const handleAction = async (actionType: string) => {
+        try {
+            await chrome.runtime.sendMessage({ type: "START_CAPTURE", captureMode: actionType });
+        } catch (e) {
+            console.error(e);
+        } finally {
+            window.close();
+        }
     };
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,9 +42,14 @@ const Popup: React.FC = () => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const dataUrl = e.target?.result as string;
-                chrome.storage.local.set({ "capturedImage": dataUrl }, () => {
-                    chrome.runtime.sendMessage({ type: "OPEN_EDITOR", mode: "capture" });
-                    window.close();
+                chrome.storage.local.set({ "capturedImage": dataUrl }, async () => {
+                    try {
+                        await chrome.runtime.sendMessage({ type: "OPEN_EDITOR", mode: "capture" });
+                    } catch (e) {
+                        console.error(e);
+                    } finally {
+                        window.close();
+                    }
                 });
             };
             reader.readAsDataURL(file);
@@ -60,9 +70,14 @@ const Popup: React.FC = () => {
                         const reader = new FileReader();
                         reader.onload = (e) => {
                             const dataUrl = e.target?.result as string;
-                            chrome.storage.local.set({ "capturedImage": dataUrl }, () => {
-                                chrome.runtime.sendMessage({ type: "OPEN_EDITOR", mode: "capture" });
-                                window.close();
+                            chrome.storage.local.set({ "capturedImage": dataUrl }, async () => {
+                                try {
+                                    await chrome.runtime.sendMessage({ type: "OPEN_EDITOR", mode: "capture" });
+                                } catch (e) {
+                                    console.error(e);
+                                } finally {
+                                    window.close();
+                                }
                             });
                         };
                         reader.readAsDataURL(blob);

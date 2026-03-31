@@ -34,9 +34,36 @@ export function stepNumberMouseDown(
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
     });
 
+    const SNAP_TOLERANCE = 15;
+    let finalX = pointer.x;
+    let finalY = pointer.y;
+
+    if (stepObjects.length > 0) {
+        let minDx = SNAP_TOLERANCE;
+        let minDy = SNAP_TOLERANCE;
+
+        stepObjects.forEach((obj: any) => {
+            // Because originX/Y is 'center', left/top represents the exact center of the badge
+            const objX = obj.left ?? 0;
+            const objY = obj.top ?? 0;
+            
+            const dx = Math.abs(objX - pointer.x);
+            if (dx < minDx) {
+                minDx = dx;
+                finalX = objX;
+            }
+            
+            const dy = Math.abs(objY - pointer.y);
+            if (dy < minDy) {
+                minDy = dy;
+                finalY = objY;
+            }
+        });
+    }
+
     const group = new Group([circle, text], {
-        left: pointer.x,
-        top: pointer.y,
+        left: finalX,
+        top: finalY,
         originX: 'center',
         originY: 'center',
         ...controlConfig

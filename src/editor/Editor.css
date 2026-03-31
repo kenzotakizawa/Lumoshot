@@ -61,6 +61,8 @@ body {
     background-color: var(--bg-primary);
     position: relative;
     overflow: hidden;
+    padding-left: 88px;
+    box-sizing: border-box;
 }
 
 /* Floating Sidebar */
@@ -71,7 +73,7 @@ body {
     transform: translateY(-50%);
     width: 56px;
     max-height: calc(100vh - 32px);
-    z-index: 20;
+    z-index: 200;
 }
 
 .sidebar-inner {
@@ -202,12 +204,8 @@ body {
     flex-direction: column;
 }
 
-/* Floating Header */
+/* Floating Header removed in favor of Flex column top bar */
 .header {
-    position: absolute;
-    top: 16px;
-    left: 88px;
-    right: 16px;
     height: 54px;
     background: var(--bg-glass);
     backdrop-filter: blur(12px);
@@ -218,7 +216,7 @@ body {
     align-items: center;
     padding: 0 20px;
     justify-content: space-between;
-    z-index: 10;
+    z-index: 100;
     box-shadow: 0 4px 20px var(--shadow-soft);
 }
 
@@ -337,7 +335,7 @@ body {
     background-color: var(--bg-canvas);
     background-image: radial-gradient(var(--bg-canvas-dot) 1px, transparent 0);
     background-size: 24px 24px;
-    padding: 100px 40px;
+    padding: 32px 40px;
     text-align: center;
 }
 
@@ -803,6 +801,7 @@ body {
         transform: translate(-50%, 0);
     }
 }
+
 /* ─── Responsive: Header toolbar ─── */
 
 /* Split-screen / medium widths (~960px): hide text labels, keep icons */
@@ -810,12 +809,15 @@ body {
     .action-label {
         display: none;
     }
+
     .header-actions {
         gap: 2px;
     }
+
     .header-divider {
         margin: 0 2px;
     }
+
     .action-btn {
         padding: 8px 10px;
     }
@@ -826,9 +828,11 @@ body {
     .header-status {
         display: none;
     }
+
     .zoom-label {
         display: none;
     }
+
     .header {
         padding: 0 12px;
     }
@@ -839,6 +843,7 @@ body {
     .action-btn {
         padding: 6px 8px;
     }
+
     .header-divider {
         display: none;
     }
