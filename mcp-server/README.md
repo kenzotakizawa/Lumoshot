@@ -1,140 +1,198 @@
 # Lumoshot MCP Server
 
-Local-first MCP server for automated annotated screenshots.
+**AI エージェントに目を与える MCP サーバー。**  
+Claude から URL を渡すだけで、注釈付きスクリーンショットと要素リストが返ってきます。
 
-## Quick Start
+> Works with **Claude Code**, **Claude Desktop**, and any MCP-compatible client.
+
+---
+
+## インストール
 
 ```bash
-npm install
-npm run build
-npm run dev
+npx playwright install chromium
 ```
 
-MCP config example:
+Playwright の Chromium が必要です。次のコマンドで確認できます。
+
+```bash
+npx lumoshot-mcp --version
+```
+
+---
+
+## Claude Code への設定
+
+`.claude/mcp.json` に追記：
 
 ```json
 {
   "lumoshot": {
-    "command": "node",
-    "args": ["/absolute/path/to/mcp-server/dist/index.js"]
+    "command": "npx",
+    "args": ["-y", "lumoshot-mcp"]
   }
 }
 ```
 
-## Security Model
-
-- Screenshots, DOM metadata, and annotation rendering run on the local machine.
-- Lumoshot does not handle or store your AI provider API token.
-- Secret masking defaults:
-  - `security.redact_secrets: true`
-  - `security.redact_pii: false`
-  - `security.send_input_values: false`
-- Trusted domains can relax masking behavior. Enable only for safe environments.
-
-## Recommended AI Flow
-
-1. Call `get_diagnostics` first.
-2. If `ready: false`, inspect `issues` and guide the user to resolve setup problems.
-3. Run `capture_page` to get current element refs.
-4. Use `execute_flow` for multi-step operations.
-5. Use `annotate_screenshot` for post-processing annotations.
-
-## iframe Behavior
-
-- Same-origin iframe elements are included in `elements`.
-- Cross-origin iframes are not parsed and are surfaced via:
-  - `diagnostics.iframe_cross_origin`
-  - `diagnostics.iframe_frame_stats`
-
-## License Behavior
-
-- No license key: free tier mode.
-- Free tier limit: 30 captures per month.
-- License verification cache TTL: 7 days.
-- With a valid cache, Lumoshot works offline until cache expiry.
-- If cache is expired and verification fails:
-  - network/offline: explicit verification error
-  - server-side failure: explicit verification error
-
-`LUMOSHOT_LICENSE_URL` can override the verification endpoint for local testing.
-
-## Configuration
-
-Config load order (later wins):
-
-1. `~/.lumoshot/config.json` (legacy)
-2. `~/.lumoshot/lumoshot.config.json`
-3. `./lumoshot.config.json` (project override)
-
-Example:
+ライセンスキーを使う場合：
 
 ```json
 {
-  "security": {
-    "redact_secrets": true,
-    "redact_pii": false,
-    "send_input_values": false,
-    "trusted_domains": ["localhost", "127.0.0.1"]
-  },
-  "output": {
-    "directory": "./lumoshot-output",
-    "filename_template": "{name}_{viewport}_{timestamp}",
-    "metadata_format": "yaml"
+  "lumoshot": {
+    "command": "npx",
+    "args": ["-y", "lumoshot-mcp"],
+    "env": {
+      "LUMOSHOT_LICENSE_KEY": "your-key-here"
+    }
   }
 }
 ```
 
-`filename_template` variables:
+---
 
-- `{name}`: logical name like `capture` or `step_01`
-- `{viewport}`: `WIDTHxHEIGHT`
-- `{timestamp}`: `YYYYMMDDTHHMMSS`
+## Claude Desktop への設定
 
-`metadata_format`:
+`claude_desktop_config.json` に追記：
 
-- `json`: default
-- `yaml`: writes flow/elements metadata as `.yaml`
-
-## Tests
-
-```bash
-npm run test:masking
-npm run test:integration
-npm run test:flow
-npm run test:annotator
-npm run test:license
-npm run test:config
-npm run test:all
+```json
+{
+  "mcpServers": {
+    "lumoshot": {
+      "command": "npx",
+      "args": ["-y", "lumoshot-mcp"]
+    }
+  }
+}
 ```
 
-## Quality Gate
+---
 
-```bash
-npm run qa:gate
+## できること
+
+### `capture_page` — ページをキャプチャする
+
+URL を渡すと、スクリーンショットとインタラクティブ要素のリスト（ref 番号付き）が返ります。
+
+```
+capture_page(url="https://example.com")
 ```
 
-Detailed checklist: [docs/QA.md](./docs/QA.md)
+- ボタン・入力欄・リンクに番号バッジを自動付与
+- 要素の ref 番号を使って `execute_flow` や `annotate_screenshot` で参照できる
+- API キー・パスワードなどは自動マスク
 
-## Live Canary (Optional)
+### `execute_flow` — 複数ステップを自動実行する
 
-```bash
-npm run qa:live
+クリック・入力・スクロールなどのステップを順番に実行し、各ステップの注釈付きスクリーンショットを返します。
+
+```
+execute_flow(
+  url="https://example.com/login",
+  steps=[
+    { action: "fill", selector: "#email", value: "user@example.com" },
+    { action: "fill", selector: "#password", value: "••••••••" },
+    { action: "click", selector: "button[type=submit]" },
+    { action: "capture" }
+  ]
+)
 ```
 
-This runs real-site checks (W3Schools Forms + Demoblaze) and saves screenshots under
-`lumoshot-live-output/<run-id>/`.
+### `annotate_screenshot` — スクリーンショットに注釈を加える
 
-## Day7 MCP Check (Optional)
+既存のスクリーンショットに矢印・吹き出し・ハイライトなどを追加します。
 
-```bash
-npm run qa:day7
+```
+annotate_screenshot(
+  screenshot_ref="step_01",
+  annotations=[
+    { type: "callout", ref: 3, text: "ここをクリック" },
+    { type: "arrow", from_ref: 1, to_ref: 5 }
+  ]
+)
 ```
 
-This launches the MCP server over stdio and validates the real tool chain:
-`get_diagnostics` → `capture_page` → `execute_flow` → `annotate_screenshot`.
+対応アノテーション：`box` / `rounded_box` / `arrow` / `callout` / `text` / `step_number` / `click_icon` / `spotlight` / `mosaic` / `crop` / `resize` / `os_frame` / `before_after`
 
-## Known Limitations
+### `get_diagnostics` — 動作確認
 
-- `before_after` should be used as a standalone annotation operation.
-- `os_frame` title bar corners and image body edge can look slightly unnatural.
-- `callout` tail join may be slightly misaligned near page edges.
+```
+get_diagnostics()
+```
+
+Playwright の状態・ライセンス・CJK フォントの有無を確認できます。
+
+---
+
+## AI への推奨フロー
+
+Claude に以下の順で使わせると効果的です：
+
+1. `get_diagnostics` — 環境確認
+2. `capture_page` — ページを把握して ref 番号を取得
+3. `execute_flow` — 操作を自動実行
+4. `annotate_screenshot` — 結果に注釈を追加
+
+---
+
+## セキュリティ
+
+- スクリーンショット・DOM 解析・注釈レンダリングはすべてローカルで実行
+- AI プロバイダーの API トークンは Lumoshot を経由しない
+- デフォルトで API キー・パスワードを自動マスク（`redact_secrets: true`）
+
+信頼ドメインでマスクを緩める場合は設定ファイルで `trusted_domains` を指定してください。
+
+---
+
+## 設定ファイル（任意）
+
+`./lumoshot.config.json` または `~/.lumoshot/lumoshot.config.json` に置きます。
+後から読まれたファイルが優先されます。
+
+```json
+{
+  "capture": {
+    "device_pixel_ratio": 2,
+    "max_badge_overlays": 24
+  },
+  "output": {
+    "directory": "./lumoshot-output",
+    "keep_raw": false
+  },
+  "security": {
+    "redact_secrets": true,
+    "redact_pii": false,
+    "trusted_domains": ["localhost", "127.0.0.1"]
+  }
+}
+```
+
+| オプション | デフォルト | 説明 |
+|-----------|-----------|------|
+| `capture.device_pixel_ratio` | `2` | Retina 2x。`1` にするとファイルサイズが半分になる |
+| `capture.max_badge_overlays` | `24` | バッジの最大表示数。`0` で無効化 |
+| `output.directory` | `./lumoshot-output` | 出力先ディレクトリ |
+| `output.keep_raw` | `false` | `true` にすると注釈前の raw 画像を残す |
+
+---
+
+## ライセンス
+
+- **Free**: 月 30 回まで無料
+- **Pro**: 無制限（ライセンスキーが必要）
+
+ライセンスは 7 日間ローカルキャッシュされるため、一時的なオフライン環境でも動作します。
+
+---
+
+## 既知の制限
+
+- `before_after` は単独アノテーションとして使用してください（他のアノテーションと同時指定不可）
+- `os_frame` のタイトルバーコーナーは一部不自然に見える場合があります
+- クロスオリジン iframe 内の要素は取得できません
+
+---
+
+## ライセンス (License)
+
+MIT © Lumoshot

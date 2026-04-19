@@ -2,6 +2,29 @@
   "name": "lumoshot-mcp",
   "version": "0.1.0",
   "description": "Lumoshot MCP Server — annotated screenshot capture for AI agents",
+  "keywords": [
+    "mcp",
+    "screenshot",
+    "annotation",
+    "playwright",
+    "ai-agent",
+    "claude",
+    "model-context-protocol",
+    "browser-automation"
+  ],
+  "homepage": "https://github.com/kenzotakizawa/Lumoshot#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kenzotakizawa/Lumoshot.git",
+    "directory": "mcp-server"
+  },
+  "bugs": {
+    "url": "https://github.com/kenzotakizawa/Lumoshot/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "type": "module",
   "bin": {
     "lumoshot-mcp": "./dist/index.js"
@@ -22,7 +45,7 @@
     "test:flow": "npm run -s build && tsx --test test/execute-flow.integration.test.ts",
     "test:annotator": "npm run -s build && tsx --test test/annotator.integration.test.ts",
     "test:license": "npm run -s build && tsx --test test/license.test.ts",
-    "test:config": "npm run -s build && tsx --test test/config-output.test.ts",
+    "test:config": "npm run -s build && tsx --test test/config-output.test.ts test/config-load.test.ts test/mcp-tool-definitions.test.ts test/domain-common.test.ts",
     "test:all": "npm run test:masking && npm run test:integration && npm run test:flow && npm run test:annotator && npm run test:license && npm run test:config",
     "qa:smoke": "npm run -s build && node scripts/qa-smoke.mjs",
     "qa:smoke:keep": "npm run -s build && LUMOSHOT_QA_KEEP=1 node scripts/qa-smoke.mjs",
@@ -31,7 +54,8 @@
     "qa:live:amazon": "npm run -s build && LUMOSHOT_INCLUDE_AMAZON=1 node scripts/qa-live.mjs",
     "qa:day7": "npm run -s build && node scripts/day7-mcp-check.mjs",
     "qa:gate": "npm run -s typecheck && npm run -s test:all && npm run -s qa:smoke",
-    "qa:gate:live": "npm run -s qa:gate && npm run -s qa:live"
+    "qa:gate:live": "npm run -s qa:gate && npm run -s qa:live",
+    "qa:release": "npm run -s qa:gate && npm run -s qa:live && npm run -s qa:day7"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
