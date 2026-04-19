@@ -4,6 +4,24 @@
 
 export type BoundingBox = [number, number, number, number]; // [x, y, width, height]
 
+export type ScreenRegionKind =
+  | 'toolbar'
+  | 'sidebar'
+  | 'main'
+  | 'footer'
+  | 'statusbar'
+  | 'panel'
+  | 'unknown';
+
+export interface ScreenRegion {
+  id: string;
+  kind: ScreenRegionKind;
+  label: string;
+  bbox: BoundingBox;
+  source: 'dom' | 'image';
+  confidence: number;
+}
+
 export type ElementType =
   | 'button'
   | 'link'
@@ -48,6 +66,7 @@ export interface PageMeta {
 export interface CaptureResult {
   screenshot: string;
   elements: InteractiveElement[];
+  regions: ScreenRegion[];
   page_meta: PageMeta;
   diagnostics: {
     font_check: string | null;
@@ -60,6 +79,16 @@ export interface CaptureResult {
       same_origin_frames: number;
       cross_origin_frames: number;
     };
+    badge_density_mode?: 'full' | 'compact' | 'disabled';
+    badge_numbering_mode?: 'original' | 'reindexed' | 'disabled';
+    badge_limit_used?: number;
+    badge_rendered_count?: number;
+    badge_suppressed_count?: number;
+    badge_low_priority_selected_count?: number;
+    badge_low_priority_suppressed_count?: number;
+    region_count?: number;
+    region_source?: 'dom' | 'image' | 'none';
+    scroll_to_ref_result?: 'applied' | 'ref_not_found';
   };
 }
 
@@ -76,6 +105,8 @@ export interface StepResult {
   };
   target_ref?: number;
   target_label?: string;
+  target_bbox?: BoundingBox;
+  description?: string;
   filled_value?: string;
   annotation?: {
     type: string;
@@ -97,9 +128,19 @@ export interface FlowResult {
     total_screenshots: number;
     duration_ms: number;
     preset: string;
+    theme?: Theme;
     start_url: string;
     end_url: string;
     viewport: { width: number; height: number };
+    output_format?: 'png' | 'jpeg';
+    scale?: number;
+    visualization_mode?: 'step' | 'summary_only';
+    summary_screenshot?: string;
+    summary_step_count?: number;
+    warnings?: Array<{
+      type: string;
+      message: string;
+    }>;
     iframe_cross_origin?: boolean;
     max_cross_origin_frames?: number;
   };
@@ -112,6 +153,15 @@ export interface AnnotateResult {
     type: string;
     refs?: number[];
     message: string;
+    adjusted?: boolean;
+    from?: {
+      tail?: string;
+      bbox?: BoundingBox;
+    };
+    to?: {
+      tail?: string;
+      bbox?: BoundingBox;
+    };
   }>;
 }
 
@@ -128,6 +178,7 @@ export interface SecurityConfig {
 // ─── Preset types ─────────────────────────────────────────────────────────────
 
 export type Preset = 'auto' | 'precise' | 'friendly' | 'neutral';
+export type Theme = 'red' | 'blue' | 'mono';
 
 export interface PresetColors {
   primary: string;
@@ -215,6 +266,7 @@ export interface ArrowAnnotation extends BaseAnnotation {
   to_bbox?: BoundingBox;
   color?: string;
   label?: string;
+  elbow?: boolean;
 }
 
 export interface CalloutAnnotation extends BaseAnnotation {
@@ -225,6 +277,7 @@ export interface CalloutAnnotation extends BaseAnnotation {
   tail?: 'auto' | 'top' | 'bottom' | 'left' | 'right';
   background?: string;
   border_color?: string;
+  text_color?: string;
 }
 
 export interface TextAnnotation extends BaseAnnotation {
@@ -248,6 +301,7 @@ export interface ClickIconAnnotation extends BaseAnnotation {
   type: 'click_icon';
   ref?: number;
   bbox?: BoundingBox;
+  color?: string;
   click_type?: 'left' | 'right' | 'double';
 }
 
@@ -288,6 +342,8 @@ export interface BeforeAfterAnnotation extends BaseAnnotation {
   after_ref: string;
   // changed_regions and slider layout are not supported in v1.
   layout?: 'side_by_side' | 'overlay';
+  before_label?: string;
+  after_label?: string;
 }
 
 export type Annotation =

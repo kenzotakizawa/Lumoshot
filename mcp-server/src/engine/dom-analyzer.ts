@@ -291,14 +291,27 @@ export async function analyzeDOM(
   };
 }
 
-export function assignBadges(elements: InteractiveElement[]): InteractiveElement[] {
-  const occupied: Array<[number, number]> = [];
+const BADGE_SIZE = 32;
+const BADGE_GAP = 8;
+const BADGE_GRID = 12;
+const BADGE_GRID_RING = 6;
+
+interface BadgeBounds {
+  width: number;
+  height: number;
+}
+
+export function assignBadges(
+  elements: InteractiveElement[],
+  bounds?: BadgeBounds
+): InteractiveElement[] {
+  const occupiedBadgeBBoxes: BoundingBox[] = [];
+  const elementBBoxes = elements.map((el) => el.bbox);
   let badgeNum = 1;
 
   return elements.map((el) => {
-    const [x, y] = el.bbox;
-    const position = findBadgePosition(x, y, occupied);
-    occupied.push(position);
+    const position = findBadgePosition(el.bbox, elementBBoxes, occupiedBadgeBBoxes, bounds);
+    occupiedBadgeBBoxes.push([position[0], position[1], BADGE_SIZE, BADGE_SIZE]);
     return {
       ...el,
       badge_number: badgeNum++,
@@ -307,28 +320,84 @@ export function assignBadges(elements: InteractiveElement[]): InteractiveElement
   });
 }
 
-// Try to place badge at element's top-left, then rotate clockwise to avoid collisions.
-function findBadgePosition(
+function intersects(a: BoundingBox, b: BoundingBox): boolean {
+  const ax2 = a[0] + a[2];
+  const ay2 = a[1] + a[3];
+  const bx2 = b[0] + b[2];
+  const by2 = b[1] + b[3];
+  return a[0] < bx2 && ax2 > b[0] && a[1] < by2 && ay2 > b[1];
+}
+
+function clampBadgePosition(
   x: number,
   y: number,
-  occupied: Array<[number, number]>
+  bounds?: BadgeBounds
 ): [number, number] {
-  const BADGE_SIZE = 24;
-  const candidates: [number, number][] = [
-    [x, y],
-    [x + BADGE_SIZE, y],
-    [x + BADGE_SIZE, y + BADGE_SIZE],
-    [x, y + BADGE_SIZE],
-    [x + BADGE_SIZE / 2, y - BADGE_SIZE / 2],
-    [x + BADGE_SIZE / 2, y + BADGE_SIZE * 1.5],
+  const minX = 0;
+  const minY = 0;
+  const maxX = bounds ? Math.max(minX, bounds.width - BADGE_SIZE) : Number.POSITIVE_INFINITY;
+  const maxY = bounds ? Math.max(minY, bounds.height - BADGE_SIZE) : Number.POSITIVE_INFINITY;
+  return [
+    Math.round(Math.max(minX, Math.min(x, maxX))),
+    Math.round(Math.max(minY, Math.min(y, maxY))),
   ];
+}
 
-  for (const pos of candidates) {
-    const overlaps = occupied.some(
-      ([ox, oy]) => Math.abs(ox - pos[0]) < BADGE_SIZE && Math.abs(oy - pos[1]) < BADGE_SIZE
-    );
-    if (!overlaps) return pos;
+function isValidBadgePosition(
+  position: [number, number],
+  elementBBoxes: BoundingBox[],
+  occupiedBadgeBBoxes: BoundingBox[],
+): boolean {
+  const candidate: BoundingBox = [position[0], position[1], BADGE_SIZE, BADGE_SIZE];
+  if (elementBBoxes.some((bbox) => intersects(candidate, bbox))) {
+    return false;
+  }
+  if (occupiedBadgeBBoxes.some((bbox) => intersects(candidate, bbox))) {
+    return false;
+  }
+  return true;
+}
+
+function badgeCandidatesForElement(bbox: BoundingBox): Array<[number, number]> {
+  const [x, y, w, h] = bbox;
+  const half = BADGE_SIZE / 2;
+  return [
+    [x + w + BADGE_GAP, y - half], // right-top (primary)
+    [x - BADGE_GAP - BADGE_SIZE, y - half], // left-top
+    [x + w + BADGE_GAP, y + h - half], // right-bottom
+    [x - BADGE_GAP - BADGE_SIZE, y + h - half], // left-bottom
+    [x + w / 2 - half, y - BADGE_GAP - BADGE_SIZE], // top-center
+    [x + w / 2 - half, y + h + BADGE_GAP], // bottom-center
+  ];
+}
+
+function findBadgePosition(
+  bbox: BoundingBox,
+  elementBBoxes: BoundingBox[],
+  occupiedBadgeBBoxes: BoundingBox[],
+  bounds?: BadgeBounds
+): [number, number] {
+  const candidates = badgeCandidatesForElement(bbox);
+
+  for (const rawPos of candidates) {
+    const pos = clampBadgePosition(rawPos[0], rawPos[1], bounds);
+    if (isValidBadgePosition(pos, elementBBoxes, occupiedBadgeBBoxes)) {
+      return pos;
+    }
   }
 
-  return [x + occupied.length * 4, y + occupied.length * 4];
+  const [baseX, baseY] = candidates[0];
+  for (let ring = 1; ring <= BADGE_GRID_RING; ring++) {
+    for (let gx = -ring; gx <= ring; gx++) {
+      for (let gy = -ring; gy <= ring; gy++) {
+        if (Math.abs(gx) !== ring && Math.abs(gy) !== ring) continue;
+        const pos = clampBadgePosition(baseX + gx * BADGE_GRID, baseY + gy * BADGE_GRID, bounds);
+        if (isValidBadgePosition(pos, elementBBoxes, occupiedBadgeBBoxes)) {
+          return pos;
+        }
+      }
+    }
+  }
+
+  return clampBadgePosition(baseX, baseY, bounds);
 }

@@ -10,6 +10,9 @@ export interface LumoshotConfig {
     default_preset: Preset;
     default_wait_timeout: number;
     default_capture_mode: string;
+    max_badge_overlays: number;
+    /** Device pixel ratio for browser screenshots (1 = normal, 2 = Retina 2x). Default: 2 */
+    device_pixel_ratio: number;
   };
   annotation: {
     spotlight_shape: 'auto' | 'rect' | 'ellipse';
@@ -20,6 +23,8 @@ export interface LumoshotConfig {
     directory: string;
     filename_template: string;
     metadata_format: 'json' | 'yaml';
+    /** When false (default), raw pre-annotation screenshots are deleted after annotation. */
+    keep_raw: boolean;
   };
 }
 
@@ -36,6 +41,8 @@ const DEFAULT_CONFIG: LumoshotConfig = {
     default_preset: 'auto',
     default_wait_timeout: 5000,
     default_capture_mode: 'auto',
+    max_badge_overlays: 24,
+    device_pixel_ratio: 2,
   },
   annotation: {
     spotlight_shape: 'auto',
@@ -46,6 +53,7 @@ const DEFAULT_CONFIG: LumoshotConfig = {
     directory: './lumoshot-output',
     filename_template: '{name}_{viewport}_{timestamp}',
     metadata_format: 'json',
+    keep_raw: false,
   },
 };
 
@@ -93,4 +101,13 @@ export function loadConfig(): LumoshotConfig {
   return config;
 }
 
-export const config = loadConfig();
+export let config = loadConfig();
+
+/**
+ * Reloads configuration from disk and updates the exported singleton.
+ * Intended for test environments where HOME/cwd is swapped between test cases.
+ * Production code should never call this.
+ */
+export function resetConfigForTest(): void {
+  config = loadConfig();
+}

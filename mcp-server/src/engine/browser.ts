@@ -30,7 +30,7 @@ export async function createPageSession(
   const browser = await getBrowser();
   const context = await browser.newContext({
     viewport,
-    deviceScaleFactor: 1,
+    deviceScaleFactor: config.capture.device_pixel_ratio,
     locale: 'ja-JP',
     timezoneId: 'Asia/Tokyo',
   });
@@ -111,7 +111,7 @@ export function serializeMetadata(
 }
 
 /**
- * Build a PNG filename from the configured filename_template.
+ * Build an image filename from the configured filename_template.
  *
  * Supported template variables:
  *   {name}      — the logical name passed by the caller (e.g. "capture", "step_01")
@@ -120,11 +120,13 @@ export function serializeMetadata(
  *
  * The `template` parameter defaults to `config.output.filename_template` and can
  * be overridden in tests without touching the module-level singleton.
+ * The `format` parameter controls file extension (`.png` or `.jpg`).
  */
 export function buildFilename(
   name: string,
   viewport: { width: number; height: number },
   template = config.output.filename_template,
+  format: 'png' | 'jpeg' = 'png',
 ): string {
   const ts = new Date()
     .toISOString()
@@ -134,5 +136,5 @@ export function buildFilename(
     .replace(/\{name\}/g, name)
     .replace(/\{viewport\}/g, `${viewport.width}x${viewport.height}`)
     .replace(/\{timestamp\}/g, ts);
-  return `${base}.png`;
+  return `${base}.${format === 'jpeg' ? 'jpg' : 'png'}`;
 }

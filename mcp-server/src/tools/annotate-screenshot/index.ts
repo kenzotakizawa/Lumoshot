@@ -1,10 +1,14 @@
-import { existsSync, writeFileSync, readdirSync } from 'fs';
+import { writeFileSync } from 'fs';
 import { join, resolve, dirname, basename, extname } from 'path';
 import { z } from 'zod';
-import { applyAnnotations } from '../engine/annotator.js';
-import { config } from '../config.js';
-import { checkLicense, isPremiumFeature } from '../license/license.js';
-import type { Annotation, AnnotateResult, Preset } from '../types.js';
+import sharp from 'sharp';
+import { applyAnnotations } from '../../engine/annotation/pipeline.js';
+import { config } from '../../config.js';
+import { checkLicense, isPremiumFeature } from '../../license/license.js';
+import { resolveScreenshotRef as resolveScreenshotRefAlias } from '../../domain/output/screenshot-ref.js';
+import { getCjkFontWarning } from '../../domain/diagnostics/cjk-font.js';
+import type { Annotation, AnnotateResult, Preset, Theme } from '../../types.js';
+import { detectOverlapWarnings } from './resolver.js';
 
 // ─── Input schema ─────────────────────────────────────────────────────────────
 
@@ -32,6 +36,7 @@ const AnnotationSchema = z.discriminatedUnion('type', [
     to_bbox: z.tuple([z.number(), z.number(), z.number(), z.number()]).optional(),
     color: z.string().optional(),
     label: z.string().optional(),
+    elbow: z.boolean().optional(),
   }),
   z.object({
     type: z.literal('callout'),
@@ -41,6 +46,7 @@ const AnnotationSchema = z.discriminatedUnion('type', [
     tail: z.enum(['auto', 'top', 'bottom', 'left', 'right']).optional(),
     background: z.string().optional(),
     border_color: z.string().optional(),
+    text_color: z.string().optional(),
   }),
   z.object({
     type: z.literal('text'),
@@ -61,6 +67,7 @@ const AnnotationSchema = z.discriminatedUnion('type', [
     type: z.literal('click_icon'),
     ref: z.number().optional(),
     bbox: z.tuple([z.number(), z.number(), z.number(), z.number()]).optional(),
+    color: z.string().optional(),
     click_type: z.enum(['left', 'right', 'double']).optional(),
   }),
   z.object({
@@ -94,6 +101,8 @@ const AnnotationSchema = z.discriminatedUnion('type', [
     before_ref: z.string(),
     after_ref: z.string(),
     layout: z.enum(['side_by_side', 'overlay']).optional(),
+    before_label: z.string().optional(),
+    after_label: z.string().optional(),
   }),
 ]);
 
@@ -101,121 +110,54 @@ export const AnnotateScreenshotInputSchema = z.object({
   screenshot_ref: z.string(), // step_NN alias or absolute file path
   annotations: z.array(AnnotationSchema),
   preset: z.enum(['auto', 'precise', 'friendly', 'neutral']).optional().default('auto'),
+  theme: z.enum(['red', 'blue', 'mono']).optional(),
+  output_format: z.enum(['png', 'jpeg']).optional().default('png'),
+  scale: z.number().positive().max(4).optional().default(1),
   // Elements from a prior capture_page call, serialized as JSON
   elements_json: z.string().optional(),
 });
 
 export type AnnotateScreenshotInput = z.infer<typeof AnnotateScreenshotInputSchema>;
 
-type BBox = [number, number, number, number];
-
-function bboxFromRef(
-  ref: number | undefined,
-  elements: Array<{ ref: number; bbox: BBox; [k: string]: unknown }>
-): BBox | null {
-  if (ref == null) return null;
-  const found = elements.find((el) => el.ref === ref);
-  return found?.bbox ?? null;
-}
-
-function resolveAnnotationBBox(
-  annotation: Annotation,
-  elements: Array<{ ref: number; bbox: BBox; [k: string]: unknown }>
-): BBox | null {
-  switch (annotation.type) {
-    case 'box':
-    case 'rounded_box':
-    case 'callout':
-    case 'step_number':
-    case 'click_icon':
-    case 'spotlight':
-    case 'mosaic':
-    case 'crop':
-      return annotation.bbox ?? bboxFromRef(annotation.ref, elements);
-    case 'arrow': {
-      const from = annotation.from_bbox ?? bboxFromRef(annotation.from_ref, elements);
-      const to = annotation.to_bbox ?? bboxFromRef(annotation.to_ref, elements);
-      if (!from || !to) return null;
-      const left = Math.min(from[0], to[0]);
-      const top = Math.min(from[1], to[1]);
-      const right = Math.max(from[0] + from[2], to[0] + to[2]);
-      const bottom = Math.max(from[1] + from[3], to[1] + to[3]);
-      return [left, top, right - left, bottom - top];
-    }
-    case 'text': {
-      const fontSize = annotation.font_size ?? 14;
-      const width = Math.max(60, annotation.text.length * Math.max(6, fontSize * 0.6));
-      const height = fontSize + 10;
-      return [annotation.position[0], annotation.position[1] - fontSize, width, height];
-    }
-    case 'resize':
-    case 'os_frame':
-    case 'before_after':
-      return null;
-  }
-}
-
-function overlaps(a: BBox, b: BBox): boolean {
-  const [ax, ay, aw, ah] = a;
-  const [bx, by, bw, bh] = b;
-  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
-}
-
-function detectOverlapWarnings(
-  annotations: Annotation[],
-  elements: Array<{ ref: number; bbox: BBox; [k: string]: unknown }>
-): AnnotateResult['warnings'] {
-  const warnings: AnnotateResult['warnings'] = [];
-  const seen = new Set<string>();
-
-  for (let i = 0; i < annotations.length; i++) {
-    const a = annotations[i];
-    const boxA = resolveAnnotationBBox(a, elements);
-    if (!boxA) continue;
-
-    for (let j = i + 1; j < annotations.length; j++) {
-      const b = annotations[j];
-      const boxB = resolveAnnotationBBox(b, elements);
-      if (!boxB || !overlaps(boxA, boxB)) continue;
-
-      const key = `${i}:${j}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      const refs: number[] = [];
-      if ('ref' in a && typeof a.ref === 'number') refs.push(a.ref);
-      if ('ref' in b && typeof b.ref === 'number') refs.push(b.ref);
-
-      warnings.push({
-        type: 'overlap',
-        ...(refs.length > 0 ? { refs } : {}),
-        message: `Annotations ${i + 1} and ${j + 1} overlap. Positions may be adjusted automatically.`,
-      });
-    }
-  }
-
-  return warnings;
-}
-
-// ─── Helper: resolve screenshot ref to absolute path ─────────────────────────
-
-function resolveScreenshotRef(ref: string): string {
-  // If it looks like "step_02" expand to the output dir
-  if (/^step_\d+$/.test(ref)) {
-    const outputDir = resolve(config.output.directory);
-    // Find first matching file
-    const files: string[] = readdirSync(outputDir);
-    const match = files.find((f: string) => f.startsWith(ref) && f.endsWith('.png'));
-    if (match) return join(outputDir, match);
-    throw new Error(`No screenshot found for ref "${ref}" in ${outputDir}`);
-  }
-  // Otherwise treat as absolute/relative path
-  const abs = resolve(ref);
-  if (!existsSync(abs)) throw new Error(`Screenshot not found: ${abs}`);
-  return abs;
-}
-
 // ─── Implementation ───────────────────────────────────────────────────────────
+
+function collectAnnotationTextSamples(annotations: Annotation[]): string[] {
+  const samples: string[] = [];
+  for (const annotation of annotations) {
+    switch (annotation.type) {
+      case 'callout':
+      case 'text':
+        samples.push(annotation.text);
+        break;
+      case 'box':
+      case 'arrow':
+        if (annotation.label) {
+          samples.push(annotation.label);
+        }
+        break;
+      case 'before_after':
+        if (annotation.before_label) {
+          samples.push(annotation.before_label);
+        }
+        if (annotation.after_label) {
+          samples.push(annotation.after_label);
+        }
+        break;
+      default:
+        break;
+    }
+  }
+  return samples;
+}
+
+function formatCjkFontWarningMessage(
+  warning: NonNullable<ReturnType<typeof getCjkFontWarning>>,
+): string {
+  if (!warning.install_command) {
+    return warning.message;
+  }
+  return `${warning.message} Install command (${warning.diagnosis.os}): ${warning.install_command}`;
+}
 
 export async function annotateScreenshot(input: AnnotateScreenshotInput): Promise<AnnotateResult> {
   const licenseStatus = await checkLicense(process.env.LUMOSHOT_LICENSE_KEY);
@@ -223,7 +165,8 @@ export async function annotateScreenshot(input: AnnotateScreenshotInput): Promis
     throw new Error('License is invalid or expired. Please verify your license key.');
   }
 
-  const imagePath = resolveScreenshotRef(input.screenshot_ref);
+  const outputDir = resolve(config.output.directory);
+  const imagePath = resolveScreenshotRefAlias(input.screenshot_ref, { outputDirectory: outputDir });
 
   // Deserialize elements if provided
   let elements: Array<{ ref: number; bbox: [number, number, number, number]; [k: string]: unknown }> = [];
@@ -236,6 +179,7 @@ export async function annotateScreenshot(input: AnnotateScreenshotInput): Promis
   }
 
   const preset: Preset = (input.preset as Preset) ?? config.capture.default_preset;
+  const theme: Theme | undefined = input.theme as Theme | undefined;
   const annotations = input.annotations as unknown as Annotation[];
 
   const hasPremiumFeature = annotations.some((ann) => isPremiumFeature(ann.type));
@@ -247,29 +191,56 @@ export async function annotateScreenshot(input: AnnotateScreenshotInput): Promis
     if (ann.type !== 'before_after') return ann;
     return {
       ...ann,
-      before_ref: resolveScreenshotRef(ann.before_ref),
-      after_ref: resolveScreenshotRef(ann.after_ref),
+      before_ref: resolveScreenshotRefAlias(ann.before_ref, { outputDirectory: outputDir }),
+      after_ref: resolveScreenshotRefAlias(ann.after_ref, { outputDirectory: outputDir }),
     };
   }) as Annotation[];
 
+  const dpr = config.capture.device_pixel_ratio;
   const { buffer, warnings } = await applyAnnotations(
     imagePath,
     resolvedAnnotations,
     elements as unknown as Parameters<typeof applyAnnotations>[2],
-    preset
+    preset,
+    { theme, dpr }
   );
   const overlapWarnings = detectOverlapWarnings(resolvedAnnotations, elements);
+  const cjkFontWarning = getCjkFontWarning({
+    textSamples: collectAnnotationTextSamples(resolvedAnnotations),
+  });
+
+  let outputBuffer = Buffer.from(buffer);
+  const outputFormat = input.output_format ?? 'png';
+  const scale = input.scale ?? 1;
+
+  if (Math.abs(scale - 1) > 1e-6) {
+    const meta = await sharp(outputBuffer).metadata();
+    const baseWidth = meta.width ?? 1280;
+    const resizedWidth = Math.max(1, Math.round(baseWidth * scale));
+    const resized = sharp(outputBuffer).resize({ width: resizedWidth, kernel: 'lanczos3' });
+    outputBuffer = outputFormat === 'jpeg'
+      ? Buffer.from(await resized.jpeg({ quality: 90 }).toBuffer())
+      : Buffer.from(await resized.png().toBuffer());
+  } else if (outputFormat === 'jpeg') {
+    outputBuffer = Buffer.from(await sharp(outputBuffer).jpeg({ quality: 90 }).toBuffer());
+  }
 
   // Write annotated image alongside the original
-  const ext = extname(imagePath);
-  const base = basename(imagePath, ext);
+  const sourceExt = extname(imagePath);
+  const base = basename(imagePath, sourceExt);
   const dir = dirname(imagePath);
-  const outputPath = join(dir, `${base}_annotated${ext}`);
-  writeFileSync(outputPath, buffer);
+  const outputPath = join(dir, `${base}_annotated${outputFormat === 'jpeg' ? '.jpg' : '.png'}`);
+  writeFileSync(outputPath, outputBuffer);
 
   return {
     screenshot: outputPath,
     annotations_applied: resolvedAnnotations.length - warnings.length,
-    warnings: [...warnings, ...overlapWarnings],
+    warnings: [
+      ...warnings,
+      ...overlapWarnings,
+      ...(cjkFontWarning
+        ? [{ type: 'font_missing_cjk', message: formatCjkFontWarningMessage(cjkFontWarning) }]
+        : []),
+    ],
   };
 }
