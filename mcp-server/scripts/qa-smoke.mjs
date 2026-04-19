@@ -272,20 +272,22 @@ async function main() {
           assertCondition(ax >= 0 && ay >= 0, `click annotation position must be non-negative`);
         }
 
-        // Annotated PNG must differ from raw (SVG overlay applied)
+        // Annotated PNG must differ from raw (SVG overlay applied).
+        // Use a fill step for this check: click steps that navigate produce no annotation
+        // in post-operation DOM (P0-2 behavior), but fill steps always annotate.
         const outputDir = join(tempRoot, 'out');
         const rawDir = join(outputDir, 'raw');
         if (existsSync(rawDir)) {
           const rawFiles = readdirSync(rawDir);
-          const clickStep = clickSteps[0];
-          if (clickStep?.screenshot) {
-            const prefix = `step_0${clickStep.step_number}`;
+          const fillStep = fillSteps[0];
+          if (fillStep?.screenshot) {
+            const prefix = `step_0${fillStep.step_number}`;
             const rawFile = rawFiles.find((f) => f.startsWith(prefix) && f.endsWith('.png'));
             if (rawFile) {
-              const annotatedSize = statSync(clickStep.screenshot).size;
+              const annotatedSize = statSync(fillStep.screenshot).size;
               const rawSize = statSync(join(rawDir, rawFile)).size;
               assertCondition(annotatedSize !== rawSize,
-                `click step annotated PNG must differ from raw (annotation not composited)`);
+                `fill step annotated PNG must differ from raw (annotation not composited)`);
             }
           }
         }

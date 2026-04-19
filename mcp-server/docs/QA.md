@@ -31,16 +31,25 @@ npm run qa:live
 
 Targets (required):
 
-- `https://www.w3schools.com/html/html_forms.asp`
-- `https://www.demoblaze.com/`
+- `https://ja.wikipedia.org/wiki/メインページ`
+- `https://www.amazon.co.jp/` (can be skipped with `LUMOSHOT_INCLUDE_AMAZON=0`)
 
-Optional target:
+Flow targets (default enabled, optional unless strict-required):
+
+- `wikipedia_search_flow`
+
+Optional toggle:
 
 ```bash
-npm run qa:live:amazon
+LUMOSHOT_INCLUDE_AMAZON=0 npm run qa:live
 ```
 
-This adds `https://www.amazon.com/` as a non-required target.
+Flow toggles:
+
+| Env var | Default | Meaning |
+|---|---|---|
+| `LUMOSHOT_INCLUDE_FLOW` | `1` | Include `execute_flow` live scenarios |
+| `LUMOSHOT_FLOW_REQUIRED` | `0` | Treat flow scenarios as required targets |
 
 ### Retry and backoff
 
@@ -55,9 +64,9 @@ counted as failed. This tolerates transient network blips and slow CDN responses
 Log output:
 
 ```
-[WARN]  ecommerce_demo attempt 1/3 failed: failed: links=3 (need >=6); ...
-[RETRY] ecommerce_demo (attempt 2/3) after 2000ms backoff
-[PASS]  ecommerce_demo (passed on attempt 2/3) - links=8, ...
+[WARN]  amazon_home attempt 1/3 failed: failed: label "cart" not found; ...
+[RETRY] amazon_home (attempt 2/3) after 2000ms backoff
+[PASS]  amazon_home (passed on attempt 2/3) - inputs=1, links=12, ...
 ```
 
 ### Artifacts
@@ -83,6 +92,10 @@ Each entry in `results[]` contains:
 | `element_types` | object | Count by element type (button, input, link, …) |
 | `screenshot` | string | Absolute path to annotated PNG from last successful attempt |
 | `total_duration_ms` | number | Wall time across all attempts |
+| `kind` | string | `execute_flow` for flow scenarios (omitted for capture-only) |
+| `flow_step_count` | number | Number of `execute_flow` steps |
+| `flow_screenshot_count` | number | Number of screenshots produced by `execute_flow` |
+| `end_url` | string | Final URL from `execute_flow` result |
 
 Use `failed_criteria` to quickly pinpoint which selectors or labels weren't found when a
 live check fails. Use `attempts[]` to see whether failure was consistent or intermittent.
@@ -92,6 +105,7 @@ live check fails. Use `attempts[]` to see whether failure was consistent or inte
 - Live checks are canary tests, not deterministic release gates.
 - Prefer `qa:gate` for CI/release decisions.
 - Use `qa:gate:live` before major releases to catch real-world regressions.
+- Use `qa:release` for final publish checks (`qa:gate` → `qa:live` → `qa:day7`).
 - A target is only counted as failed when **all** retry attempts fail.
 
 ## 2. Fast checks while developing
@@ -142,21 +156,23 @@ Confirm:
 
 Each criterion below must pass on at least one of the retry attempts.
 
-- W3Schools Forms:
-  - `input` count is at least 2.
-  - Labels include form context (e.g. `HTML Forms`) and `First name`.
+- Wikipedia main page:
+  - `input` count is at least 1.
+  - `link` count is at least 8.
+  - Labels include Wikipedia brand (`Wikipedia` / `ウィキペディア`) and search context (`search` / `検索`).
   - Screenshot artifact exists and is non-trivial size.
 
-- E-commerce demo (Demoblaze):
-  - Link count is at least 6.
-  - Labels include `PRODUCT STORE` and at least two category labels (`Phones`, `Laptops`, `Monitors`).
-  - At least one product-like link label is detected.
-  - Screenshot artifact exists and is non-trivial size.
-
-- Amazon (optional):
+- Amazon (required by default, skippable via env):
   - At least 1 input, 3 links.
-  - Labels include `search`, `account` or `sign in`, and `cart`.
+  - Labels include search/account/cart context (English or Japanese variants).
   - Screenshot artifact exists and is non-trivial size.
+
+- Wikipedia Search Flow (optional by default):
+  - At least 2 flow steps.
+  - At least 2 screenshots generated.
+  - Fill/click annotation exists.
+  - No step errors/timeouts.
+  - Navigation is observed (`end_url !== start_url`).
 
 When a live check fails, inspect `live-summary.json`:
 1. Check `failed_criteria[]` to see which specific criteria weren't met.
@@ -170,9 +186,10 @@ Before publishing or sharing builds:
 
 1. `npm run qa:gate` passes
 2. `npm run qa:live` required targets pass
-3. No unresolved diagnostics errors in `get_diagnostics`
-4. Capture outputs are generated in expected directory
-5. Free-tier count does not unexpectedly increase during test runs
+3. `npm run qa:day7` passes (stdio MCP toolchain check)
+4. No unresolved diagnostics errors in `get_diagnostics`
+5. Capture outputs are generated in expected directory
+6. Free-tier count does not unexpectedly increase during test runs
 
 Note: `qa:smoke` runs in an isolated temporary HOME, so usage counters are not polluted.
 
@@ -180,9 +197,8 @@ Note: `qa:smoke` runs in an isolated temporary HOME, so usage counters are not p
 
 Recommended sequence before RC tagging:
 
-1. `npm run -s qa:gate`
-2. `npm run -s qa:live`
-3. `npm pack --dry-run`
+1. `npm run -s qa:release`
+2. `npm pack --dry-run`
 
 For `npm pack --dry-run`, confirm package contents are limited to runtime artifacts
 (`dist/`, `README.md`, `LICENSE`) and do not include `src/`, `test/`, `docs/`,
