@@ -90,9 +90,26 @@ export const useCanvasTools = (
 
         const handleMouseDown = (opt: TPointerEventInfo) => {
             if (currentTool === 'select') return;
-            if (opt.target && opt.target.selectable) return;
 
             const pointer = canvas.getScenePoint(opt.e);
+
+            // If the user clicks on an existing (non-background) object, switch to select
+            // so they can move/resize it. Objects have evented:false during drawing, so we
+            // use containsPoint instead of relying on opt.target.
+            const clickedObj = [...canvas.getObjects()].reverse().find(obj => {
+                if (obj.get('isBackground') || obj.get('isFrame')) return false;
+                if (obj.get('hoverCursor') === 'default') return false;
+                return obj.containsPoint(pointer);
+            });
+            if (clickedObj) {
+                clickedObj.selectable = true;
+                clickedObj.evented = true;
+                canvas.setActiveObject(clickedObj);
+                canvas.requestRenderAll();
+                onToolComplete?.();
+                return;
+            }
+
             isDrawing.current = true;
             startX.current = pointer.x;
             startY.current = pointer.y;
@@ -205,18 +222,13 @@ export const useCanvasTools = (
                     }
                 }
 
-                // Auto-select the created object and switch back to select tool
+                // Auto-select the created object; stay in current tool for continuous creation
                 const createdShape = currentShape.current;
                 currentShape.current = null;
                 canvas.requestRenderAll();
 
-                if (createdShape && onToolComplete) {
-                    // Select the newly created object so user can immediately move/resize it
-                    const target = createdShape.line ? createdShape : createdShape;
-                    if (canvas.contains(target)) {
-                        canvas.setActiveObject(target);
-                    }
-                    onToolComplete();
+                if (createdShape && canvas.contains(createdShape)) {
+                    canvas.setActiveObject(createdShape);
                 }
             }
         };

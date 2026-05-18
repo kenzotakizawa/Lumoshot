@@ -17,11 +17,14 @@ export function blurMouseDown(
         repeat: 'no-repeat',
     });
 
+    const sw = 1; // blur border is always 1px
     const shape = new Rect({
-        left: pointer.x,
-        top: pointer.y,
-        width: 0,
-        height: 0,
+        left: pointer.x - sw / 2,
+        top: pointer.y - sw / 2,
+        originX: 'left',
+        originY: 'top',
+        width: sw,
+        height: sw,
         rx: 8,
         ry: 8,
         fill: pattern,
@@ -66,28 +69,38 @@ export function blurMouseDown(
  * mouseMove handler for blur-rect tool.
  */
 export function blurMouseMove(
-    _canvas: Canvas,
+    canvas: Canvas,
     pointer: { x: number; y: number },
     ctx: DrawToolContext
 ) {
     const shape = ctx.currentShape.current as Rect;
+    const sw = shape.strokeWidth ?? 1;
 
     const minX = Math.min(pointer.x, ctx.startX.current);
     const maxX = Math.max(pointer.x, ctx.startX.current);
     const minY = Math.min(pointer.y, ctx.startY.current);
     const maxY = Math.max(pointer.y, ctx.startY.current);
 
+    // Mirror rect.ts: offset by sw/2 so the stroke's inner edge aligns with the drag area
     shape.set({
-        left: minX,
-        top: minY,
-        width: maxX - minX,
-        height: maxY - minY
+        left: minX - sw / 2,
+        top: minY - sw / 2,
+        width: maxX - minX + sw,
+        height: maxY - minY + sw
     });
     shape.setCoords();
 
+    // Mirror blurMouseDown's alignPattern: include baseImg offset so the blur fill
+    // tracks the correct region of the background image during drag
     if (shape.fill instanceof Pattern) {
         const m = shape.calcTransformMatrix();
-        shape.fill.patternTransform = util.invertTransform(m);
+        const invertM = util.invertTransform(m);
+        const baseImg = canvas.getObjects().find((o: any) => o.get('isBackground'));
+        if (baseImg) {
+            invertM[4] += baseImg.left || 0;
+            invertM[5] += baseImg.top || 0;
+        }
+        shape.fill.patternTransform = invertM;
     }
 }
 

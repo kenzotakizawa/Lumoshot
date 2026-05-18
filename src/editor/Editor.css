@@ -713,7 +713,7 @@ body {
 
 .crop-overlay-bar {
     position: absolute;
-    top: 44px;
+    top: 8px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
@@ -726,7 +726,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    z-index: 30;
+    z-index: 50;
     font-size: 13px;
     color: #475569;
     animation: slideDown 0.2s ease-out;
@@ -765,6 +765,174 @@ body {
 
 .crop-cancel-btn:hover {
     background: #e2e8f0;
+}
+
+/* ─── Before / After ───────────────────────────────────────── */
+
+.ba-overlay-bar {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+    font-size: 13px;
+    color: #475569;
+    animation: slideDown 0.2s ease-out;
+    white-space: nowrap;
+}
+
+.ba-overlay-label {
+    font-weight: 600;
+    color: #4f46e5;
+    padding: 0 4px;
+}
+
+.ba-delete-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 7px;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.ba-delete-btn:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* Modal overlay */
+.ba-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.15s ease-out;
+}
+
+.ba-modal {
+    background: var(--bg-surface, #ffffff);
+    border-radius: 16px;
+    padding: 24px;
+    width: 360px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.ba-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ba-modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #1e293b);
+}
+
+.ba-modal-close {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: var(--action-hover, #f8fafc);
+    border-radius: 7px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary, #475569);
+}
+
+.ba-modal-close:hover {
+    background: #f1f5f9;
+}
+
+.ba-drop-zone {
+    border: 2px dashed var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    padding: 32px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: var(--text-secondary, #475569);
+    transition: all 0.15s;
+}
+
+.ba-drop-zone:hover,
+.ba-drop-zone.drag-over {
+    border-color: #4f46e5;
+    background: rgba(79, 70, 229, 0.05);
+    color: #4f46e5;
+}
+
+.ba-drop-zone p {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.ba-drop-zone span {
+    font-size: 12px;
+    color: var(--text-muted, #94a3b8);
+}
+
+.ba-clipboard-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 9px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 9px;
+    background: var(--action-bg, #ffffff);
+    color: var(--text-secondary, #475569);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.ba-clipboard-btn:hover {
+    background: var(--action-hover, #f8fafc);
+    border-color: #4f46e5;
+    color: #4f46e5;
+}
+
+.ba-clipboard-error {
+    margin: 0;
+    font-size: 12px;
+    color: #dc2626;
+    text-align: center;
+}
+
+.ba-hint {
+    margin: 0;
+    font-size: 11px;
+    color: var(--text-muted, #94a3b8);
+    text-align: center;
 }
 
 /* Animations */

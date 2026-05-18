@@ -58,6 +58,9 @@
     "toolCrop": {
         "message": "Crop"
     },
+    "toolBeforeAfter": {
+        "message": "Before / After"
+    },
     "actionUndo": {
         "message": "Undo"
     },

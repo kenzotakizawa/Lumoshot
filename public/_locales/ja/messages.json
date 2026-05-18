@@ -58,6 +58,9 @@
     "toolCrop": {
         "message": "クロップ"
     },
+    "toolBeforeAfter": {
+        "message": "Before / After"
+    },
     "actionUndo": {
         "message": "元に戻す"
     },

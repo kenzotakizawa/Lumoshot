@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Canvas, FabricImage, Rect, Shadow, Circle as FabricCircle, Line, ActiveSelection, IText, Group, util } from 'fabric';
+import { Canvas, FabricImage, Rect, Shadow, Circle as FabricCircle, Line, ActiveSelection, IText } from 'fabric';
 import { useCanvasTools } from './hooks/useCanvasTools';
 import type { ToolType } from './hooks/useCanvasTools';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
 import ResizeModal from './components/ResizeModal';
+import BeforeAfterModal from './components/BeforeAfterModal';
 import Ruler from './components/Ruler';
-import { Check, X } from 'lucide-react';
+import { Check, X, Trash2 } from 'lucide-react';
 import { initSmartGuides } from './utils/smartGuides';
 
 interface CropRect {
@@ -30,7 +31,7 @@ const Editor: React.FC = () => {
     const [status, setStatus] = useState<string>("Initializing...");
     const [currentTool, setCurrentTool] = useState<ToolType>('select');
     const [strokeColor, setStrokeColor] = useState<string>('#ff0000');
-    const [strokeWidth, setStrokeWidth] = useState<number>(4);
+    const [strokeWidth, setStrokeWidth] = useState<number>(2);
     const [fontColor, setFontColor] = useState<string>('#ff0000');
     const [fontSize, setFontSize] = useState<number>(24);
     const [isBold, setIsBold] = useState<boolean>(false);
@@ -46,6 +47,12 @@ const Editor: React.FC = () => {
     const [showRuler, setShowRuler] = useState<boolean>(true);
     const [isCropping, setIsCropping] = useState<boolean>(false);
     const [cropReady, setCropReady] = useState<boolean>(false);
+    const [isBAMode, setIsBAMode] = useState<boolean>(false);
+    const [showBAModal, setShowBAModal] = useState<boolean>(false);
+    const [hasAfterImage, setHasAfterImage] = useState<boolean>(false);
+    const beforeBAWidth = useRef<number>(0);
+    const baHeaderHeight = useRef<number>(0);
+    const afterImageDataUrl = useRef<string | null>(null);
     const [isLocked, setIsLocked] = useState<boolean>(false);
     const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; target: any | null }>({
         visible: false,
@@ -78,7 +85,7 @@ const Editor: React.FC = () => {
             if (!canvas || isHistoryProcessing.current) return;
 
             // Include custom properties in JSON serialization
-            const obj = canvas.toObject(['isBackground', 'isFrame', 'isSpotlight', 'isBlur', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY']);
+            const obj = canvas.toObject(['isBackground', 'isFrame', 'isSpotlight', 'isBlur', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel']);
 
             // Save canvas dimensions alongside object state
             const stateEntry = JSON.stringify({
@@ -414,65 +421,6 @@ const Editor: React.FC = () => {
             saveState();
         });
 
-        canvas.on('mouse:down', (e) => {
-            if (currentTool === 'select' && e.target && e.target.type === 'group' && e.target.get('isBeforeAfter')) {
-                const group = e.target as Group;
-                const slider = e.subTargets?.find(t => t.get('isSliderLine'));
-                if (slider) {
-                    slider.set('isDraggingSlider', true);
-                    group.set({ lockMovementX: true, lockMovementY: true }); // Prevent group drag
-                }
-            }
-        });
-
-        canvas.on('mouse:move', (e) => {
-            if (currentTool !== 'select') return;
-            const activeGroups = canvas.getActiveObjects();
-            if (activeGroups.length === 1 && activeGroups[0].type === 'group' && activeGroups[0].get('isBeforeAfter')) {
-                const group = activeGroups[0] as Group;
-                const slider = group.getObjects().find((o: any) => o.get('isSliderLine'));
-                if (slider && slider.get('isDraggingSlider')) {
-                    const pointer = e.scenePoint;
-                    const matrix = group.calcTransformMatrix();
-                    const invertedMatrix = util.invertTransform(matrix);
-                    const localPointer = util.transformPoint(pointer, invertedMatrix);
-
-                    const imgA = group.getObjects()[0];
-                    const halfWidth = (imgA.width! * imgA.scaleX!) / 2;
-
-                    let newX = localPointer.x;
-                    if (newX < -halfWidth) newX = -halfWidth;
-                    if (newX > halfWidth) newX = halfWidth;
-
-                    slider.set({ left: newX });
-
-                    const imgB = group.getObjects()[1];
-                    const clipRect = imgB.clipPath as Rect;
-                    const newX_imgB = newX / imgB.scaleX!;
-                    const imgB_halfWidth = imgB.width! / 2;
-
-                    clipRect.set({
-                        width: newX_imgB + imgB_halfWidth,
-                    });
-
-                    canvas.requestRenderAll();
-                }
-            }
-        });
-
-        canvas.on('mouse:up', () => {
-            const activeGroups = canvas.getActiveObjects();
-            if (activeGroups.length === 1 && activeGroups[0].type === 'group' && activeGroups[0].get('isBeforeAfter')) {
-                const group = activeGroups[0] as Group;
-                const slider = group.getObjects().find((o: any) => o.get('isSliderLine'));
-                if (slider && slider.get('isDraggingSlider')) {
-                    slider.set('isDraggingSlider', false);
-                    group.set({ lockMovementX: false, lockMovementY: false });
-                    saveState();
-                }
-            }
-        });
-
         // Double Click to Edit Text for speech bubbles or stray texts
         canvas.on('mouse:dblclick', (e) => {
             if (currentTool !== 'select') return;
@@ -795,16 +743,16 @@ const Editor: React.FC = () => {
             if (!e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
                 switch (e.key.toLowerCase()) {
                     case 'v': setCurrentTool('select'); break;
-                    case 'r': setCurrentTool('rect'); setStrokeWidth(4); break;
-                    case 'a': setCurrentTool('arrow'); setStrokeWidth(4); break;
+                    case 'r': setCurrentTool('rect'); setStrokeWidth(2); break;
+                    case 'a': setCurrentTool('arrow'); setStrokeWidth(2); break;
                     case 't': setCurrentTool('text'); break;
                     case 'n': setCurrentTool('step-number'); setStrokeWidth(8); break;
-                    case 'b': setCurrentTool('speech-bubble'); setStrokeWidth(4); break;
+                    case 'b': setCurrentTool('speech-bubble'); setStrokeWidth(2); break;
                     case 's': setCurrentTool('spotlight-rect'); break;
                     case 'u': setCurrentTool('blur-rect'); break;
                     case 'c': setIsCropping(true); setCropReady(false); break;
                     case 'h': setCurrentTool('highlighter'); setStrokeWidth(12); break;
-                    case 'p': setCurrentTool('pen'); setStrokeWidth(4); break;
+                    case 'p': setCurrentTool('pen'); setStrokeWidth(2); break;
                     case 'm': setCurrentTool('click-icon'); break;
                 }
             }
@@ -900,6 +848,204 @@ const Editor: React.FC = () => {
             console.error("Failed to load fabric image:", err);
             setStatus("Error loading image.");
         });
+    };
+
+    // ─── Before / After Handlers ───────────────────────────────
+    const startBAMode = () => {
+        setIsBAMode(true);
+        setShowBAModal(true);
+    };
+
+    const cancelBAModal = () => {
+        setShowBAModal(false);
+        if (!hasAfterImage) setIsBAMode(false);
+    };
+
+    const handleAfterImageProvided = (dataUrl: string) => {
+        const canvas = fabricCanvas.current;
+        if (!canvas) return;
+
+        FabricImage.fromURL(dataUrl).then((afterImg) => {
+            afterImageDataUrl.current = dataUrl;
+            beforeBAWidth.current = originalSize.current.width;
+
+            // Header strip height: 12% of image height, no upper cap
+            const hdrH = Math.max(60, Math.round(originalSize.current.height * 0.12));
+            baHeaderHeight.current = hdrH;
+
+            // Scale after image to the same height as before
+            const scaleToBase = originalSize.current.height / afterImg.height!;
+            afterImg.scaleX = scaleToBase;
+            afterImg.scaleY = scaleToBase;
+            const afterDisplayWidth = Math.round(afterImg.width! * scaleToBase);
+
+            // Push all existing objects down by hdrH to make room for header
+            canvas.getObjects().forEach((obj: any) => {
+                obj.set({ top: (obj.top || 0) + hdrH });
+                obj.setCoords();
+            });
+
+            // Place after image (to the right, below header)
+            afterImg.set({
+                left: beforeBAWidth.current,
+                top: hdrH,
+                originX: 'left',
+                originY: 'top',
+                selectable: false,
+                evented: false,
+                hoverCursor: 'default',
+            });
+            afterImg.set('isAfterImage', true);
+            canvas.add(afterImg);
+            canvas.sendObjectToBack(afterImg);
+            canvas.bringObjectForward(afterImg); // just above background
+
+            // Update canvas dimensions
+            const newTotalWidth = beforeBAWidth.current + afterDisplayWidth;
+            const newTotalHeight = originalSize.current.height + hdrH;
+            originalSize.current = { width: newTotalWidth, height: newTotalHeight };
+            canvas.setDimensions({ width: newTotalWidth * zoomLevel, height: newTotalHeight * zoomLevel });
+
+            // Header: left = black (BEFORE), right = white (AFTER)
+            const hdrLeft = new Rect({
+                left: 0,
+                top: 0,
+                width: beforeBAWidth.current,
+                height: hdrH,
+                fill: '#ffffff',
+                originX: 'left',
+                originY: 'top',
+                selectable: false,
+                evented: false,
+            });
+            hdrLeft.set('isBALabel', true);
+            const hdrRight = new Rect({
+                left: beforeBAWidth.current,
+                top: 0,
+                width: afterDisplayWidth,
+                height: hdrH,
+                fill: '#ffffff',
+                originX: 'left',
+                originY: 'top',
+                selectable: false,
+                evented: false,
+            });
+            hdrRight.set('isBALabel', true);
+            canvas.add(hdrLeft, hdrRight);
+            canvas.sendObjectToBack(hdrRight);
+            canvas.sendObjectToBack(hdrLeft);
+
+            // Vertical divider (45px white, centered on the boundary)
+            const divider = new Rect({
+                left: beforeBAWidth.current - 22,
+                top: 0,
+                width: 45,
+                height: newTotalHeight,
+                fill: '#ffffff',
+                originX: 'left',
+                originY: 'top',
+                selectable: false,
+                evented: false,
+            });
+            divider.set('isBALabel', true);
+            canvas.add(divider);
+
+            // Horizontal separator between header band and images (45px white)
+            const hdrSeparator = new Rect({
+                left: 0,
+                top: hdrH - 22,
+                width: newTotalWidth,
+                height: 45,
+                fill: '#ffffff',
+                originX: 'left',
+                originY: 'top',
+                selectable: false,
+                evented: false,
+            });
+            hdrSeparator.set('isBALabel', true);
+            canvas.add(hdrSeparator);
+
+            // Labels: BEFORE=white text, AFTER=black text
+            const labelFontSize = Math.max(40, Math.round(hdrH * 0.65));
+            const beforeLabel = new IText('BEFORE', {
+                left: beforeBAWidth.current / 2,
+                top: hdrH / 2,
+                fontSize: labelFontSize,
+                fontWeight: 'bold' as const,
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                fill: '#111111',
+                originX: 'center' as const,
+                originY: 'center' as const,
+                selectable: false,
+                evented: false,
+                hoverCursor: 'default',
+            });
+            beforeLabel.set('isBALabel', true);
+            const afterLabel = new IText('AFTER', {
+                left: beforeBAWidth.current + afterDisplayWidth / 2,
+                top: hdrH / 2,
+                fontSize: labelFontSize,
+                fontWeight: 'bold' as const,
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                fill: '#111111',
+                originX: 'center' as const,
+                originY: 'center' as const,
+                selectable: false,
+                evented: false,
+                hoverCursor: 'default',
+            });
+            afterLabel.set('isBALabel', true);
+            canvas.add(beforeLabel, afterLabel);
+
+            canvas.requestRenderAll();
+            setHasAfterImage(true);
+            setShowBAModal(false);
+            saveState();
+        });
+    };
+
+    const deleteAfterImage = () => {
+        const canvas = fabricCanvas.current;
+        if (!canvas) return;
+
+        const hdrH = baHeaderHeight.current;
+
+        canvas.getObjects()
+            .filter((o: any) => o.get('isAfterImage') || o.get('isBALabel'))
+            .forEach(o => canvas.remove(o));
+
+        // Shift remaining objects back up
+        canvas.getObjects().forEach((obj: any) => {
+            obj.set({ top: (obj.top || 0) - hdrH });
+            obj.setCoords();
+        });
+
+        const restoredHeight = originalSize.current.height - hdrH;
+        originalSize.current = { width: beforeBAWidth.current, height: restoredHeight };
+        canvas.setDimensions({
+            width: beforeBAWidth.current * zoomLevel,
+            height: restoredHeight * zoomLevel,
+        });
+        canvas.requestRenderAll();
+        setHasAfterImage(false);
+        setIsBAMode(false);
+        afterImageDataUrl.current = null;
+        baHeaderHeight.current = 0;
+        saveState();
+    };
+
+    const deleteBeforeImage = () => {
+        const canvas = fabricCanvas.current;
+        if (!canvas) return;
+        const dataUrl = afterImageDataUrl.current;
+        if (!dataUrl) return;
+
+        // Remove all objects and reload After image as the new background
+        canvas.clear();
+        setHasAfterImage(false);
+        setIsBAMode(false);
+        afterImageDataUrl.current = null;
+        loadBackgroundToCanvas(dataUrl);
     };
 
     const handleZoomIn = () => setZoomLevel(prev => Math.min(prev * 1.2, 5));
@@ -1474,6 +1620,8 @@ const Editor: React.FC = () => {
                 onOpenResize={() => setShowResizeModal(true)}
                 onStartCrop={startCrop}
                 isCropping={isCropping}
+                onStartBA={startBAMode}
+                isBAMode={isBAMode}
             />
 
             {/* Main Area */}
@@ -1544,6 +1692,47 @@ const Editor: React.FC = () => {
                 <div style={{ position: 'relative', flex: 1, display: 'flex', borderRadius: '16px', overflow: 'hidden' }}>
                     {showRuler && <Ruler fabricCanvas={fabricCanvas} zoomLevel={zoomLevel} wrapperRef={wrapperRef} />}
 
+                    {/* Canvas overlays: position: absolute here means "relative to canvas area", safely below the header */}
+                    {isCropping && !cropReady && (
+                        <div className="crop-overlay-bar">
+                            <span>ドラッグでクロップ範囲を指定</span>
+                            <button className="crop-cancel-btn" onClick={cancelCrop} data-tooltip="キャンセル">
+                                <X size={16} />
+                            </button>
+                        </div>
+                    )}
+                    {isCropping && cropReady && (
+                        <div className="crop-overlay-bar active">
+                            <button className="crop-confirm-btn" onClick={confirmCrop} data-tooltip="確定">
+                                <Check size={16} />
+                            </button>
+                            <button className="crop-cancel-btn" onClick={cancelCrop} data-tooltip="キャンセル">
+                                <X size={16} />
+                            </button>
+                        </div>
+                    )}
+
+                    {isBAMode && (
+                        <div className="ba-overlay-bar">
+                            <span className="ba-overlay-label">Before / After</span>
+                            {hasAfterImage && (
+                                <>
+                                    <button className="ba-delete-btn" onClick={deleteBeforeImage} title="Delete Before image">
+                                        <Trash2 size={14} /> Before
+                                    </button>
+                                    <button className="ba-delete-btn" onClick={deleteAfterImage} title="Delete After image">
+                                        <Trash2 size={14} /> After
+                                    </button>
+                                </>
+                            )}
+                            {!hasAfterImage && (
+                                <button className="ba-delete-btn" onClick={() => { setIsBAMode(false); setShowBAModal(false); }}>
+                                    <X size={14} />
+                                </button>
+                            )}
+                        </div>
+                    )}
+
                     {/* Canvas Wrapper */}
                     <div
                         className={`canvas-wrapper ${isDragOver ? 'drag-over' : ''}`}
@@ -1607,25 +1796,7 @@ const Editor: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Crop Overlay Bar */}
-                {isCropping && !cropReady && (
-                    <div className="crop-overlay-bar">
-                        <span>ドラッグでクロップ範囲を指定</span>
-                        <button className="crop-cancel-btn" onClick={cancelCrop} data-tooltip="キャンセル">
-                            <X size={16} />
-                        </button>
-                    </div>
-                )}
-                {isCropping && cropReady && (
-                    <div className="crop-overlay-bar active">
-                        <button className="crop-confirm-btn" onClick={confirmCrop} data-tooltip="確定">
-                            <Check size={16} />
-                        </button>
-                        <button className="crop-cancel-btn" onClick={cancelCrop} data-tooltip="キャンセル">
-                            <X size={16} />
-                        </button>
-                    </div>
-                )}
+
             </div>
 
             {/* Resize Modal */}
@@ -1635,7 +1806,15 @@ const Editor: React.FC = () => {
                 currentHeight={originalSize.current.height}
                 onApply={handleResize}
                 onClose={() => setShowResizeModal(false)}
-            />        </div>
+            />
+
+            {/* Before / After Modal */}
+            <BeforeAfterModal
+                isOpen={showBAModal}
+                onClose={cancelBAModal}
+                onImageProvided={handleAfterImageProvided}
+            />
+        </div>
     );
 };
 

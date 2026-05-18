@@ -145,7 +145,7 @@ export function spawnSpeechBubble(
     canvas: Canvas,
     cx: number, cy: number, fw: number, fh: number,
     strokeColor: string, strokeWidth: number, fontColor: string, fontSize: number,
-    controlConfig: any, onToolComplete?: () => void
+    controlConfig: any
 ) {
     const bubbleId = 'bubble_' + Date.now();
     const pad = 16;
@@ -286,7 +286,6 @@ export function spawnSpeechBubble(
 
     canvas.fire('selection:created' as any, { selected: [group] });
     canvas.fire('object:modified' as any, { target: group });
-    if (onToolComplete) onToolComplete();
 }
 
 // ─── mouseDown for speech-bubble temporary rectangle ───────────────
@@ -361,6 +360,6 @@ export function speechBubbleMouseUp(canvas: Canvas, ctx: DrawToolContext) {
     spawnSpeechBubble(
         canvas, l + w / 2, t + h / 2, finalW, finalH,
         ctx.strokeColor, ctx.strokeWidth, ctx.fontColor, ctx.fontSize,
-        ctx.controlConfig, ctx.onToolComplete
+        ctx.controlConfig
     );
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import {
     MousePointer2, Square, ArrowUpRight, Type,
     Focus, Circle, Droplet, ListOrdered, PenTool, Highlighter, MessageSquare, Mouse,
-    Image as ImageIcon, Scaling, Crop
+    Image as ImageIcon, Scaling, Crop, Columns2
 } from 'lucide-react';
 import type { ToolType } from '../hooks/useCanvasTools';
 
@@ -15,14 +15,16 @@ interface SidebarProps {
     onOpenResize: () => void;
     onStartCrop: () => void;
     isCropping: boolean;
+    onStartBA: () => void;
+    isBAMode: boolean;
 }
 
 /* ─── Tool definitions grouped by functional similarity ─── */
 interface ToolDef {
-    id: ToolType | 'resize' | 'crop' | 'insert-image' | 'click-icon';
+    id: ToolType | 'resize' | 'crop' | 'insert-image' | 'click-icon' | 'before-after';
     icon: React.ReactNode;
     i18nKey: string;
-    action?: 'tool' | 'resize' | 'crop' | 'image';
+    action?: 'tool' | 'resize' | 'crop' | 'image' | 'ba';
     setStrokeWidth?: number;
     resetStrokeIfThick?: boolean;
 }
@@ -55,30 +57,33 @@ const TOOL_GROUPS: ToolDef[][] = [
         { id: 'insert-image', icon: <ImageIcon size={20} />, i18nKey: 'toolInsertImage', action: 'image' },
         { id: 'resize', icon: <Scaling size={20} />, i18nKey: 'toolResize', action: 'resize' },
         { id: 'crop', icon: <Crop size={20} />, i18nKey: 'toolCrop', action: 'crop' },
+        { id: 'before-after', icon: <Columns2 size={20} />, i18nKey: 'toolBeforeAfter', action: 'ba' },
     ],
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({
     currentTool, setCurrentTool, strokeWidth, setStrokeWidth,
-    fileInputRef, onOpenResize, onStartCrop, isCropping
+    fileInputRef, onOpenResize, onStartCrop, isCropping, onStartBA, isBAMode
 }) => {
     const handleClick = (def: ToolDef) => {
         switch (def.action) {
             case 'resize': onOpenResize(); return;
             case 'crop': onStartCrop(); return;
             case 'image': fileInputRef.current?.click(); return;
+            case 'ba': onStartBA(); return;
         }
         const toolId = def.id as ToolType;
         setCurrentTool(toolId);
         if (def.setStrokeWidth !== undefined) {
             setStrokeWidth(def.setStrokeWidth);
         } else if (def.resetStrokeIfThick && strokeWidth === 8) {
-            setStrokeWidth(4);
+            setStrokeWidth(2);
         }
     };
 
     const isActive = (def: ToolDef): boolean => {
         if (def.id === 'crop') return isCropping;
+        if (def.id === 'before-after') return isBAMode;
         return currentTool === def.id;
     };
 

@@ -15,7 +15,14 @@ const Ruler: React.FC<RulerProps> = ({ fabricCanvas, zoomLevel, wrapperRef }) =>
 
     const MARK_SHORT = 4;
     const MARK_LONG = 8;
-    const NUM_STEP = 100;
+
+    // Minimum screen gap between number labels (px). Pick the nearest "nice" step.
+    const calcNumStep = (zoom: number): number => {
+        const minGap = 60;
+        const raw = minGap / zoom;
+        const niceSteps = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000];
+        return niceSteps.find(s => s >= raw) ?? 5000;
+    };
 
     useEffect(() => {
         const renderRulers = () => {
@@ -77,6 +84,7 @@ const Ruler: React.FC<RulerProps> = ({ fabricCanvas, zoomLevel, wrapperRef }) =>
             const endY = startY + height / zoomLevel;
 
             // Draw Horizontal Ruler
+            const NUM_STEP = calcNumStep(zoomLevel);
             hCtx.beginPath();
             // Start rendering slightly before startX to avoid clipping edges
             for (let x = Math.floor(startX / 10) * 10 - 100; x <= endX + 100; x += 10) {
@@ -84,7 +92,7 @@ const Ruler: React.FC<RulerProps> = ({ fabricCanvas, zoomLevel, wrapperRef }) =>
                 if (screenX < -50 || screenX > width + 50) continue; // Skip offscreen
 
                 const isMajor = x % NUM_STEP === 0;
-                const isMid = x % 50 === 0 && !isMajor;
+                const isMid = x % (NUM_STEP / 2) === 0 && !isMajor;
 
                 let markLen = MARK_SHORT;
                 if (isMajor) markLen = 14;
@@ -106,7 +114,7 @@ const Ruler: React.FC<RulerProps> = ({ fabricCanvas, zoomLevel, wrapperRef }) =>
                 if (screenY < -50 || screenY > height + 50) continue; // Skip offscreen
 
                 const isMajor = y % NUM_STEP === 0;
-                const isMid = y % 50 === 0 && !isMajor;
+                const isMid = y % (NUM_STEP / 2) === 0 && !isMajor;
 
                 let markLen = MARK_SHORT;
                 if (isMajor) markLen = 14;
