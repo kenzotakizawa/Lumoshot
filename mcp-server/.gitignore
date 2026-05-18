@@ -1,8 +1,0 @@
-node_modules/
-dist/
-*.js.map
-lumoshot-output/
-lumoshot-live-output/
-lumoshot-day7-output/
-sample-annotations/
-docs/articles/
