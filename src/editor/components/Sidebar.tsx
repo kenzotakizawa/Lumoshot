@@ -2,7 +2,7 @@ import React from 'react';
 import {
     MousePointer2, Square, ArrowUpRight, Type,
     Focus, Circle, Droplet, ListOrdered, PenTool, Highlighter, MessageSquare, Mouse,
-    Image as ImageIcon, Scaling, Crop, Columns2
+    Image as ImageIcon, Scaling, Crop, Columns2, ZoomIn, ScanSearch
 } from 'lucide-react';
 import type { ToolType } from '../hooks/useCanvasTools';
 
@@ -52,6 +52,8 @@ const TOOL_GROUPS: ToolDef[][] = [
         { id: 'spotlight-rect', icon: <Focus size={20} />, i18nKey: 'toolSpotlightRect' },
         { id: 'spotlight-ellipse', icon: <Circle size={20} />, i18nKey: 'toolSpotlightEllipse' },
         { id: 'blur-rect', icon: <Droplet size={20} />, i18nKey: 'toolBlurRect' },
+        { id: 'zoom-rect', icon: <ZoomIn size={20} />, i18nKey: 'toolZoomRect' },
+        { id: 'zoom-ellipse', icon: <ScanSearch size={20} />, i18nKey: 'toolZoomEllipse' },
     ],
     [
         { id: 'insert-image', icon: <ImageIcon size={20} />, i18nKey: 'toolInsertImage', action: 'image' },

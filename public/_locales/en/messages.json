@@ -43,6 +43,12 @@
     "toolClickIcon": {
         "message": "Mouse Click"
     },
+    "toolZoomRect": {
+        "message": "Zoom In (Rect)"
+    },
+    "toolZoomEllipse": {
+        "message": "Zoom In (Ellipse)"
+    },
     "toolBlurRect": {
         "message": "Blur"
     },

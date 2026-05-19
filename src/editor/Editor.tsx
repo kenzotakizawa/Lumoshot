@@ -85,7 +85,7 @@ const Editor: React.FC = () => {
             if (!canvas || isHistoryProcessing.current) return;
 
             // Include custom properties in JSON serialization
-            const obj = canvas.toObject(['isBackground', 'isFrame', 'isSpotlight', 'isBlur', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel']);
+            const obj = canvas.toObject(['isBackground', 'isFrame', 'isSpotlight', 'isBlur', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel', 'isZoomPanel', 'isZoomSource', 'zoomId', 'zoomColor', 'zoomIsEllipse']);
 
             // Save canvas dimensions alongside object state
             const stateEntry = JSON.stringify({
@@ -390,6 +390,15 @@ const Editor: React.FC = () => {
         // Auto-renumbering logic for step-numbers
         canvas.on('object:removed', (e) => {
             if (isHistoryProcessing.current) return; // Prevent loop during undo
+
+            // When a zoom panel is deleted, remove its paired source indicator
+            if (e.target && e.target.get('isZoomPanel')) {
+                const zoomId = e.target.get('zoomId');
+                canvas.getObjects()
+                    .filter((o: any) => o.get('isZoomSource') && o.get('zoomId') === zoomId)
+                    .forEach(o => canvas.remove(o));
+                canvas.requestRenderAll();
+            }
 
             // Check if the removed object was a step number
             if (e.target && e.target.get('isStepNumber')) {

@@ -11,11 +11,12 @@ import { spotlightMouseDown, spotlightMouseMove, spotlightMouseUp, spotlightAfte
 import { blurMouseDown, blurMouseMove, blurMouseUp } from '../utils/drawTools/blur';
 import { speechBubbleMouseDown, speechBubbleMouseMove, speechBubbleMouseUp } from '../utils/drawTools/speechBubble';
 import { clickIconMouseDown, clickIconMouseMove, clickIconMouseUp } from '../utils/drawTools/clickIcon';
+import { zoomMouseDown, zoomMouseMove, zoomMouseUp, zoomAfterRender } from '../utils/drawTools/zoom';
 
 // Re-export for external consumers
 export { updateSpeechBubble, createSpeechBubblePath } from '../utils/drawTools/speechBubble';
 
-export type ToolType = 'select' | 'rect' | 'arrow' | 'text' | 'spotlight-rect' | 'spotlight-ellipse' | 'blur-rect' | 'step-number' | 'pen' | 'highlighter' | 'rounded-rect' | 'speech-bubble' | 'click-icon';
+export type ToolType = 'select' | 'rect' | 'arrow' | 'text' | 'spotlight-rect' | 'spotlight-ellipse' | 'blur-rect' | 'step-number' | 'pen' | 'highlighter' | 'rounded-rect' | 'speech-bubble' | 'click-icon' | 'zoom-rect' | 'zoom-ellipse';
 
 const controlConfig = {
     transparentCorners: false,
@@ -145,6 +146,12 @@ export const useCanvasTools = (
                 case 'click-icon':
                     clickIconMouseDown(canvas, pointer, ctx);
                     break;
+                case 'zoom-rect':
+                    zoomMouseDown(canvas, pointer, ctx, false);
+                    break;
+                case 'zoom-ellipse':
+                    zoomMouseDown(canvas, pointer, ctx, true);
+                    break;
             }
         };
 
@@ -177,6 +184,12 @@ export const useCanvasTools = (
                     break;
                 case 'click-icon':
                     clickIconMouseMove(canvas, pointer, ctx);
+                    break;
+                case 'zoom-rect':
+                    zoomMouseMove(canvas, pointer, ctx, false);
+                    break;
+                case 'zoom-ellipse':
+                    zoomMouseMove(canvas, pointer, ctx, true);
                     break;
             }
             canvas.requestRenderAll();
@@ -212,10 +225,18 @@ export const useCanvasTools = (
                     case 'spotlight-ellipse':
                         spotlightMouseUp(canvas, ctx, true);
                         break;
+                    case 'zoom-rect':
+                        zoomMouseUp(canvas, ctx, false);
+                        break;
+                    case 'zoom-ellipse':
+                        zoomMouseUp(canvas, ctx, true);
+                        break;
                 }
 
                 // Fire modified event for undo/redo state saving
-                if (currentTool !== 'spotlight-rect' && currentTool !== 'spotlight-ellipse' && currentShape.current) {
+                if (currentTool !== 'spotlight-rect' && currentTool !== 'spotlight-ellipse'
+                    && currentTool !== 'zoom-rect' && currentTool !== 'zoom-ellipse'
+                    && currentShape.current) {
                     const shape = currentShape.current;
                     if (canvas.contains(shape) || canvas.contains(shape.line)) {
                         shape.fire ? shape.fire('modified') : null;
@@ -237,6 +258,7 @@ export const useCanvasTools = (
 
         const handleAfterRender = () => {
             spotlightAfterRender(canvas);
+            zoomAfterRender(canvas);
         };
 
         canvas.on('mouse:down', handleMouseDown);

@@ -43,6 +43,12 @@
     "toolClickIcon": {
         "message": "マウスクリック"
     },
+    "toolZoomRect": {
+        "message": "部分ズーム (四角)"
+    },
+    "toolZoomEllipse": {
+        "message": "部分ズーム (楕円)"
+    },
     "toolBlurRect": {
         "message": "ボカシ"
     },
