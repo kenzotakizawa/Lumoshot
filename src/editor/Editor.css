@@ -165,36 +165,76 @@ body {
 /* Tooltip Body */
 [data-tooltip]::after {
     content: attr(data-tooltip);
-    left: 100%;
-    top: 50%;
-    transform: translate(10px, -50%);
-    margin-left: 12px;
+    left: 50%;
+    top: 100%;
+    transform: translate(-50%, -5px);
+    margin-top: 12px;
     padding: 6px 10px;
     background-color: var(--tooltip-bg);
     color: var(--tooltip-text);
     border-radius: 6px;
     font-size: 12px;
     font-weight: 500;
-    white-space: nowrap;
+    max-width: 220px;
+    white-space: pre-line;
+    text-align: center;
+    line-height: 1.4;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* Tooltip Arrow */
 [data-tooltip]::before {
     content: '';
-    left: 100%;
-    top: 50%;
-    transform: translate(10px, -50%);
-    margin-left: 6px;
+    left: 50%;
+    top: 100%;
+    transform: translate(-50%, -5px);
+    margin-top: 6px;
     border: 6px solid transparent;
-    border-right-color: var(--tooltip-bg);
+    border-bottom-color: var(--tooltip-bg);
 }
 
 [data-tooltip]:hover::before,
 [data-tooltip]:hover::after {
     opacity: 1;
     visibility: visible;
+    transform: translate(-50%, 0);
+}
+
+/* Sidebar tooltips stay to the right so they do not cover the vertical tool rail. */
+.sidebar [data-tooltip]::after {
+    left: 100%;
+    top: 50%;
+    transform: translate(10px, -50%);
+    margin-top: 0;
+    margin-left: 12px;
+    max-width: none;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.sidebar [data-tooltip]::before {
+    left: 100%;
+    top: 50%;
+    transform: translate(10px, -50%);
+    margin-top: 0;
+    margin-left: 6px;
+    border-color: transparent;
+    border-right-color: var(--tooltip-bg);
+}
+
+.sidebar [data-tooltip]:hover::before,
+.sidebar [data-tooltip]:hover::after {
     transform: translate(0, -50%);
+}
+
+/* Sub-header tooltips can carry short usage notes, so give them room and rhythm. */
+.sub-header [data-tooltip]::after {
+    min-width: 168px;
+    max-width: 260px;
+    padding: 8px 12px;
+    font-size: 11.5px;
+    line-height: 1.45;
+    letter-spacing: 0;
 }
 
 .main-area {
@@ -218,24 +258,37 @@ body {
     justify-content: space-between;
     z-index: 100;
     box-shadow: 0 4px 20px var(--shadow-soft);
+    overflow: visible;
 }
 
-/* Header Tooltips override (to drop down instead of right) */
+/* Header tooltips sit below the top bar with a stronger surface for readability. */
 .header [data-tooltip]::after {
     left: 50%;
-    top: 100%;
-    transform: translate(-50%, -5px);
+    top: calc(100% + 10px);
+    transform: translate(-50%, -2px);
     margin-left: 0;
-    margin-top: 12px;
+    margin-top: 0;
+    padding: 8px 11px;
+    border-radius: 8px;
+    min-width: max-content;
+    max-width: 220px;
+    white-space: nowrap;
+    font-size: 12px;
+    line-height: 1.35;
+    font-weight: 600;
+    letter-spacing: 0;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.22);
+    z-index: 1200;
 }
 
 .header [data-tooltip]::before {
     left: 50%;
-    top: 100%;
-    transform: translate(-50%, -5px);
+    top: calc(100% + 4px);
+    transform: translate(-50%, -2px);
     margin-left: 0;
-    margin-top: 6px;
+    margin-top: 0;
     border-color: transparent transparent var(--tooltip-bg) transparent;
+    z-index: 1201;
 }
 
 .header [data-tooltip]:hover::before,
@@ -933,6 +986,41 @@ body {
     font-size: 11px;
     color: var(--text-muted, #94a3b8);
     text-align: center;
+}
+
+.ba-duplicate-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+.ba-duplicate-btn:hover {
+    opacity: 0.88;
+}
+
+.ba-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted, #94a3b8);
+    font-size: 12px;
+}
+.ba-divider::before,
+.ba-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color, #e2e8f0);
 }
 
 /* Animations */

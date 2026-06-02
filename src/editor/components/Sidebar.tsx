@@ -11,6 +11,7 @@ interface SidebarProps {
     setCurrentTool: (tool: ToolType) => void;
     strokeWidth: number;
     setStrokeWidth: (width: number) => void;
+    setStrokeColor: (color: string) => void;
     fileInputRef: React.RefObject<HTMLInputElement | null>;
     onOpenResize: () => void;
     onStartCrop: () => void;
@@ -26,6 +27,7 @@ interface ToolDef {
     i18nKey: string;
     action?: 'tool' | 'resize' | 'crop' | 'image' | 'ba';
     setStrokeWidth?: number;
+    setStrokeColor?: string;
     resetStrokeIfThick?: boolean;
 }
 
@@ -51,7 +53,7 @@ const TOOL_GROUPS: ToolDef[][] = [
     [
         { id: 'spotlight-rect', icon: <Focus size={20} />, i18nKey: 'toolSpotlightRect' },
         { id: 'spotlight-ellipse', icon: <Circle size={20} />, i18nKey: 'toolSpotlightEllipse' },
-        { id: 'blur-rect', icon: <Droplet size={20} />, i18nKey: 'toolBlurRect' },
+        { id: 'blur-rect', icon: <Droplet size={20} />, i18nKey: 'toolBlurRect', setStrokeColor: '#000000' },
         { id: 'zoom-rect', icon: <ZoomIn size={20} />, i18nKey: 'toolZoomRect' },
         { id: 'zoom-ellipse', icon: <ScanSearch size={20} />, i18nKey: 'toolZoomEllipse' },
     ],
@@ -64,7 +66,7 @@ const TOOL_GROUPS: ToolDef[][] = [
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({
-    currentTool, setCurrentTool, strokeWidth, setStrokeWidth,
+    currentTool, setCurrentTool, strokeWidth, setStrokeWidth, setStrokeColor,
     fileInputRef, onOpenResize, onStartCrop, isCropping, onStartBA, isBAMode
 }) => {
     const handleClick = (def: ToolDef) => {
@@ -80,6 +82,9 @@ const Sidebar: React.FC<SidebarProps> = ({
             setStrokeWidth(def.setStrokeWidth);
         } else if (def.resetStrokeIfThick && strokeWidth === 8) {
             setStrokeWidth(2);
+        }
+        if (def.setStrokeColor !== undefined) {
+            setStrokeColor(def.setStrokeColor);
         }
     };
 

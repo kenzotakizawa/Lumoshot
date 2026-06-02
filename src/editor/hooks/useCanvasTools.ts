@@ -12,6 +12,7 @@ import { blurMouseDown, blurMouseMove, blurMouseUp } from '../utils/drawTools/bl
 import { speechBubbleMouseDown, speechBubbleMouseMove, speechBubbleMouseUp } from '../utils/drawTools/speechBubble';
 import { clickIconMouseDown, clickIconMouseMove, clickIconMouseUp } from '../utils/drawTools/clickIcon';
 import { zoomMouseDown, zoomMouseMove, zoomMouseUp, zoomAfterRender } from '../utils/drawTools/zoom';
+import type { ArrowStyle } from '../utils/drawTools/arrow';
 
 // Re-export for external consumers
 export { updateSpeechBubble, createSpeechBubblePath } from '../utils/drawTools/speechBubble';
@@ -36,8 +37,11 @@ export const useCanvasTools = (
     strokeWidth: number = 4,
     fontColor: string = '#ffffff',
     fontSize: number = 24,
+    arrowStyle: ArrowStyle = 'straight',
+    bubbleFillColor: string = '#ffffff',
     blurCanvas: HTMLCanvasElement | null = null,
-    onToolComplete?: () => void
+    onToolComplete?: () => void,
+    clickIconScheme: 'dark' | 'light' = 'dark'
 ) => {
     const isDrawing = useRef(false);
     const startX = useRef(0);
@@ -50,8 +54,21 @@ export const useCanvasTools = (
         // Build the shared context object for tool handlers
         const ctx: DrawToolContext = {
             strokeColor, strokeWidth, fontColor, fontSize,
+            arrowStyle, bubbleFillColor,
             controlConfig, isDrawing, startX, startY, currentShape,
-            blurCanvas, onToolComplete
+            blurCanvas, onToolComplete, clickIconScheme
+        };
+
+        const completeCreatedShape = (emitModified = false) => {
+            const shape = currentShape.current;
+            if (!shape) return;
+
+            if (canvas.contains(shape)) {
+                if (emitModified && shape.fire) shape.fire('modified');
+                canvas.setActiveObject(shape);
+            }
+            currentShape.current = null;
+            canvas.requestRenderAll();
         };
 
         // Reset state when tool changes
@@ -94,6 +111,19 @@ export const useCanvasTools = (
 
             const pointer = canvas.getScenePoint(opt.e);
 
+            if (currentTool === 'arrow'
+                && (arrowStyle === 'curved' || arrowStyle === 'elbow')
+                && isDrawing.current
+                && currentShape.current?.kind === `${arrowStyle}-arrow`) {
+                const result = arrowMouseDown(canvas, pointer, ctx, (opt.e as MouseEvent).detail || 1);
+                if (result?.completed) {
+                    isDrawing.current = false;
+                    completeCreatedShape(true);
+                }
+                canvas.requestRenderAll();
+                return;
+            }
+
             // If the user clicks on an existing (non-background) object, switch to select
             // so they can move/resize it. Objects have evented:false during drawing, so we
             // use containsPoint instead of relying on opt.target.
@@ -123,7 +153,7 @@ export const useCanvasTools = (
                     rectMouseDown(canvas, pointer, ctx, true);
                     break;
                 case 'arrow':
-                    arrowMouseDown(canvas, pointer, ctx);
+                    arrowMouseDown(canvas, pointer, ctx, (opt.e as MouseEvent).detail || 1);
                     break;
                 case 'text':
                     textMouseDown(canvas, pointer, ctx);
@@ -199,6 +229,9 @@ export const useCanvasTools = (
 
         const handleMouseUp = () => {
             if (!isDrawing.current) return;
+            if (currentTool === 'arrow'
+                && (currentShape.current?.kind === 'curved-arrow' || currentShape.current?.kind === 'elbow-arrow')) return;
+
             isDrawing.current = false;
 
             if (currentShape.current) {
@@ -239,17 +272,14 @@ export const useCanvasTools = (
                     && currentShape.current) {
                     const shape = currentShape.current;
                     if (canvas.contains(shape) || canvas.contains(shape.line)) {
-                        shape.fire ? shape.fire('modified') : null;
+                        if (shape.fire) shape.fire('modified');
                     }
                 }
 
                 // Auto-select the created object; stay in current tool for continuous creation
-                const createdShape = currentShape.current;
-                currentShape.current = null;
-                canvas.requestRenderAll();
-
-                if (createdShape && canvas.contains(createdShape)) {
-                    canvas.setActiveObject(createdShape);
+                completeCreatedShape();
+                if (currentTool === 'speech-bubble' || currentTool === 'click-icon') {
+                    onToolComplete?.();
                 }
             }
         };
@@ -272,5 +302,5 @@ export const useCanvasTools = (
             canvas.off('mouse:up', handleMouseUp);
             canvas.off('after:render', handleAfterRender);
         };
-    }, [canvas, currentTool, strokeColor, strokeWidth, fontColor, fontSize]);
+    }, [canvas, currentTool, strokeColor, strokeWidth, fontColor, fontSize, arrowStyle, bubbleFillColor, clickIconScheme]);
 };

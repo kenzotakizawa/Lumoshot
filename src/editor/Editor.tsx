@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Canvas, FabricImage, Rect, Shadow, Circle as FabricCircle, Line, ActiveSelection, IText } from 'fabric';
 import { useCanvasTools } from './hooks/useCanvasTools';
 import type { ToolType } from './hooks/useCanvasTools';
+import type { ArrowStyle } from './utils/drawTools/arrow';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
@@ -34,9 +35,10 @@ const Editor: React.FC = () => {
     const [strokeWidth, setStrokeWidth] = useState<number>(2);
     const [fontColor, setFontColor] = useState<string>('#ff0000');
     const [fontSize, setFontSize] = useState<number>(24);
+    const [arrowStyle, setArrowStyle] = useState<ArrowStyle>('straight');
     const [isBold, setIsBold] = useState<boolean>(false);
     const [isItalic, setIsItalic] = useState<boolean>(false);
-    const [textBgColor, setTextBgColor] = useState<string>('transparent');
+    const [bubbleFillColor, setBubbleFillColor] = useState<string>('#ffffff');
     const [zoomLevel, setZoomLevel] = useState<number>(1);
     const [hasFrame, setHasFrame] = useState<boolean>(false);
     const [isMultiSelection, setIsMultiSelection] = useState<boolean>(false);
@@ -54,6 +56,7 @@ const Editor: React.FC = () => {
     const baHeaderHeight = useRef<number>(0);
     const afterImageDataUrl = useRef<string | null>(null);
     const [isLocked, setIsLocked] = useState<boolean>(false);
+    const [clickIconScheme, setClickIconScheme] = useState<'dark' | 'light'>('dark');
     const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; target: any | null }>({
         visible: false,
         x: 0,
@@ -66,6 +69,7 @@ const Editor: React.FC = () => {
     const cropStartY = useRef<number>(0);
 
     const blurCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const backgroundDataUrl = useRef<string | null>(null);
 
     // History states for Undo/Redo
     const history = useRef<string[]>([]);
@@ -85,7 +89,7 @@ const Editor: React.FC = () => {
             if (!canvas || isHistoryProcessing.current) return;
 
             // Include custom properties in JSON serialization
-            const obj = canvas.toObject(['isBackground', 'isFrame', 'isSpotlight', 'isBlur', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel', 'isZoomPanel', 'isZoomSource', 'zoomId', 'zoomColor', 'zoomIsEllipse']);
+            const obj = canvas.toObject(['isBackground', 'isFrame', 'isSpotlight', 'isBlur', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel', 'isZoomPanel', 'isZoomSource', 'zoomId', 'zoomColor', 'zoomIsEllipse', 'isArrow', 'arrowStyle']);
 
             // Save canvas dimensions alongside object state
             const stateEntry = JSON.stringify({
@@ -241,7 +245,7 @@ const Editor: React.FC = () => {
     };
 
     // Initialize custom canvas drawing tools hook
-    useCanvasTools(fabricCanvas.current, currentTool, strokeColor, strokeWidth, fontColor, fontSize, blurCanvasRef.current, () => setCurrentTool('select'));
+    useCanvasTools(fabricCanvas.current, currentTool, strokeColor, strokeWidth, fontColor, fontSize, arrowStyle, bubbleFillColor, blurCanvasRef.current, () => setCurrentTool('select'), clickIconScheme);
 
     useEffect(() => {
         if (!canvasEl.current) return;
@@ -262,7 +266,7 @@ const Editor: React.FC = () => {
                 setIsLocked(false);
                 setIsBold(false);
                 setIsItalic(false);
-                setTextBgColor('transparent');
+                setBubbleFillColor('#ffffff');
                 return;
             }
 
@@ -289,16 +293,18 @@ const Editor: React.FC = () => {
                         textObj = objs.find((o: any) => o.type === 'textbox' || o.type === 'i-text' || o.type === 'text' || o.type === 'Textbox' || o.type === 'IText' || o.type === 'Text');
                     } else if (obj.type === 'textbox' || obj.type === 'i-text' || obj.type === 'text' || obj.type === 'Textbox' || obj.type === 'IText' || obj.type === 'Text') {
                         textObj = obj;
+                        const ownerGroup = canvas.getObjects().find((o: any) => o.get?.('bubbleId') === bubbleId && (o.type === 'group' || o.type === 'Group'));
+                        pathObj = (ownerGroup as any)?._objects?.find((o: any) => o.type === 'path' || o.type === 'Path');
                     }
 
                     if (pathObj && pathObj.stroke) setStrokeColor(pathObj.stroke);
                     if (pathObj && pathObj.strokeWidth) setStrokeWidth(pathObj.strokeWidth);
+                    if (pathObj && pathObj.fill) setBubbleFillColor(pathObj.fill);
                     if (textObj && textObj.fill) setFontColor(textObj.fill);
                     if (textObj && textObj.fontSize) setFontSize(textObj.fontSize);
                     if (textObj) {
                         setIsBold(textObj.fontWeight === 'bold');
                         setIsItalic(textObj.fontStyle === 'italic');
-                        setTextBgColor(textObj.textBackgroundColor || 'transparent');
                     }
                 } else if (obj.type === 'i-text' || obj.type === 'text' || obj.type === 'textbox' || obj.type === 'IText' || obj.type === 'Text' || obj.type === 'Textbox') {
                     if (obj.stroke) setStrokeColor(obj.stroke as string);
@@ -306,17 +312,30 @@ const Editor: React.FC = () => {
                     if (obj.fontSize) setFontSize(obj.fontSize as number);
                     setIsBold(obj.fontWeight === 'bold');
                     setIsItalic(obj.fontStyle === 'italic');
-                    setTextBgColor(obj.textBackgroundColor || 'transparent');
+                } else if (obj.get?.('isBlur')) {
+                    if (typeof obj.fill === 'string') setStrokeColor(obj.fill);
+                    setIsBold(false);
+                    setIsItalic(false);
+                    setBubbleFillColor('#ffffff');
+                } else if (obj.get?.('isArrow')) {
+                    const objs: Array<{ type?: string; stroke?: unknown; strokeWidth?: unknown }> = (obj as typeof obj & { _objects?: Array<{ type?: string; stroke?: unknown; strokeWidth?: unknown }> })._objects || [];
+                    const lineObj = objs.find(o => o.type === 'line' || o.type === 'path');
+                    if (lineObj?.stroke) setStrokeColor(lineObj.stroke as string);
+                    if (lineObj?.strokeWidth) setStrokeWidth(lineObj.strokeWidth as number);
+                    setArrowStyle((obj.get('arrowStyle') as ArrowStyle) || 'straight');
+                    setIsBold(false);
+                    setIsItalic(false);
+                    setBubbleFillColor('#ffffff');
                 } else {
                     setIsBold(false);
                     setIsItalic(false);
-                    setTextBgColor('transparent');
+                    setBubbleFillColor('#ffffff');
                 }
             } else {
                 setIsBubbleSelected(false);
                 setIsBold(false);
                 setIsItalic(false);
-                setTextBgColor('transparent');
+                setBubbleFillColor('#ffffff');
             }
         };
 
@@ -758,7 +777,7 @@ const Editor: React.FC = () => {
                     case 'n': setCurrentTool('step-number'); setStrokeWidth(8); break;
                     case 'b': setCurrentTool('speech-bubble'); setStrokeWidth(2); break;
                     case 's': setCurrentTool('spotlight-rect'); break;
-                    case 'u': setCurrentTool('blur-rect'); break;
+                    case 'u': setCurrentTool('blur-rect'); setStrokeColor('#000000'); break;
                     case 'c': setIsCropping(true); setCropReady(false); break;
                     case 'h': setCurrentTool('highlighter'); setStrokeWidth(12); break;
                     case 'p': setCurrentTool('pen'); setStrokeWidth(2); break;
@@ -787,6 +806,7 @@ const Editor: React.FC = () => {
 
 
     const loadBackgroundToCanvas = (dataUrl: string) => {
+        backgroundDataUrl.current = dataUrl;
         FabricImage.fromURL(dataUrl).then((img: FabricImage) => {
             const canvas = fabricCanvas.current;
             if (!canvas || !wrapperRef.current) return;
@@ -1285,39 +1305,29 @@ const Editor: React.FC = () => {
 
         canvas.renderAll();
 
-        canvas.lowerCanvasEl.toBlob((blob) => {
-            if (currentVpt) {
-                canvas.viewportTransform = currentVpt as any;
-            }
-            canvas.setZoom(currentZoom);
-            canvas.setDimensions({
-                width: currentWidth,
-                height: currentHeight
-            });
-            canvas.renderAll();
+        // Capture synchronously so canvas can be restored before any async work
+        const dataURL = canvas.lowerCanvasEl.toDataURL('image/png', 1.0);
 
-            if (blob) {
-                try {
-                    navigator.clipboard.write([
-                        new ClipboardItem({ 'image/png': blob })
-                    ]).then(() => {
-                        setStatus("Copied to clipboard!");
-                        setTimeout(() => setStatus("Ready"), 2000);
-                    }).catch(err => {
-                        console.error("Clipboard API failed", err);
-                        setStatus("Copy Failed");
-                        setTimeout(() => setStatus("Ready"), 2000);
-                    });
-                } catch (err) {
-                    console.error("Clipboard API error", err);
-                    setStatus("Copy Failed");
-                    setTimeout(() => setStatus("Ready"), 2000);
-                }
-            } else {
+        if (currentVpt) {
+            canvas.viewportTransform = currentVpt as any;
+        }
+        canvas.setZoom(currentZoom);
+        canvas.setDimensions({ width: currentWidth, height: currentHeight });
+        canvas.renderAll();
+
+        // Convert dataURL to Blob and write to clipboard asynchronously
+        fetch(dataURL)
+            .then(res => res.blob())
+            .then(blob => navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]))
+            .then(() => {
+                setStatus("Copied to clipboard!");
+                setTimeout(() => setStatus("Ready"), 2000);
+            })
+            .catch(err => {
+                console.error("Clipboard API failed", err);
                 setStatus("Copy Failed");
                 setTimeout(() => setStatus("Ready"), 2000);
-            }
-        }, 'image/png', 1.0);
+            });
     };
 
     const addImageToCanvas = (dataUrl: string) => {
@@ -1625,6 +1635,7 @@ const Editor: React.FC = () => {
                 setCurrentTool={setCurrentTool}
                 strokeWidth={strokeWidth}
                 setStrokeWidth={setStrokeWidth}
+                setStrokeColor={setStrokeColor}
                 fileInputRef={fileInputRef}
                 onOpenResize={() => setShowResizeModal(true)}
                 onStartCrop={startCrop}
@@ -1666,6 +1677,7 @@ const Editor: React.FC = () => {
                     isDarkMode={isDarkMode}
                     toggleDarkMode={toggleDarkMode}
                     onOpenHelp={() => window.open('guide.html', '_blank')}
+                    onOpenResize={() => setShowResizeModal(true)}
                 />
 
                 {/* Sub-Header Toolbars */}
@@ -1683,17 +1695,21 @@ const Editor: React.FC = () => {
                     setFontColor={setFontColor}
                     fontSize={fontSize}
                     setFontSize={setFontSize}
+                    arrowStyle={arrowStyle}
+                    setArrowStyle={setArrowStyle}
                     isBold={isBold}
                     setIsBold={setIsBold}
                     isItalic={isItalic}
                     setIsItalic={setIsItalic}
-                    textBgColor={textBgColor}
-                    setTextBgColor={setTextBgColor}
+                    bubbleFillColor={bubbleFillColor}
+                    setBubbleFillColor={setBubbleFillColor}
                     fabricCanvas={fabricCanvas}
                     isLocked={isLocked}
                     handleToggleLock={handleToggleLock}
                     showRuler={showRuler}
                     handleToggleRuler={() => setShowRuler(!showRuler)}
+                    clickIconScheme={clickIconScheme}
+                    setClickIconScheme={setClickIconScheme}
                 />
                 </div>
 
@@ -1822,6 +1838,7 @@ const Editor: React.FC = () => {
                 isOpen={showBAModal}
                 onClose={cancelBAModal}
                 onImageProvided={handleAfterImageProvided}
+                currentImageDataUrl={backgroundDataUrl.current ?? undefined}
             />
         </div>
     );

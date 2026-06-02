@@ -1,7 +1,8 @@
 import React from 'react';
-import { AlignLeft, AlignCenter, AlignRight, Lock, Unlock, Bold, Italic, X, Ruler } from 'lucide-react';
+import { AlignLeft, AlignCenter, AlignRight, Lock, Unlock, Bold, Italic, Ruler, ArrowUpRight, CornerDownRight, Spline } from 'lucide-react';
 import { Canvas } from 'fabric';
 import type { ToolType } from '../hooks/useCanvasTools';
+import type { ArrowStyle } from '../utils/drawTools/arrow';
 import { buildClickCursorGroup } from '../utils/drawTools/clickIcon';
 
 interface SubHeaderProps {
@@ -18,17 +19,21 @@ interface SubHeaderProps {
     setFontColor: (color: string) => void;
     fontSize: number;
     setFontSize: (size: number) => void;
+    arrowStyle: ArrowStyle;
+    setArrowStyle: (style: ArrowStyle) => void;
     isBold?: boolean;
     setIsBold?: (bold: boolean) => void;
     isItalic?: boolean;
     setIsItalic?: (italic: boolean) => void;
-    textBgColor?: string;
-    setTextBgColor?: (color: string) => void;
+    bubbleFillColor?: string;
+    setBubbleFillColor?: (color: string) => void;
     fabricCanvas: React.RefObject<Canvas | null>;
     isLocked?: boolean;
     handleToggleLock?: () => void;
     showRuler?: boolean;
     handleToggleRuler?: () => void;
+    clickIconScheme?: 'dark' | 'light';
+    setClickIconScheme?: (scheme: 'dark' | 'light') => void;
 }
 
 const SubHeader: React.FC<SubHeaderProps> = ({
@@ -45,18 +50,36 @@ const SubHeader: React.FC<SubHeaderProps> = ({
     setFontColor,
     fontSize,
     setFontSize,
+    arrowStyle,
+    setArrowStyle,
     isBold,
     setIsBold,
     isItalic,
     setIsItalic,
-    textBgColor,
-    setTextBgColor,
+    bubbleFillColor,
+    setBubbleFillColor,
     fabricCanvas,
     isLocked = false,
     handleToggleLock,
     showRuler = false,
-    handleToggleRuler
+    handleToggleRuler,
+    clickIconScheme = 'dark',
+    setClickIconScheme,
 }) => {
+    const isArrowContext = currentTool === 'arrow';
+    const isBubbleContext = currentTool === 'speech-bubble' || isBubbleSelected;
+    const isClickIconContext = currentTool === 'click-icon' || !!fabricCanvas.current?.getActiveObject()?.get('isClickIcon');
+    const getReadableTextColor = (color: string) => {
+        const hex = color.replace('#', '');
+        if (hex.length !== 6) return '#111827';
+        const r = parseInt(hex.slice(0, 2), 16) / 255;
+        const g = parseInt(hex.slice(2, 4), 16) / 255;
+        const b = parseInt(hex.slice(4, 6), 16) / 255;
+        const toLinear = (channel: number) => channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
+        const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+        return luminance < 0.42 ? '#ffffff' : '#111827';
+    };
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {/* Sub-Header Toolbar (Alignment) */}
@@ -89,13 +112,13 @@ const SubHeader: React.FC<SubHeaderProps> = ({
             )}
 
             {/* Sub-Header Toolbar (Properties) */}
-            {(currentTool !== 'select' || hasSelection) && currentTool !== 'spotlight-rect' && currentTool !== 'spotlight-ellipse' && currentTool !== 'blur-rect' && (
+            {(currentTool !== 'select' || hasSelection) && currentTool !== 'spotlight-rect' && currentTool !== 'spotlight-ellipse' && (
                 <div className="sub-header" style={{
                     height: '48px', background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
                     border: '1px solid rgba(255, 255, 255, 0.4)', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
                     display: 'flex', alignItems: 'center', padding: '0 20px', gap: '20px', fontSize: '13px', color: '#555'
                 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {!isClickIconContext && <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <label>Color:</label>
                         <input
                             type="color"
@@ -112,6 +135,10 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                                         if (obj.type === 'i-text' || obj.type === 'text') {
                                             obj.set('fill', val);
                                         } else if (obj.type === 'path' || obj.type === 'line' || obj.type === 'rect' || obj.type === 'polygon') {
+                                            if (obj.get?.('isBlur')) {
+                                                obj.set({ fill: val, stroke: val });
+                                                return;
+                                            }
                                             // If it's the invisible cover for speech bubble, skip
                                             if (obj.stroke === 'white' && obj.fill === 'white') return;
 
@@ -133,14 +160,10 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                                             if (circle) circle.set('fill', val);
                                         } else if (obj.get('isClickIcon')) {
                                             obj.set('clickColor', val);
-                                            const clickType = obj.get('clickType');
                                             const parts = obj.getObjects();
-                                            // parts[1] is LeftButton, parts[2] is RightButton
-                                            if (clickType === 'left') {
-                                                parts[1].set({ fill: val });
-                                            } else {
-                                                parts[2].set({ fill: val });
-                                            }
+                                            parts.forEach((part: any) => {
+                                                if (part.type === 'line') part.set('stroke', val);
+                                            });
                                         } else if (obj.type === 'group') {
                                             const objs = obj._objects;
                                             console.log('[SpeechBubble Color] Group selected:', obj);
@@ -151,12 +174,16 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                                             const textObj = objs?.find((o: any) => o.type === 'textbox' || o.type === 'i-text' || o.type === 'text');
 
                                             if (pathObj && textObj && obj.get('bubbleId')) {
-                                                const isWhite = val === '#ffffff';
                                                 pathObj.set('stroke', val);
-                                                pathObj.set('fill', isWhite ? '#000000' : '#ffffff');
+                                            } else if (obj.get('isArrow')) {
+                                                objs.forEach((o: any) => {
+                                                    if (o.type === 'line' || o.type === 'path') o.set('stroke', val);
+                                                    if (o.type === 'polygon') o.set('fill', val);
+                                                });
                                             } else {
                                                 objs.forEach((o: any) => {
                                                     if (o.type === 'line') o.set('stroke', val);
+                                                    if (o.type === 'path') o.set('stroke', val);
                                                     if (o.type === 'polygon') o.set('fill', val);
                                                 });
                                             }
@@ -174,10 +201,42 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                             }}
                             style={{ border: 'none', padding: 0, width: '24px', height: '24px', cursor: 'pointer', background: 'transparent' }}
                         />
-                    </div>
+                    </div>}
 
-                    {/* Click Icon L/R Toggle */}
-                    {(currentTool === 'click-icon' || (fabricCanvas.current?.getActiveObject()?.get('isClickIcon'))) && (
+                    {/* Arrow Style */}
+                    {isArrowContext && (
+                        <>
+                            <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-color, #ccc)', margin: '0 8px' }} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                {([
+                                    { id: 'straight', icon: <ArrowUpRight size={16} />, label: '直線矢印' },
+                                    { id: 'curved', icon: <Spline size={16} />, label: '曲線矢印\nクリックで頂点追加\nダブルクリックで確定' },
+                                    { id: 'elbow', icon: <CornerDownRight size={16} />, label: '折れ線矢印\nクリックで曲がり角追加\nダブルクリックで確定' },
+                                ] as const).map(option => {
+                                    const isActive = arrowStyle === option.id;
+                                    return (
+                                        <button
+                                            key={option.id}
+                                            className={`tool-btn ${isActive ? 'active' : ''}`}
+                                            onClick={() => {
+                                                setArrowStyle(option.id);
+                                            }}
+                                            data-tooltip={option.label}
+                                            style={{
+                                                background: isActive ? 'rgba(79, 70, 229, 0.1)' : 'transparent',
+                                                color: isActive ? '#4f46e5' : 'inherit'
+                                            }}
+                                        >
+                                            {option.icon}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    )}
+
+                    {/* Click Icon L/R Toggle + B/W Scheme */}
+                    {isClickIconContext && (
                         <>
                             <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-color, #ccc)', margin: '0 8px' }} />
                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -202,7 +261,7 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                                                 const obj = canvas?.getActiveObject() as any;
                                                 if (!obj || !obj.get('isClickIcon') || !canvas) return;
 
-                                                const color = obj.get('clickColor') || strokeColor;
+                                                const scheme = obj.get('clickScheme') || clickIconScheme;
                                                 const oldLeft = obj.left ?? 0;
                                                 const oldTop = obj.top ?? 0;
                                                 const oldScaleX = obj.scaleX ?? 1;
@@ -217,7 +276,7 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                                                 };
 
                                                 canvas.remove(obj);
-                                                const newGroup = buildClickCursorGroup(oldLeft, oldTop, type, color, ctrlCfg);
+                                                const newGroup = buildClickCursorGroup(oldLeft, oldTop, type, scheme, ctrlCfg);
                                                 newGroup.set({ scaleX: oldScaleX, scaleY: oldScaleY, angle: oldAngle });
                                                 canvas.add(newGroup);
                                                 canvas.setActiveObject(newGroup);
@@ -229,64 +288,124 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                                     );
                                 })}
                             </div>
+                            <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-color, #ccc)', margin: '0 8px' }} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ marginRight: 8, fontWeight: 'bold', color: 'var(--text-primary)' }}>Color:</span>
+                                {(['dark', 'light'] as const).map(scheme => {
+                                    const activeObj = fabricCanvas.current?.getActiveObject();
+                                    const currentScheme = activeObj?.get('isClickIcon')
+                                        ? (activeObj.get('clickScheme') || clickIconScheme)
+                                        : clickIconScheme;
+                                    const isActive = currentScheme === scheme;
+
+                                    return (
+                                        <button
+                                            key={scheme}
+                                            className="action-btn"
+                                            style={{
+                                                padding: '4px 10px',
+                                                background: scheme === 'dark' ? '#1a1a2e' : '#ffffff',
+                                                color: scheme === 'dark' ? '#ffffff' : '#1a1a2e',
+                                                border: isActive ? '2px solid #4f46e5' : '1px solid var(--action-border)',
+                                                fontWeight: isActive ? '600' : '500',
+                                            }}
+                                            onClick={() => {
+                                                setClickIconScheme?.(scheme);
+                                                const canvas = fabricCanvas.current;
+                                                const obj = canvas?.getActiveObject() as any;
+                                                if (!obj?.get('isClickIcon') || !canvas) return;
+
+                                                const clickType = obj.get('clickType') || 'left';
+                                                const oldLeft = obj.left ?? 0;
+                                                const oldTop = obj.top ?? 0;
+                                                const oldScaleX = obj.scaleX ?? 1;
+                                                const oldScaleY = obj.scaleY ?? 1;
+                                                const oldAngle = obj.angle ?? 0;
+                                                const ctrlCfg = {
+                                                    transparentCorners: false,
+                                                    cornerColor: '#4f46e5',
+                                                    cornerStyle: 'circle' as const,
+                                                    borderColor: '#4f46e5',
+                                                    cornerSize: 10,
+                                                };
+
+                                                canvas.remove(obj);
+                                                const newGroup = buildClickCursorGroup(oldLeft, oldTop, clickType, scheme, ctrlCfg);
+                                                newGroup.set({ scaleX: oldScaleX, scaleY: oldScaleY, angle: oldAngle });
+                                                canvas.add(newGroup);
+                                                canvas.setActiveObject(newGroup);
+                                                canvas.requestRenderAll();
+                                            }}
+                                        >
+                                            {scheme === 'dark' ? 'Black' : 'White'}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </>
                     )}
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <label>Width/Size: {strokeWidth}px</label>
-                        <input
-                            type="range"
-                            min="1" max={currentTool === 'step-number' || currentTool === 'text' ? "40" : "20"}
-                            value={strokeWidth}
-                            onChange={(e) => {
-                                const val = parseInt(e.target.value);
-                                setStrokeWidth(val);
+                    {!isBubbleContext && !isClickIconContext && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <label>Width/Size: {strokeWidth}px</label>
+                            <input
+                                type="range"
+                                min="1" max={currentTool === 'step-number' || currentTool === 'text' ? "40" : "20"}
+                                value={strokeWidth}
+                                onChange={(e) => {
+                                    const val = parseInt(e.target.value);
+                                    setStrokeWidth(val);
 
-                                // Live update active object
-                                const activeObject = fabricCanvas.current?.getActiveObject();
-                                if (activeObject) {
-                                    const applySize = (obj: any) => {
-                                        if (obj.type === 'i-text' || obj.type === 'text') {
-                                            obj.set('fontSize', Math.max(16, val * 4));
-                                        } else if (obj.type === 'path' || obj.type === 'line' || obj.type === 'rect') {
-                                            // Don't change cover polygon stroke width
-                                            if (obj.stroke !== 'white' || obj.fill !== 'white') {
-                                                obj.set('strokeWidth', val);
-                                            }
-                                        } else if (obj.get('isStepNumber')) {
-                                            const scale = val / 8;
-                                            obj.scale(scale);
-                                        } else if (obj.type === 'group') {
-                                            const objs = obj._objects;
-                                            console.log('[SpeechBubble Size] Group selected:', obj);
-                                            const pathObj = objs?.find((o: any) => o.type === 'path');
-                                            const textObj = objs?.find((o: any) => o.type === 'textbox' || o.type === 'i-text' || o.type === 'text');
-
-                                            if (pathObj && textObj && obj.get('bubbleId')) {
-                                                pathObj.set('strokeWidth', val);
-                                                if (typeof obj._calcBounds === 'function') obj._calcBounds();
-                                            } else {
-                                                const scale = val / 4;
+                                    // Live update active object
+                                    const activeObject = fabricCanvas.current?.getActiveObject();
+                                    if (activeObject) {
+                                        const applySize = (obj: any) => {
+                                            if (obj.type === 'i-text' || obj.type === 'text') {
+                                                obj.set('fontSize', Math.max(16, val * 4));
+                                            } else if (obj.type === 'path' || obj.type === 'line' || obj.type === 'rect') {
+                                                // Don't change cover polygon stroke width
+                                                if (obj.stroke !== 'white' || obj.fill !== 'white') {
+                                                    obj.set('strokeWidth', val);
+                                                }
+                                            } else if (obj.get('isStepNumber')) {
+                                                const scale = val / 8;
                                                 obj.scale(scale);
+                                            } else if (obj.type === 'group') {
+                                                const objs = obj._objects;
+                                                console.log('[SpeechBubble Size] Group selected:', obj);
+                                                const pathObj = objs?.find((o: any) => o.type === 'path');
+                                                const textObj = objs?.find((o: any) => o.type === 'textbox' || o.type === 'i-text' || o.type === 'text');
+
+                                                if (pathObj && textObj && obj.get('bubbleId')) {
+                                                    pathObj.set('strokeWidth', val);
+                                                    if (typeof obj._calcBounds === 'function') obj._calcBounds();
+                                                } else if (obj.get('isArrow')) {
+                                                    objs.forEach((o: any) => {
+                                                        if (o.type === 'line' || o.type === 'path') o.set('strokeWidth', val);
+                                                    });
+                                                } else {
+                                                    const scale = val / 4;
+                                                    obj.scale(scale);
+                                                }
                                             }
+                                        };
+
+                                        if (activeObject.type === 'activeSelection') {
+                                            (activeObject as any)._objects.forEach(applySize);
+                                        } else {
+                                            applySize(activeObject);
                                         }
-                                    };
 
-                                    if (activeObject.type === 'activeSelection') {
-                                        (activeObject as any)._objects.forEach(applySize);
-                                    } else {
-                                        applySize(activeObject);
+                                        fabricCanvas.current?.requestRenderAll();
                                     }
-
-                                    fabricCanvas.current?.requestRenderAll();
-                                }
-                            }}
-                            style={{ width: '100px', cursor: 'pointer' }}
-                        />
-                    </div>
+                                }}
+                                style={{ width: '100px', cursor: 'pointer' }}
+                            />
+                        </div>
+                    )}
 
                     {/* Text Customizer conditionally rendered when a speech bubble is engaged */}
-                    {(currentTool === 'speech-bubble' || isBubbleSelected) && (
+                    {isBubbleContext && (
                         <>
                             <div style={{ width: '1px', height: '24px', backgroundColor: '#ccc', margin: '0 8px' }} />
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -406,54 +525,34 @@ const SubHeader: React.FC<SubHeaderProps> = ({
 
                             <div style={{ width: '1px', height: '24px', backgroundColor: '#ccc', margin: '0 8px' }} />
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <label>Bg Color:</label>
-                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                    <input
-                                        type="color"
-                                        value={textBgColor === 'transparent' ? '#ffffff' : textBgColor}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            if (setTextBgColor) setTextBgColor(val);
-                                            const activeObject = fabricCanvas.current?.getActiveObject();
-                                            if (activeObject) {
-                                                const applyBgColor = (obj: any) => {
-                                                    if (obj.type === 'i-text' || obj.type === 'text' || obj.type === 'textbox' || obj.type === 'IText' || obj.type === 'Text' || obj.type === 'Textbox') {
-                                                        obj.set('textBackgroundColor', val);
-                                                    } else if (obj.type === 'group' || obj.type === 'Group') {
-                                                        const textObj = obj._objects?.find((o: any) => o.type === 'textbox' || o.type === 'i-text' || o.type === 'text' || o.type === 'Textbox' || o.type === 'IText' || o.type === 'Text');
-                                                        if (textObj) textObj.set('textBackgroundColor', val);
-                                                    }
-                                                }
-                                                applyBgColor(activeObject);
-                                                fabricCanvas.current?.requestRenderAll();
-                                            }
-                                        }}
-                                        style={{ border: 'none', padding: 0, width: '24px', height: '24px', cursor: 'pointer', background: 'transparent' }}
-                                    />
-                                    <button
-                                        className="tool-btn"
-                                        style={{ position: 'absolute', right: '-24px', padding: '2px', width: '20px', height: '20px', marginLeft: '4px' }}
-                                        onClick={() => {
-                                            if (setTextBgColor) setTextBgColor('transparent');
-                                            const activeObject = fabricCanvas.current?.getActiveObject();
-                                            if (activeObject) {
-                                                const applyBgColor = (obj: any) => {
-                                                    if (obj.type === 'i-text' || obj.type === 'text' || obj.type === 'textbox' || obj.type === 'IText' || obj.type === 'Text' || obj.type === 'Textbox') {
-                                                        obj.set('textBackgroundColor', '');
-                                                    } else if (obj.type === 'group' || obj.type === 'Group') {
-                                                        const textObj = obj._objects?.find((o: any) => o.type === 'textbox' || o.type === 'i-text' || o.type === 'text' || o.type === 'Textbox' || o.type === 'IText' || o.type === 'Text');
-                                                        if (textObj) textObj.set('textBackgroundColor', '');
-                                                    }
-                                                }
-                                                applyBgColor(activeObject);
-                                                fabricCanvas.current?.requestRenderAll();
-                                            }
-                                        }}
-                                        title="Clear Background"
-                                    >
-                                        <X size={12} color="#888" />
-                                    </button>
-                                </div>
+                                <label>Fill:</label>
+                                <input
+                                    type="color"
+                                    value={bubbleFillColor || '#ffffff'}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (setBubbleFillColor) setBubbleFillColor(val);
+                                        const readableTextColor = getReadableTextColor(val);
+                                        setFontColor(readableTextColor);
+                                        const canvas = fabricCanvas.current;
+                                        const activeObject = canvas?.getActiveObject();
+                                        if (!canvas || !activeObject) return;
+
+                                        const bubbleId = (activeObject as any).bubbleId || (typeof activeObject.get === 'function' && activeObject.get('bubbleId'));
+                                        const bubbleGroup = activeObject.type === 'group' || activeObject.type === 'Group'
+                                            ? activeObject
+                                            : canvas.getObjects().find((obj: any) => obj.get?.('bubbleId') === bubbleId && (obj.type === 'group' || obj.type === 'Group'));
+                                        const pathObj = (bubbleGroup as any)?._objects?.find((obj: any) => obj.type === 'path' || obj.type === 'Path');
+                                        const textObj = (bubbleGroup as any)?._objects?.find((obj: any) => obj.type === 'textbox' || obj.type === 'i-text' || obj.type === 'text' || obj.type === 'Textbox' || obj.type === 'IText' || obj.type === 'Text');
+
+                                        if (pathObj) {
+                                            pathObj.set('fill', val);
+                                        }
+                                        if (textObj) textObj.set('fill', readableTextColor);
+                                        canvas.requestRenderAll();
+                                    }}
+                                    style={{ border: 'none', padding: 0, width: '24px', height: '24px', cursor: 'pointer', background: 'transparent' }}
+                                />
                             </div>
                         </>
                     )}

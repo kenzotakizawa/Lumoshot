@@ -144,7 +144,7 @@ export const updateSpeechBubble = (g: Group) => {
 export function spawnSpeechBubble(
     canvas: Canvas,
     cx: number, cy: number, fw: number, fh: number,
-    strokeColor: string, strokeWidth: number, fontColor: string, fontSize: number,
+    strokeColor: string, strokeWidth: number, fontColor: string, fontSize: number, bubbleFillColor: string,
     controlConfig: any
 ) {
     const bubbleId = 'bubble_' + Date.now();
@@ -172,7 +172,7 @@ export function spawnSpeechBubble(
     const { pathStr } = createSpeechBubblePath(fw, actualFh, r, localTx, localTy);
 
     const bgObj = new Path(pathStr, {
-        fill: strokeColor === '#ffffff' ? '#000000' : '#ffffff',
+        fill: bubbleFillColor,
         stroke: strokeColor,
         strokeWidth: strokeWidth,
         strokeLineJoin: 'round',
@@ -359,7 +359,7 @@ export function speechBubbleMouseUp(canvas: Canvas, ctx: DrawToolContext) {
 
     spawnSpeechBubble(
         canvas, l + w / 2, t + h / 2, finalW, finalH,
-        ctx.strokeColor, ctx.strokeWidth, ctx.fontColor, ctx.fontSize,
+        ctx.strokeColor, ctx.strokeWidth, ctx.fontColor, ctx.fontSize, ctx.bubbleFillColor || '#ffffff',
         ctx.controlConfig
     );
 }

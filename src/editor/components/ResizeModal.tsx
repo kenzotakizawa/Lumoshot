@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Monitor, Smartphone, Square as SquareIcon, RectangleVertical,
-    Laptop, Camera, Chrome, Link, Unlink, X
+    Laptop, Camera, Chrome, Link, Unlink, X, FileText, Presentation, Globe
 } from 'lucide-react';
 
 interface ResizeModalProps {
@@ -88,6 +88,38 @@ const TEMPLATE_CATEGORIES: TemplateCategory[] = [
             { label: 'Icon 16', width: 16, height: 16, description: 'ファビコン・ツールバー' },
             { label: 'Icon 48', width: 48, height: 48, description: '拡張機能管理画面' },
             { label: 'Icon 128', width: 128, height: 128, description: 'Chrome Web Store' },
+        ]
+    },
+    {
+        name: 'Word / DOCX',
+        ratio: '自由',
+        icon: <FileText size={14} />,
+        templates: [
+            { label: 'A4 標準幅', width: 1240, height: 698, description: 'Word A4縦 本文幅 (約16:9)' },
+            { label: 'A4 小', width: 800, height: 450, description: 'コンパクトな記事・報告書向け' },
+            { label: 'A4 横全幅', width: 1654, height: 1170, description: 'Word A4横 全幅 (150dpi相当)' },
+        ]
+    },
+    {
+        name: 'PowerPoint / PPTX',
+        ratio: '自由',
+        icon: <Presentation size={14} />,
+        templates: [
+            { label: '16:9 標準', width: 1280, height: 720, description: 'PowerPoint / Keynote 標準' },
+            { label: '16:9 FHD', width: 1920, height: 1080, description: 'フルHD スライド' },
+            { label: '4:3 標準', width: 1024, height: 768, description: 'PowerPoint 4:3 旧スライド' },
+            { label: 'A4 比率', width: 1240, height: 877, description: 'A4印刷・PDF資料向け' },
+        ]
+    },
+    {
+        name: 'Web・ブログ',
+        ratio: '自由',
+        icon: <Globe size={14} />,
+        templates: [
+            { label: 'OGP / SNSシェア', width: 1200, height: 630, description: 'SNSシェア画像・Open Graph' },
+            { label: 'ブログ記事', width: 1200, height: 800, description: 'ブログ・Webメディア向け' },
+            { label: 'ヒーロー画像', width: 1440, height: 810, description: 'Webサイト トップビジュアル' },
+            { label: 'サムネイル', width: 640, height: 360, description: '記事サムネイル・カード' },
         ]
     },
 ];

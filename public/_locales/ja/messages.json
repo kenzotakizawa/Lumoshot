@@ -1,10 +1,10 @@
 {
     "appName": {
-        "message": "Lumoshot (ルモショット)",
+        "message": "Lumoshot - スクショ注釈ツール",
         "description": "The name of the application"
     },
     "appDesc": {
-        "message": "あらゆる画面の「伝えたい箇所」を瞬時にデザインし、視線を誘導する。",
+        "message": "スクショを撮って注釈・目隠し・コピーまで一瞬で。アップロード不要、アカウント不要。",
         "description": "The description of the application"
     },
     "toolSelect": {

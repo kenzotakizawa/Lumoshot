@@ -11,6 +11,8 @@ export interface DrawToolContext {
     strokeWidth: number;
     fontColor: string;
     fontSize: number;
+    arrowStyle?: 'straight' | 'curved' | 'elbow';
+    bubbleFillColor?: string;
     controlConfig: any;
     isDrawing: React.MutableRefObject<boolean>;
     startX: React.MutableRefObject<number>;
@@ -18,4 +20,5 @@ export interface DrawToolContext {
     currentShape: React.MutableRefObject<any>;
     blurCanvas?: HTMLCanvasElement | null;
     onToolComplete?: () => void;
+    clickIconScheme?: 'dark' | 'light';
 }

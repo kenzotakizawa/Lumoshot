@@ -1,4 +1,4 @@
-import { Canvas, Rect, Pattern, util } from 'fabric';
+import { Canvas, Rect } from 'fabric';
 import type { DrawToolContext } from './types';
 
 /**
@@ -9,15 +9,10 @@ export function blurMouseDown(
     pointer: { x: number; y: number },
     ctx: DrawToolContext
 ) {
-    const { controlConfig, blurCanvas } = ctx;
-    if (!blurCanvas) return;
+    const { controlConfig, strokeColor } = ctx;
+    const fillColor = strokeColor || '#000000';
 
-    const pattern = new Pattern({
-        source: blurCanvas,
-        repeat: 'no-repeat',
-    });
-
-    const sw = 1; // blur border is always 1px
+    const sw = 0;
     const shape = new Rect({
         left: pointer.x - sw / 2,
         top: pointer.y - sw / 2,
@@ -27,38 +22,13 @@ export function blurMouseDown(
         height: sw,
         rx: 8,
         ry: 8,
-        fill: pattern,
-        stroke: 'rgba(0,0,0,0.1)', // Subtle border
-        strokeWidth: 1,
+        fill: fillColor,
+        stroke: fillColor,
+        strokeWidth: 0,
         selectable: false,
         evented: false,
         ...controlConfig
     });
-
-    // Keep the pattern absolutely positioned to the canvas, regardless of object transform
-    const alignPattern = () => {
-        if (shape.fill instanceof Pattern) {
-            const m = shape.calcTransformMatrix();
-            const invertM = util.invertTransform(m);
-
-            // Offset pattern by base background position if framed
-            const baseImg = canvas.getObjects().find((o: any) => o.get('isBackground'));
-            if (baseImg) {
-                invertM[4] += baseImg.left || 0;
-                invertM[5] += baseImg.top || 0;
-            }
-
-            shape.fill.patternTransform = invertM;
-        }
-    };
-
-    // Track object modifications to maintain pattern alignment
-    shape.on('moving', alignPattern);
-    shape.on('scaling', alignPattern);
-    shape.on('rotating', alignPattern);
-    shape.on('skewing', alignPattern);
-
-    alignPattern(); // Apply initial
 
     shape.set('isBlur', true);
     ctx.currentShape.current = shape;
@@ -69,7 +39,7 @@ export function blurMouseDown(
  * mouseMove handler for blur-rect tool.
  */
 export function blurMouseMove(
-    canvas: Canvas,
+    _canvas: Canvas,
     pointer: { x: number; y: number },
     ctx: DrawToolContext
 ) {
@@ -90,18 +60,6 @@ export function blurMouseMove(
     });
     shape.setCoords();
 
-    // Mirror blurMouseDown's alignPattern: include baseImg offset so the blur fill
-    // tracks the correct region of the background image during drag
-    if (shape.fill instanceof Pattern) {
-        const m = shape.calcTransformMatrix();
-        const invertM = util.invertTransform(m);
-        const baseImg = canvas.getObjects().find((o: any) => o.get('isBackground'));
-        if (baseImg) {
-            invertM[4] += baseImg.left || 0;
-            invertM[5] += baseImg.top || 0;
-        }
-        shape.fill.patternTransform = invertM;
-    }
 }
 
 /**

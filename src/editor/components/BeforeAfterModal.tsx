@@ -1,13 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Upload, Clipboard, X } from 'lucide-react';
+import { Upload, Clipboard, Copy, X } from 'lucide-react';
 
 interface BeforeAfterModalProps {
     isOpen: boolean;
     onClose: () => void;
     onImageProvided: (dataUrl: string) => void;
+    currentImageDataUrl?: string;
 }
 
-const BeforeAfterModal: React.FC<BeforeAfterModalProps> = ({ isOpen, onClose, onImageProvided }) => {
+const BeforeAfterModal: React.FC<BeforeAfterModalProps> = ({
+    isOpen, onClose, onImageProvided, currentImageDataUrl
+}) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragOver, setIsDragOver] = useState(false);
     const [clipboardError, setClipboardError] = useState(false);
@@ -72,6 +75,21 @@ const BeforeAfterModal: React.FC<BeforeAfterModalProps> = ({ isOpen, onClose, on
                     <button className="ba-modal-close" onClick={onClose}>
                         <X size={18} />
                     </button>
+                </div>
+
+                {/* Duplicate current image */}
+                {currentImageDataUrl && (
+                    <button
+                        className="ba-duplicate-btn"
+                        onClick={() => onImageProvided(currentImageDataUrl)}
+                    >
+                        <Copy size={16} />
+                        現在の画像を複製して並べる
+                    </button>
+                )}
+
+                <div className="ba-divider">
+                    <span>または別の画像を追加</span>
                 </div>
 
                 <div
