@@ -1,5 +1,6 @@
 import React from 'react';
-import { Monitor, Undo, Redo, Copy, Download, ZoomIn, ZoomOut, Moon, Sun, HelpCircle, Scaling } from 'lucide-react';
+import { Monitor, Undo, Redo, Copy, Download, ZoomIn, ZoomOut, Moon, Sun, HelpCircle, Scaling, Home } from 'lucide-react';
+import { t as msg, getUILanguage } from '../../lib/i18n';
 
 interface HeaderProps {
     status: string;
@@ -16,6 +17,8 @@ interface HeaderProps {
     toggleDarkMode: () => void;
     onOpenHelp: () => void;
     onOpenResize: () => void;
+    onGoHome?: () => void;
+    saveStatusLabel?: string | null;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -33,15 +36,19 @@ const Header: React.FC<HeaderProps> = ({
     toggleDarkMode,
     onOpenHelp,
     onOpenResize,
+    onGoHome,
+    saveStatusLabel,
 }) => {
-    const isJapanese = chrome.i18n.getUILanguage().startsWith('ja');
+    const isJapanese = getUILanguage().startsWith('ja');
     const t = (ja: string, en: string) => isJapanese ? ja : en;
 
     return (
         <div className="header">
             <span className="header-title">
+                <img className="header-app-icon" src="/icons/icon48.png" alt="" />
                 <span className="header-title-text">Lumoshot</span>
                 <span className="header-status" style={{ color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '8px' }}>{status}</span>
+                {saveStatusLabel && <span className="header-save-status">{saveStatusLabel}</span>}
             </span>
 
             {/* Zoom Controls */}
@@ -52,29 +59,35 @@ const Header: React.FC<HeaderProps> = ({
             </div>
 
             <div className="header-actions">
+                {onGoHome && (
+                    <button className="action-btn" onClick={onGoHome} data-tooltip={t('ホームへ戻る', 'Back to home')} aria-label={t('ホームへ戻る', 'Back to home')}>
+                        <Home size={16} />
+                    </button>
+                )}
                 <button
                     className={`action-btn ${hasFrame ? 'primary' : ''}`}
                     style={hasFrame ? {} : { border: '1px solid var(--border-color)' }}
                     onClick={toggleFrame}
                 >
-                    <Monitor size={16} /> <span className="action-label">{chrome.i18n.getMessage("actionFrame")}</span>
+                    <Monitor size={16} /> <span className="action-label">{msg("actionFrame")}</span>
                 </button>
                 <button className="action-btn" onClick={onOpenResize} data-tooltip={t('リサイズ', 'Resize')}>
                     <Scaling size={16} /> <span className="action-label">{t('リサイズ', 'Resize')}</span>
                 </button>
                 <div className="header-divider" />
-                <button className="action-btn" onClick={toggleDarkMode} data-tooltip={isDarkMode ? t('ライトモード', 'Light Mode') : t('ダークモード', 'Dark Mode')}>
+                <button className="action-btn" onClick={toggleDarkMode} data-tooltip={isDarkMode ? t('ライトモード', 'Light Mode') : t('ダークモード', 'Dark Mode')} aria-label={isDarkMode ? t('ライトモード', 'Light Mode') : t('ダークモード', 'Dark Mode')}>
                     {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
                 </button>
-                <button className="action-btn" onClick={onOpenHelp} data-tooltip={chrome.i18n.getMessage("helpTitle")}>
+                <button className="action-btn" onClick={onOpenHelp} data-tooltip={msg("helpTitle")} aria-label={msg("helpTitle")}>
                     <HelpCircle size={16} />
                 </button>
-
                 <div className="header-divider" />
-                <button className="action-btn" onClick={handleUndo} data-tooltip={chrome.i18n.getMessage("actionUndo")}><Undo size={16} /></button>
-                <button className="action-btn" onClick={handleRedo} data-tooltip={chrome.i18n.getMessage("actionRedo")}><Redo size={16} /></button>
-                <button className="action-btn" onClick={handleCopy}><Copy size={16} /> <span className="action-label">{chrome.i18n.getMessage("actionCopy")}</span></button>
-                <button className="action-btn primary" onClick={handleDownload}><Download size={16} /> <span className="action-label">{chrome.i18n.getMessage("actionSave")}</span></button>
+                <button className="action-btn" onClick={handleUndo} data-tooltip={msg("actionUndo")}><Undo size={16} /></button>
+                <button className="action-btn" onClick={handleRedo} data-tooltip={msg("actionRedo")}><Redo size={16} /></button>
+                <button className="action-btn" onClick={handleCopy}><Copy size={16} /> <span className="action-label">{msg("actionCopy")}</span></button>
+                <button className="action-btn primary" onClick={handleDownload} data-tooltip={t('PNG画像として保存', 'Save as a PNG image')}>
+                    <Download size={16} /> <span className="action-label">{msg("actionSave")}</span>
+                </button>
             </div>
         </div>
     );

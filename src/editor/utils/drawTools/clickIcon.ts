@@ -1,5 +1,6 @@
 import * as fabric from 'fabric';
 import type { DrawToolContext } from './types';
+import { getUILanguage } from '../../../lib/i18n';
 
 export const clickIconMouseDown = (
     canvas: fabric.Canvas,
@@ -67,8 +68,7 @@ export const clickIconMouseUp = (canvas: fabric.Canvas, ctx: DrawToolContext) =>
 const STROKE = 2.5;
 
 const getClickLabel = (clickType: 'left' | 'right') => {
-    const isJapanese = typeof chrome !== 'undefined'
-        && chrome.i18n?.getUILanguage?.().toLowerCase().startsWith('ja');
+    const isJapanese = getUILanguage().toLowerCase().startsWith('ja');
 
     if (isJapanese) return clickType === 'left' ? '左クリック' : '右クリック';
     return clickType === 'left' ? 'Left click' : 'Right click';

@@ -14,6 +14,11 @@
       "chrome"
     ],
     "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@platform": ["./src/platform/platform.extension.ts"]
+    },
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,

@@ -5,6 +5,7 @@ import {
     Image as ImageIcon, Scaling, Crop, Columns2, ZoomIn, ScanSearch
 } from 'lucide-react';
 import type { ToolType } from '../hooks/useCanvasTools';
+import { t } from '../../lib/i18n';
 
 interface SidebarProps {
     currentTool: ToolType;
@@ -105,7 +106,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 key={def.id}
                                 className={`tool-btn ${isActive(def) ? 'active' : ''}`}
                                 onClick={() => handleClick(def)}
-                                data-tooltip={chrome.i18n.getMessage(def.i18nKey)}
+                                data-tooltip={t(def.i18nKey)}
                             >
                                 {def.icon}
                             </button>

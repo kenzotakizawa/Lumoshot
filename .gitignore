@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Local Claude Code config
+.claude/
+
+# Release archives
+*.zip
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -25,3 +31,6 @@ dist-ssr
 
 # Temporary debug / utility scripts
 *.py
+!scripts/generate_guide_gifs.py
+!scripts/compile_real_guide_gifs.py
+/.guide-capture-real/

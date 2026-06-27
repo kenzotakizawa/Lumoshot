@@ -11,18 +11,17 @@ import BeforeAfterModal from './components/BeforeAfterModal';
 import Ruler from './components/Ruler';
 import { Check, X, Trash2 } from 'lucide-react';
 import { initSmartGuides } from './utils/smartGuides';
+import { platform } from '@platform';
+import { t } from '../lib/i18n';
 
-interface CropRect {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-    windowWidth: number;
-    windowHeight: number;
-    devicePixelRatio: number;
+interface EditorProps {
+    // Called (debounced) whenever the editor state changes, for web-side autosave.
+    onSnapshot?: (state: string, thumbnail: string) => void;
+    onGoHome?: () => void;
+    saveStatusLabel?: string | null;
 }
 
-const Editor: React.FC = () => {
+const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }) => {
     const canvasEl = useRef<HTMLCanvasElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const fabricCanvas = useRef<Canvas | null>(null);
@@ -41,7 +40,11 @@ const Editor: React.FC = () => {
     const [bubbleFillColor, setBubbleFillColor] = useState<string>('#ffffff');
     const [zoomLevel, setZoomLevel] = useState<number>(1);
     const [hasFrame, setHasFrame] = useState<boolean>(false);
+    const [outlineEnabled, setOutlineEnabled] = useState<boolean>(false);
+    const [outlineColor, setOutlineColor] = useState<string>('#1f2937');
+    const [outlineWidth, setOutlineWidth] = useState<number>(1);
     const [isMultiSelection, setIsMultiSelection] = useState<boolean>(false);
+    const [selectionCount, setSelectionCount] = useState<number>(0);
     const [hasSelection, setHasSelection] = useState<boolean>(false);
     const [isBubbleSelected, setIsBubbleSelected] = useState<boolean>(false);
     const [showResizeModal, setShowResizeModal] = useState<boolean>(false);
@@ -79,23 +82,39 @@ const Editor: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const clipboardRef = useRef<any>(null);
 
+    const createSnapshot = () => {
+        const canvas = fabricCanvas.current;
+        if (!canvas) return null;
+
+        // Include custom properties in JSON serialization
+        const obj = canvas.toObject(['isBackground', 'isFrame', 'isOutline', 'isSpotlight', 'isBlur', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel', 'isZoomPanel', 'isZoomSource', 'zoomId', 'zoomColor', 'zoomIsEllipse', 'isArrow', 'arrowStyle']);
+
+        const stateEntry = JSON.stringify({
+            canvasData: obj,
+            dimensions: { ...originalSize.current }
+        });
+
+        const lower = canvas.lowerCanvasEl;
+        const tw = 320;
+        const th = lower.width ? Math.max(1, Math.round(lower.height * (tw / lower.width))) : 180;
+        const tc = document.createElement('canvas');
+        tc.width = tw;
+        tc.height = th;
+        tc.getContext('2d')?.drawImage(lower, 0, 0, tw, th);
+
+        return { stateEntry, thumbnail: tc.toDataURL('image/jpeg', 0.6) };
+    };
+
     const saveState = () => {
         if (saveTimeout.current !== null) {
             window.clearTimeout(saveTimeout.current);
         }
 
         saveTimeout.current = window.setTimeout(() => {
-            const canvas = fabricCanvas.current;
-            if (!canvas || isHistoryProcessing.current) return;
-
-            // Include custom properties in JSON serialization
-            const obj = canvas.toObject(['isBackground', 'isFrame', 'isSpotlight', 'isBlur', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel', 'isZoomPanel', 'isZoomSource', 'zoomId', 'zoomColor', 'zoomIsEllipse', 'isArrow', 'arrowStyle']);
-
-            // Save canvas dimensions alongside object state
-            const stateEntry = JSON.stringify({
-                canvasData: obj,
-                dimensions: { ...originalSize.current }
-            });
+            if (isHistoryProcessing.current) return;
+            const snapshot = createSnapshot();
+            if (!snapshot) return;
+            const { stateEntry, thumbnail } = snapshot;
 
             // Deduplicate: Don't push if the state is exactly the same as the last recorded state
             if (history.current.length > 0 && history.current[history.current.length - 1] === stateEntry) {
@@ -104,6 +123,15 @@ const Editor: React.FC = () => {
 
             history.current.push(stateEntry);
             redoStack.current = [];
+
+            // Notify the host (web autosave) with a small thumbnail of the canvas.
+            if (onSnapshot) {
+                try {
+                    onSnapshot(stateEntry, thumbnail);
+                } catch (err) {
+                    console.warn('snapshot thumbnail failed', err);
+                }
+            }
         }, 100);
     };
 
@@ -156,10 +184,18 @@ const Editor: React.FC = () => {
         const canvas = fabricCanvas.current;
         if (!canvas) return;
         const activeObject = canvas.getActiveObject();
-        if (!activeObject || activeObject.type !== 'activeSelection') return;
+        if (!activeObject) return;
+        const isActiveSelection = activeObject instanceof ActiveSelection
+            || activeObject.type?.toLowerCase() === 'activeselection';
+        if (!activeObject || !isActiveSelection || typeof (activeObject as ActiveSelection).getObjects !== 'function') return;
 
         const objects = (activeObject as ActiveSelection).getObjects();
         if (objects.length < 2) return;
+        if ((action === 'distribute-horizontal' || action === 'distribute-vertical') && objects.length < 3) {
+            setStatus("Select 3 or more objects to distribute.");
+            setTimeout(() => setStatus("Ready"), 2000);
+            return;
+        }
 
         canvas.discardActiveObject();
 
@@ -262,6 +298,7 @@ const Editor: React.FC = () => {
             if (!selectedObjs || selectedObjs.length === 0) {
                 setHasSelection(false);
                 setIsMultiSelection(false);
+                setSelectionCount(0);
                 setIsBubbleSelected(false);
                 setIsLocked(false);
                 setIsBold(false);
@@ -272,6 +309,7 @@ const Editor: React.FC = () => {
 
             setHasSelection(true);
             setIsMultiSelection(selectedObjs.length > 1);
+            setSelectionCount(selectedObjs.length);
 
             const isAnyLocked = selectedObjs.some((o: any) => o.lockMovementX || o.lockMovementY || o.lockScalingX || o.lockScalingY || o.lockRotation);
             setIsLocked(isAnyLocked);
@@ -410,6 +448,10 @@ const Editor: React.FC = () => {
         canvas.on('object:removed', (e) => {
             if (isHistoryProcessing.current) return; // Prevent loop during undo
 
+            // Outline is a system decoration; its add/remove is committed explicitly
+            // (toggleOutline / commitOutline), never via auto-save.
+            if (e.target && e.target.get('isOutline')) return;
+
             // When a zoom panel is deleted, remove its paired source indicator
             if (e.target && e.target.get('isZoomPanel')) {
                 const zoomId = e.target.get('zoomId');
@@ -443,7 +485,7 @@ const Editor: React.FC = () => {
         canvas.on('object:added', (e) => {
             if (isHistoryProcessing.current) return;
             // Ignore system additions
-            if (e.target && (e.target.get('isBackground') || e.target.get('isFrame'))) return;
+            if (e.target && (e.target.get('isBackground') || e.target.get('isFrame') || e.target.get('isOutline'))) return;
 
             // Wait slightly for useCanvasTools dragging logic to settle (if any)
             saveState();
@@ -504,47 +546,46 @@ const Editor: React.FC = () => {
         }
 
         // --- Load Image Data ---
-        const params = new URLSearchParams(window.location.search);
-        const mode = params.get('mode') || 'capture';
+        // Image source is abstracted via the platform layer:
+        //   - extension: chrome.storage.local (set by capture/background scripts)
+        //   - web: provided by the web shell before the editor mounts
+        setStatus("Loading image...");
+        platform.getInitialImage().then((init) => {
+            if (!init) {
+                setStatus("Ready");
+                return;
+            }
+            // Reopen a saved project: restore the full snapshot instead of an image.
+            if (init.restoreState) {
+                restoreSnapshotOnLoad(init.restoreState);
+                return;
+            }
+            const { dataUrl, cropRect: rect, mode } = init;
+            if (mode === 'crop' && rect && rect.windowWidth) {
+                const img = new Image();
+                img.onload = () => {
+                    const tempCanvas = document.createElement('canvas');
 
+                    // Scale coordinates relatively to avoid DevicePixelRatio mismatch bugs
+                    const actualScaleX = img.width / rect.windowWidth;
+                    const actualScaleY = img.height / rect.windowHeight;
 
+                    const sourceX = rect.left * actualScaleX;
+                    const sourceY = rect.top * actualScaleY;
+                    const sourceW = rect.width * actualScaleX;
+                    const sourceH = rect.height * actualScaleY;
 
-        if (mode === 'capture' || mode === 'crop') {
-            setStatus("Loading image...");
-            chrome.storage.local.get(["capturedImage", "cropRect"], (result) => {
-                const dataUrl = result.capturedImage as string;
-                const rect = result.cropRect as CropRect;
-
-                if (dataUrl) {
-                    if (mode === 'crop' && rect && rect.windowWidth) {
-                        const img = new Image();
-                        img.onload = () => {
-                            const tempCanvas = document.createElement('canvas');
-
-                            // Scale coordinates relatively to avoid DevicePixelRatio mismatch bugs
-                            const actualScaleX = img.width / rect.windowWidth;
-                            const actualScaleY = img.height / rect.windowHeight;
-
-                            const sourceX = rect.left * actualScaleX;
-                            const sourceY = rect.top * actualScaleY;
-                            const sourceW = rect.width * actualScaleX;
-                            const sourceH = rect.height * actualScaleY;
-
-                            tempCanvas.width = sourceW;
-                            tempCanvas.height = sourceH;
-                            const ctx = tempCanvas.getContext('2d');
-                            ctx?.drawImage(img, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
-                            loadBackgroundToCanvas(tempCanvas.toDataURL());
-                        };
-                        img.src = dataUrl;
-                    } else {
-                        loadBackgroundToCanvas(dataUrl);
-                    }
-                } else {
-                    setStatus("Error: No image found.");
-                }
-            });
-        }
+                    tempCanvas.width = sourceW;
+                    tempCanvas.height = sourceH;
+                    const ctx = tempCanvas.getContext('2d');
+                    ctx?.drawImage(img, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
+                    loadBackgroundToCanvas(tempCanvas.toDataURL());
+                };
+                img.src = dataUrl;
+            } else {
+                loadBackgroundToCanvas(dataUrl);
+            }
+        });
 
         return () => {
             if (wrapper) wrapper.removeEventListener('wheel', handleWheel);
@@ -804,6 +845,87 @@ const Editor: React.FC = () => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
+
+    // Restore a previously saved project snapshot (web "recent edits" feature).
+    const restoreSnapshotOnLoad = (stateStr: string) => {
+        const canvas = fabricCanvas.current;
+        if (!canvas || !wrapperRef.current) return;
+
+        const parsed = JSON.parse(stateStr);
+        const dims = parsed.dimensions ?? { width: 800, height: 600 };
+        originalSize.current = { width: dims.width, height: dims.height };
+        baseImageSize.current = { width: dims.width, height: dims.height };
+
+        const wrapperW = wrapperRef.current.clientWidth - 80;
+        const wrapperH = wrapperRef.current.clientHeight - 80;
+        const fitScale = Math.min(wrapperW / dims.width, wrapperH / dims.height, 1);
+
+        canvas.loadFromJSON(parsed.canvasData ?? parsed).then(() => {
+            // Rebuild the offscreen blur source from the restored background image
+            const bg = canvas.getObjects().find((o: any) => o.get('isBackground')) as any;
+            const imgEl = bg?.getElement?.() as HTMLImageElement | undefined;
+            if (imgEl) {
+                baseImageSize.current = { width: bg.width, height: bg.height };
+                const blurTarget = document.createElement('canvas');
+                blurTarget.width = imgEl.naturalWidth || bg.width;
+                blurTarget.height = imgEl.naturalHeight || bg.height;
+                const bCtx = blurTarget.getContext('2d');
+                if (bCtx) {
+                    bCtx.filter = 'blur(15px)';
+                    bCtx.drawImage(imgEl, 0, 0);
+                }
+                blurCanvasRef.current = blurTarget;
+                backgroundDataUrl.current = bg.toDataURL?.() ?? null;
+            }
+
+            // Sync React UI state with the restored objects so toggles don't desync
+            // (otherwise e.g. re-adding a frame would stack a second one).
+            const objs = canvas.getObjects() as any[];
+
+            const hasFrameObjs = objs.some((o) => o.get('isFrame'));
+            setHasFrame(hasFrameObjs);
+            if (hasFrameObjs) {
+                // Mirror the shift toggleFrame() applies, so turning the frame off
+                // moves everything back by the right amount.
+                const frameScale = Math.max(0.5, baseImageSize.current.width / 1600);
+                frameOffsets.current = { x: (100 + 40) * frameScale, y: (100 + 60) * frameScale };
+            }
+
+            const outlineObj = objs.find((o) => o.get('isOutline'));
+            setOutlineEnabled(!!outlineObj);
+            if (outlineObj) {
+                if (typeof outlineObj.stroke === 'string') setOutlineColor(outlineObj.stroke);
+                if (typeof outlineObj.strokeWidth === 'number') setOutlineWidth(outlineObj.strokeWidth);
+            }
+
+            // Before/After: restore flags AND the refs its handlers rely on.
+            const afterObj = objs.find((o) => o.get('isAfterImage'));
+            if (afterObj) {
+                setHasAfterImage(true);
+                setIsBAMode(true);
+                beforeBAWidth.current = afterObj.left ?? (bg ? bg.getScaledWidth() : 0);
+                const label = objs.find((o) => o.get('isBALabel'));
+                baHeaderHeight.current = label ? label.getScaledHeight() : 0;
+                afterImageDataUrl.current = afterObj.toDataURL?.() ?? null;
+            } else {
+                setHasAfterImage(false);
+                setIsBAMode(false);
+            }
+
+            canvas.setDimensions({ width: dims.width * fitScale, height: dims.height * fitScale });
+            canvas.setZoom(fitScale);
+            canvas.requestRenderAll();
+
+            // Seed history with the restored state (no extra snapshot on open)
+            history.current = [stateStr];
+            redoStack.current = [];
+            setZoomLevel(fitScale);
+            setStatus("Ready");
+        }).catch((err) => {
+            console.error("Failed to restore snapshot", err);
+            setStatus("Error restoring project.");
+        });
+    };
 
     const loadBackgroundToCanvas = (dataUrl: string) => {
         backgroundDataUrl.current = dataUrl;
@@ -1082,6 +1204,91 @@ const Editor: React.FC = () => {
 
     const frameOffsets = useRef({ x: 0, y: 0 });
 
+    // ─── Outline (image edge border) ───────────────────────────
+    // Draws a stroked rectangle that hugs the INSIDE edge of the screenshot,
+    // so the line never gets clipped by the export bounds (originalSize) and
+    // coexists with Frame / Before-After / Resize (all of which shift or scale
+    // every object uniformly, keeping the outline aligned with the image).
+    const applyOutline = (enabled: boolean, color: string, width: number) => {
+        const canvas = fabricCanvas.current;
+        if (!canvas) return;
+
+        // Always clear any existing outline first
+        canvas.getObjects()
+            .filter((o: any) => o.get('isOutline'))
+            .forEach((o: any) => canvas.remove(o));
+
+        if (!enabled) {
+            canvas.requestRenderAll();
+            return;
+        }
+
+        const bg = canvas.getObjects().find((o: any) => o.get('isBackground'));
+        if (!bg) {
+            canvas.requestRenderAll();
+            return;
+        }
+
+        // Background image bounds in canvas (unzoomed) coordinates
+        const bx = bg.left || 0;
+        const by = bg.top || 0;
+        const bw = bg.getScaledWidth();
+        const bh = bg.getScaledHeight();
+
+        // Inset by half the stroke so the whole line sits inside the image edge
+        const sw = Math.max(1, width);
+        const half = sw / 2;
+        const rect = new Rect({
+            left: bx + half,
+            top: by + half,
+            width: Math.max(1, bw - sw),
+            height: Math.max(1, bh - sw),
+            originX: 'left',
+            originY: 'top',
+            fill: 'transparent',
+            stroke: color,
+            strokeWidth: sw,
+            strokeUniform: true,
+            selectable: false,
+            evented: false,
+            hoverCursor: 'default',
+        });
+        rect.set('isOutline', true);
+        canvas.add(rect);
+
+        // Sit just above the background image (below user annotations)
+        const bgIndex = canvas.getObjects().indexOf(bg);
+        canvas.moveObjectTo(rect, bgIndex + 1);
+
+        canvas.requestRenderAll();
+    };
+
+    const toggleOutline = () => {
+        const next = !outlineEnabled;
+        setOutlineEnabled(next);
+        applyOutline(next, outlineColor, outlineWidth);
+        saveState();
+    };
+
+    // Live update only — DO NOT push history here. Adjusting the slider/picker
+    // updates the canvas immediately, and a single history entry is committed
+    // once the interaction ends (see commitOutline), so undo steps stay meaningful.
+    const handleOutlineColor = (color: string) => {
+        setOutlineColor(color);
+        if (outlineEnabled) applyOutline(true, color, outlineWidth);
+    };
+
+    const handleOutlineWidth = (width: number) => {
+        setOutlineWidth(width);
+        if (outlineEnabled) applyOutline(true, outlineColor, width);
+    };
+
+    // Commit the current outline appearance as one undo step (on slider release
+    // or color-picker close).
+    const commitOutline = () => {
+        if (outlineEnabled) saveState();
+    };
+
     const toggleFrame = () => {
         const canvas = fabricCanvas.current;
         if (!canvas) return;
@@ -1277,7 +1484,7 @@ const Editor: React.FC = () => {
         link.click();
         document.body.removeChild(link);
 
-        setStatus("Saved!");
+        setStatus("PNG saved!");
         // Revert status message after 2s
         setTimeout(() => setStatus("Ready"), 2000);
     };
@@ -1325,7 +1532,8 @@ const Editor: React.FC = () => {
             })
             .catch(err => {
                 console.error("Clipboard API failed", err);
-                setStatus("Copy Failed");
+                handleDownload();
+                setStatus("Copy failed. Downloaded PNG instead.");
                 setTimeout(() => setStatus("Ready"), 2000);
             });
     };
@@ -1423,6 +1631,10 @@ const Editor: React.FC = () => {
         const scaledH = newHeight * zoomLevel;
         canvas.setDimensions({ width: scaledW, height: scaledH });
         canvas.setZoom(zoomLevel);
+
+        // Re-derive the outline so its stroke width stays uniform after scaling
+        if (outlineEnabled) applyOutline(true, outlineColor, outlineWidth);
+
         canvas.requestRenderAll();
 
         setShowResizeModal(false);
@@ -1678,12 +1890,15 @@ const Editor: React.FC = () => {
                     toggleDarkMode={toggleDarkMode}
                     onOpenHelp={() => window.open('guide.html', '_blank')}
                     onOpenResize={() => setShowResizeModal(true)}
+                    onGoHome={onGoHome}
+                    saveStatusLabel={saveStatusLabel}
                 />
 
                 {/* Sub-Header Toolbars */}
                 <SubHeader
                     currentTool={currentTool}
                     isMultiSelection={isMultiSelection}
+                    selectionCount={selectionCount}
                     hasSelection={hasSelection}
                     isBubbleSelected={isBubbleSelected}
                     handleAlignment={handleAlignment}
@@ -1710,6 +1925,13 @@ const Editor: React.FC = () => {
                     handleToggleRuler={() => setShowRuler(!showRuler)}
                     clickIconScheme={clickIconScheme}
                     setClickIconScheme={setClickIconScheme}
+                    outlineEnabled={outlineEnabled}
+                    toggleOutline={toggleOutline}
+                    outlineColor={outlineColor}
+                    setOutlineColor={handleOutlineColor}
+                    outlineWidth={outlineWidth}
+                    setOutlineWidth={handleOutlineWidth}
+                    commitOutline={commitOutline}
                 />
                 </div>
 
@@ -1786,21 +2008,21 @@ const Editor: React.FC = () => {
                                 {contextMenu.target && (
                                     <>
                                         <div className="context-menu-item" onClick={() => { handleDuplicate(); setContextMenu(prev => ({ ...prev, visible: false })); }}>
-                                            {chrome.i18n.getMessage("contextMenuDuplicate")} <span className="shortcut">Ctrl+D</span>
+                                            {t("contextMenuDuplicate")} <span className="shortcut">Ctrl+D</span>
                                         </div>
                                         <div className="context-menu-item" onClick={() => { handleToggleLock(); setContextMenu(prev => ({ ...prev, visible: false })); }}>
-                                            {isLocked ? chrome.i18n.getMessage("toolUnlock").replace(' (Ctrl+L)', '') : chrome.i18n.getMessage("toolLock").replace(' (Ctrl+L)', '')} <span className="shortcut">Ctrl+L</span>
+                                            {isLocked ? t("toolUnlock").replace(' (Ctrl+L)', '') : t("toolLock").replace(' (Ctrl+L)', '')} <span className="shortcut">Ctrl+L</span>
                                         </div>
                                         <div className="context-menu-divider" />
                                         <div className="context-menu-item" onClick={() => { handleBringForward(); setContextMenu(prev => ({ ...prev, visible: false })); }}>
-                                            {chrome.i18n.getMessage("contextMenuBringForward")}
+                                            {t("contextMenuBringForward")}
                                         </div>
                                         <div className="context-menu-item" onClick={() => { handleSendBackward(); setContextMenu(prev => ({ ...prev, visible: false })); }}>
-                                            {chrome.i18n.getMessage("contextMenuSendBackward")}
+                                            {t("contextMenuSendBackward")}
                                         </div>
                                         <div className="context-menu-divider" />
                                         <div className="context-menu-item danger" onClick={() => { handleDelete(); setContextMenu(prev => ({ ...prev, visible: false })); }}>
-                                            {chrome.i18n.getMessage("contextMenuDelete")} <span className="shortcut">Del</span>
+                                            {t("contextMenuDelete")} <span className="shortcut">Del</span>
                                         </div>
                                     </>
                                 )}
@@ -1813,7 +2035,7 @@ const Editor: React.FC = () => {
                                         }
                                         setContextMenu(prev => ({ ...prev, visible: false }));
                                     }}>
-                                        {chrome.i18n.getMessage("contextMenuPaste")} <span className="shortcut">Ctrl+V</span>
+                                        {t("contextMenuPaste")} <span className="shortcut">Ctrl+V</span>
                                     </div>
                                 )}
                             </div>
