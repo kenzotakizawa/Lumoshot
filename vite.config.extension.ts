@@ -2,10 +2,16 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
-// https://vite.dev/config/
+// Chrome extension build. https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@platform': resolve(__dirname, 'src/platform/platform.extension.ts'),
+    },
+  },
   build: {
+    outDir: 'dist/extension',
     rollupOptions: {
       input: {
         popup: resolve(__dirname, 'popup.html'),

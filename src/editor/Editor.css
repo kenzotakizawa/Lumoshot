@@ -137,6 +137,29 @@ body {
     transform: scale(1.05);
 }
 
+.tool-btn:disabled,
+.action-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.tool-btn:disabled:hover,
+.action-btn:disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.tool-btn:disabled:hover {
+    background-color: transparent;
+    color: var(--text-secondary);
+}
+
+.action-btn:disabled:hover {
+    background-color: var(--action-bg);
+    color: var(--action-text);
+    border-color: var(--action-border);
+}
+
 .tool-btn:active {
     transform: scale(0.95);
 }
@@ -150,6 +173,10 @@ body {
 /* Custom Tooltips */
 [data-tooltip] {
     position: relative;
+}
+
+[data-tooltip]:hover {
+    z-index: 2147483000;
 }
 
 [data-tooltip]::before,
@@ -237,6 +264,69 @@ body {
     letter-spacing: 0;
 }
 
+/* Alignment controls use short labels; keep their tips compact below the bar. */
+.alignment-toolbar {
+    position: relative;
+    z-index: 2147482000;
+}
+
+.alignment-toolbar [data-tooltip]::after {
+    top: 100%;
+    bottom: auto;
+    transform: translate(-50%, -5px);
+    margin-top: 10px;
+    margin-bottom: 0;
+    min-width: 0;
+    max-width: none;
+    white-space: nowrap;
+    padding: 6px 9px;
+    z-index: 2147483001;
+}
+
+.alignment-toolbar [data-tooltip]::before {
+    top: 100%;
+    bottom: auto;
+    transform: translate(-50%, -5px);
+    margin-top: 4px;
+    margin-bottom: 0;
+    border-color: transparent;
+    border-bottom-color: var(--tooltip-bg);
+    z-index: 2147483001;
+}
+
+.alignment-toolbar [data-tooltip]:hover::before,
+.alignment-toolbar [data-tooltip]:hover::after {
+    transform: translate(-50%, 0);
+}
+
+/* Bottom-right floating controls need upward tooltips to avoid viewport clipping. */
+.floating-settings [data-tooltip]::after {
+    left: 50%;
+    top: auto;
+    bottom: 100%;
+    transform: translate(-50%, 5px);
+    margin-top: 0;
+    margin-bottom: 12px;
+    white-space: nowrap;
+    max-width: none;
+}
+
+.floating-settings [data-tooltip]::before {
+    left: 50%;
+    top: auto;
+    bottom: 100%;
+    transform: translate(-50%, 5px);
+    margin-top: 0;
+    margin-bottom: 6px;
+    border-color: transparent;
+    border-top-color: var(--tooltip-bg);
+}
+
+.floating-settings [data-tooltip]:hover::before,
+.floating-settings [data-tooltip]:hover::after {
+    transform: translate(-50%, 0);
+}
+
 .main-area {
     flex: 1;
     position: relative;
@@ -314,8 +404,28 @@ body {
     color: var(--text-primary);
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
     letter-spacing: -0.01em;
+}
+
+.header-app-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    box-shadow: 0 4px 10px rgba(17, 27, 77, 0.18);
+    flex: 0 0 auto;
+}
+
+.header-save-status {
+    margin-left: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--action-bg);
+    color: var(--text-muted);
+    border-radius: 999px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 .header-actions {

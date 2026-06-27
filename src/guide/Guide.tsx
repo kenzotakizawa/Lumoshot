@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { getUILanguage } from '../lib/i18n';
 
 
 
@@ -15,11 +16,9 @@ const FeatureMedia: React.FC<{ src: string, altJa: string, altEn: string, t: (ja
     }
 
     return (
-        <React.Fragment>
-            <div className="feature-media-block">
+        <figure className="feature-media-block">
                 <img src={src} alt={t(altJa, altEn)} onError={() => setError(true)} />
-            </div>
-        </React.Fragment>
+        </figure>
     );
 };
 
@@ -28,7 +27,7 @@ const Guide: React.FC = () => {
 
     // Detect language on mount
     useEffect(() => {
-        const uiLang = chrome.i18n.getUILanguage();
+        const uiLang = getUILanguage();
         if (uiLang.startsWith('ja')) {
             setLang('ja');
         } else {
@@ -43,7 +42,10 @@ const Guide: React.FC = () => {
             <header className="guide-header">
                 <div className="header-content">
                     <img src="/icons/icon48.png" alt="Lumoshot Logo" className="logo" />
-                    <h1>Lumoshot Guide</h1>
+                    <div>
+                        <h1>Lumoshot Guide</h1>
+                        <p className="guide-kicker">{t('実際のエディタ操作に沿った機能ツアー', 'A feature tour based on the real editor workflow')}</p>
+                    </div>
                 </div>
                 <div className="lang-switch">
                     <button className={lang === 'en' ? 'active' : ''} onClick={() => setLang('en')}>English</button>
@@ -54,13 +56,24 @@ const Guide: React.FC = () => {
             <main className="guide-main">
                 <section className="features-list">
                     <div className="release-intro">
-                        <h2>{t('10倍速く、明確に伝える', '10x Faster, Crystal Clear')}</h2>
-                        <p>
-                            {t(
-                                'Lumoshot は、システムレビューやバグ報告を「もう1往復」減らすための Chrome 拡張機能です。撮る → 描く → 出す の3ステップを最短経路で行えるよう、ポップアップ・上部バー・左サイドバーを順に解説します。',
-                                'Lumoshot is a Chrome extension that removes one round-trip from your system reviews and bug reports. We walk you through the three steps — Capture, Annotate, Export — in the order they appear in the popup, top bar, and left sidebar.'
-                            )}
-                        </p>
+                        <div className="intro-copy">
+                            <h2>{t('10倍速く、明確に伝える', '10x Faster, Crystal Clear')}</h2>
+                            <p>
+                                {t(
+                                    'Lumoshot は、システムレビューやバグ報告を「もう1往復」減らすための Chrome 拡張機能です。撮る → 描く → 出す の3ステップを最短経路で行えるよう、ポップアップ・上部バー・左サイドバーを順に解説します。',
+                                    'Lumoshot is a Chrome extension that removes one round-trip from your system reviews and bug reports. We walk you through the three steps — Capture, Annotate, Export — in the order they appear in the popup, top bar, and left sidebar.'
+                                )}
+                            </p>
+                            <div className="guide-pill-row" aria-label="Guide sections">
+                                <span>{t('撮る', 'Capture')}</span>
+                                <span>{t('描く', 'Annotate')}</span>
+                                <span>{t('隠す', 'Redact')}</span>
+                                <span>{t('出す', 'Export')}</span>
+                            </div>
+                        </div>
+                        <div className="intro-brand-mark" aria-hidden="true">
+                            <img src="/icons/icon128.png" alt="" />
+                        </div>
                     </div>
 
                     <div className="divider" />
@@ -72,8 +85,8 @@ const Guide: React.FC = () => {
                         <h3>{t('1. キャプチャを開始する', '1. Start a Capture')}</h3>
                         <p>
                             {t(
-                                '拡張機能アイコンをクリックすると、5つの取り込み方法が並んだポップアップが開きます。状況に合わせて選んでください。編集画面（エディタ）は新しいタブで自動的に開きます。',
-                                'Click the extension icon to open the popup with five capture options. The editor opens automatically in a new tab once an image is loaded.'
+                                'Web版では、ホーム画面の「画面をキャプチャ」からブラウザの共有ダイアログを開き、別タブ・ウィンドウ・画面を選んで取り込みます。画像ファイルのアップロードやクリップボード貼り付け、サンプルからの開始も同じホーム画面で選べます。',
+                                'On the web app, use Capture Screen on the home screen to open the browser picker, then choose another tab, window, or screen. Upload, clipboard paste, and the sample image are also available from the same home screen.'
                             )}
                         </p>
                         <FeatureMedia src="/guide/popup-overview.gif" altJa="ポップアップ全体のGIF" altEn="Popup overview GIF" t={t} />
@@ -85,8 +98,8 @@ const Guide: React.FC = () => {
                         <h3>{t('表示中の画面をキャプチャ', 'Capture the Visible Area')}</h3>
                         <p>
                             {t(
-                                '今開いているタブの「見えている範囲」を1クリックでキャプチャします。スクロール無し・ダイアログ無しで最速です。',
-                                'Captures the visible part of the current tab in a single click. The fastest path — no scrolling, no system dialog.'
+                                'Web版では「画面をキャプチャ」を押すとブラウザの共有ダイアログが開きます。共有対象としてタブ・ウィンドウ・画面を選ぶと、その時点で見えている内容が画像としてエディタに読み込まれます。',
+                                'On the web app, Capture Screen opens the browser picker. After you choose a tab, window, or screen, the visible content is captured as an image and loaded into the editor.'
                             )}
                         </p>
                         <FeatureMedia src="/guide/capture-visible.gif" altJa="表示中の画面キャプチャのGIF" altEn="Capture visible GIF" t={t} />
@@ -98,10 +111,16 @@ const Guide: React.FC = () => {
                         <h3>{t('範囲を選択してキャプチャ', 'Capture a Selected Area')}</h3>
                         <p>
                             {t(
-                                'ドラッグで囲んだ範囲だけを切り出します。後からエディタで切り抜く手間を省きたいときに便利です。',
-                                'Drag to capture only the area you select. Saves you from cropping inside the editor afterwards.'
+                                '拡張機能版の機能です。現在のアクティブタブ上に範囲選択オーバーレイを表示し、ドラッグで囲んだ部分だけを切り出してエディタに渡します。別タブを直接選ぶ機能ではありません。',
+                                'Extension-only. It shows a selection overlay on the current active tab, captures that visible tab, then passes only the dragged region to the editor. It does not directly choose another tab.'
                             )}
                         </p>
+                        <div className="guide-note">
+                            {t(
+                                'Web版で別タブや別アプリを撮りたい場合は「画面をキャプチャ」を使い、ブラウザの共有ダイアログで対象を選んでください。範囲調整は撮影後にエディタのクロップで行えます。',
+                                'To capture another tab or app on the web app, use Capture Screen and choose the target in the browser picker. Fine-tune the area afterwards with Crop in the editor.'
+                            )}
+                        </div>
                         <FeatureMedia src="/guide/capture-selected.gif" altJa="範囲選択キャプチャのGIF" altEn="Capture selected area GIF" t={t} />
                     </article>
 
@@ -158,6 +177,24 @@ const Guide: React.FC = () => {
                             )}
                         </p>
                         <FeatureMedia src="/guide/header-frame.gif" altJa="フレーム追加のGIF" altEn="Add Frame GIF" t={t} />
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section">
+                        <h3>{t('画像の縁取り', 'Image Outline')}</h3>
+                        <p>
+                            {t(
+                                '右下の四角アイコンで、キャプチャ画像の外周に細い線を追加できます。フレーム追加のように余白や影を足す機能ではなく、画像の端を内側からなぞるための機能です。白背景の資料やチャットに貼るとき、スクリーンショットの境界をはっきり見せたい場面で使います。',
+                                'Use the square icon in the bottom-right controls to add a thin line around the screenshot. Unlike Add Frame, it does not add padding or a shadow; it traces the image edge from the inside. Use it when a screenshot boundary needs to stay visible on white documents or chat surfaces.'
+                            )}
+                        </p>
+                        <p>
+                            {t(
+                                '使い方: 四角アイコンを押して ON にし、表示されたカラーピッカーで色、スライダーで太さを調整します。縁取りは背景画像のすぐ上、矢印やテキストなどの注釈より下に入るため、注釈を邪魔しません。もう一度四角アイコンを押すと OFF になります。コピーと PNG保存のどちらにも反映されます。',
+                                'How to use it: click the square icon to turn it on, then adjust the color with the color picker and the width with the slider. The outline sits directly above the background image and below arrows, text, and other annotations, so it does not cover your markup. Click the square icon again to turn it off. It is included in both Copy and Save PNG.'
+                            )}
+                        </p>
                     </article>
 
                     <div className="feature-divider" />
@@ -259,11 +296,29 @@ const Guide: React.FC = () => {
                         <h3>{t('矢印', 'Arrow')} <span className="shortcut-badge">A</span></h3>
                         <p>
                             {t(
-                                '視線を誘導するためのスタイリッシュな矢印を描画します。始点 → 終点にドラッグするだけで配置完了。Select ツール（V）に切り替えれば後から長さ・色・太さを変えられます。',
-                                'Draw a stylish arrow to guide the viewer’s eye. Drag from start to end and you’re done. Switch to Select (V) afterwards to tweak length, color, or thickness.'
+                                '矢印ツールには「直線」「曲線」「折れ線」の3モードがあります。直線はドラッグで始点から終点まで引いて確定。曲線と折れ線はクリックでアンカーポイントを追加し、最後にダブルクリックで確定します。',
+                                'Arrow has three modes: Straight, Curved, and Elbow. Straight arrows are confirmed by dragging from start to end. Curved and Elbow arrows add anchor points with clicks, then finish with a double-click.'
                             )}
                         </p>
+                        <div className="behavior-grid">
+                            <div>
+                                <strong>{t('直線', 'Straight')}</strong>
+                                <span>{t('ドラッグで作成', 'Drag to create')}</span>
+                            </div>
+                            <div>
+                                <strong>{t('曲線', 'Curved')}</strong>
+                                <span>{t('クリックで頂点追加 / ダブルクリックで確定', 'Click to add points / double-click to finish')}</span>
+                            </div>
+                            <div>
+                                <strong>{t('折れ線', 'Elbow')}</strong>
+                                <span>{t('クリックで曲がり角追加 / ダブルクリックで確定', 'Click to add corners / double-click to finish')}</span>
+                            </div>
+                        </div>
                         <FeatureMedia src="/guide/tool-arrow.gif" altJa="矢印のGIF" altEn="Arrow GIF" t={t} />
+                        <div className="media-pair">
+                            <FeatureMedia src="/guide/tool-arrow-curved.gif" altJa="曲線矢印のGIF" altEn="Curved arrow GIF" t={t} />
+                            <FeatureMedia src="/guide/tool-arrow-elbow.gif" altJa="折れ線矢印のGIF" altEn="Elbow arrow GIF" t={t} />
+                        </div>
                     </article>
 
                     <div className="feature-divider" />

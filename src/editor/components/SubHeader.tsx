@@ -1,13 +1,15 @@
 import React from 'react';
-import { AlignLeft, AlignCenter, AlignRight, Lock, Unlock, Bold, Italic, Ruler, ArrowUpRight, CornerDownRight, Spline } from 'lucide-react';
+import { AlignLeft, AlignCenter, AlignRight, Lock, Unlock, Bold, Italic, Ruler, ArrowUpRight, CornerDownRight, Spline, Square } from 'lucide-react';
 import { Canvas } from 'fabric';
 import type { ToolType } from '../hooks/useCanvasTools';
 import type { ArrowStyle } from '../utils/drawTools/arrow';
 import { buildClickCursorGroup } from '../utils/drawTools/clickIcon';
+import { t, getUILanguage } from '../../lib/i18n';
 
 interface SubHeaderProps {
     currentTool: ToolType;
     isMultiSelection: boolean;
+    selectionCount?: number;
     hasSelection: boolean;
     isBubbleSelected: boolean;
     handleAlignment: (action: string) => void;
@@ -34,11 +36,19 @@ interface SubHeaderProps {
     handleToggleRuler?: () => void;
     clickIconScheme?: 'dark' | 'light';
     setClickIconScheme?: (scheme: 'dark' | 'light') => void;
+    outlineEnabled?: boolean;
+    toggleOutline?: () => void;
+    outlineColor?: string;
+    setOutlineColor?: (color: string) => void;
+    outlineWidth?: number;
+    setOutlineWidth?: (width: number) => void;
+    commitOutline?: () => void;
 }
 
 const SubHeader: React.FC<SubHeaderProps> = ({
     currentTool,
     isMultiSelection,
+    selectionCount = 0,
     hasSelection,
     isBubbleSelected,
     handleAlignment,
@@ -65,10 +75,18 @@ const SubHeader: React.FC<SubHeaderProps> = ({
     handleToggleRuler,
     clickIconScheme = 'dark',
     setClickIconScheme,
+    outlineEnabled = false,
+    toggleOutline,
+    outlineColor = '#1f2937',
+    setOutlineColor,
+    outlineWidth = 1,
+    setOutlineWidth,
+    commitOutline,
 }) => {
     const isArrowContext = currentTool === 'arrow';
     const isBubbleContext = currentTool === 'speech-bubble' || isBubbleSelected;
     const isClickIconContext = currentTool === 'click-icon' || !!fabricCanvas.current?.getActiveObject()?.get('isClickIcon');
+    const canDistribute = selectionCount >= 3;
     const getReadableTextColor = (color: string) => {
         const hex = color.replace('#', '');
         if (hex.length !== 6) return '#111827';
@@ -84,28 +102,40 @@ const SubHeader: React.FC<SubHeaderProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {/* Sub-Header Toolbar (Alignment) */}
             {currentTool === 'select' && isMultiSelection && (
-                <div className="sub-header" style={{
+                <div className="sub-header alignment-toolbar" style={{
                     height: '48px', background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
                     border: '1px solid rgba(255, 255, 255, 0.4)', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
                     display: 'flex', alignItems: 'center', padding: '0 20px', gap: '20px', fontSize: '13px', color: '#555'
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', borderRight: '1px solid #ddd', paddingRight: '20px' }}>
                         <span style={{ marginRight: 8, fontWeight: 'bold' }}>Align:</span>
-                        <button className="tool-btn" onClick={() => handleAlignment('left')} data-tooltip={chrome.i18n.getMessage("alignLeft")}><AlignLeft size={16} /></button>
-                        <button className="tool-btn" onClick={() => handleAlignment('center')} data-tooltip={chrome.i18n.getMessage("alignCenter")}><AlignCenter size={16} /></button>
-                        <button className="tool-btn" onClick={() => handleAlignment('right')} data-tooltip={chrome.i18n.getMessage("alignRight")}><AlignRight size={16} /></button>
+                        <button className="tool-btn" onClick={() => handleAlignment('left')} data-tooltip={t("alignLeft")}><AlignLeft size={16} /></button>
+                        <button className="tool-btn" onClick={() => handleAlignment('center')} data-tooltip={t("alignCenter")}><AlignCenter size={16} /></button>
+                        <button className="tool-btn" onClick={() => handleAlignment('right')} data-tooltip={t("alignRight")}><AlignRight size={16} /></button>
                         <div style={{ width: 8 }} />
-                        <button className="tool-btn" onClick={() => handleAlignment('top')} data-tooltip={chrome.i18n.getMessage("alignTop")} style={{ transform: 'rotate(90deg)' }}><AlignLeft size={16} /></button>
-                        <button className="tool-btn" onClick={() => handleAlignment('middle')} data-tooltip={chrome.i18n.getMessage("alignMiddle")} style={{ transform: 'rotate(90deg)' }}><AlignCenter size={16} /></button>
-                        <button className="tool-btn" onClick={() => handleAlignment('bottom')} data-tooltip={chrome.i18n.getMessage("alignBottom")} style={{ transform: 'rotate(90deg)' }}><AlignRight size={16} /></button>
+                        <button className="tool-btn" onClick={() => handleAlignment('top')} data-tooltip={t("alignTop")}><AlignLeft size={16} style={{ transform: 'rotate(90deg)' }} /></button>
+                        <button className="tool-btn" onClick={() => handleAlignment('middle')} data-tooltip={t("alignMiddle")}><AlignCenter size={16} style={{ transform: 'rotate(90deg)' }} /></button>
+                        <button className="tool-btn" onClick={() => handleAlignment('bottom')} data-tooltip={t("alignBottom")}><AlignRight size={16} style={{ transform: 'rotate(90deg)' }} /></button>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <span style={{ marginRight: 8, fontWeight: 'bold' }}>Distribute:</span>
-                        <button className="action-btn" style={{ padding: '4px 8px' }} onClick={() => handleAlignment('distribute-horizontal')}>
-                            ↔ {chrome.i18n.getMessage("distributeHorizontal")}
+                        <button
+                            className="action-btn"
+                            style={{ padding: '4px 8px' }}
+                            onClick={() => handleAlignment('distribute-horizontal')}
+                            disabled={!canDistribute}
+                            data-tooltip={!canDistribute ? (getUILanguage().startsWith('ja') ? '3個以上選択してください' : 'Select 3 or more objects') : t("distributeHorizontal")}
+                        >
+                            ↔ {t("distributeHorizontal")}
                         </button>
-                        <button className="action-btn" style={{ padding: '4px 8px' }} onClick={() => handleAlignment('distribute-vertical')}>
-                            ↕ {chrome.i18n.getMessage("distributeVertical")}
+                        <button
+                            className="action-btn"
+                            style={{ padding: '4px 8px' }}
+                            onClick={() => handleAlignment('distribute-vertical')}
+                            disabled={!canDistribute}
+                            data-tooltip={!canDistribute ? (getUILanguage().startsWith('ja') ? '3個以上選択してください' : 'Select 3 or more objects') : t("distributeVertical")}
+                        >
+                            ↕ {t("distributeVertical")}
                         </button>
                     </div>
                 </div>
@@ -562,7 +592,7 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                     <button
                         className={`tool-btn ${isLocked ? 'active' : ''}`}
                         onClick={() => handleToggleLock && handleToggleLock()}
-                        data-tooltip={isLocked ? chrome.i18n.getMessage("toolUnlock") : chrome.i18n.getMessage("toolLock")}
+                        data-tooltip={isLocked ? t("toolUnlock") : t("toolLock")}
                         style={{ background: isLocked ? 'rgba(79, 70, 229, 0.1)' : 'transparent', color: isLocked ? '#4f46e5' : 'inherit' }}
                     >
                         {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
@@ -571,7 +601,7 @@ const SubHeader: React.FC<SubHeaderProps> = ({
             )}
 
             {/* Global Settings (e.g. Ruler) */}
-            <div style={{
+            <div className="floating-settings" style={{
                 position: 'fixed',
                 bottom: '16px',
                 right: '16px',
@@ -580,13 +610,49 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                 borderRadius: '8px',
                 boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
                 display: 'flex',
+                alignItems: 'center',
                 gap: '8px',
                 zIndex: 100
             }}>
+                {/* Outline (image edge border) */}
+                <button
+                    className={`tool-btn ${outlineEnabled ? 'active' : ''}`}
+                    onClick={() => toggleOutline && toggleOutline()}
+                    data-tooltip={getUILanguage().startsWith('ja') ? '画像の縁取り' : 'Image outline'}
+                    style={{ background: outlineEnabled ? 'rgba(79, 70, 229, 0.1)' : 'transparent', color: outlineEnabled ? '#4f46e5' : 'inherit' }}
+                >
+                    <Square size={16} />
+                </button>
+                {outlineEnabled && (
+                    <>
+                        <input
+                            type="color"
+                            value={outlineColor}
+                            onChange={(e) => setOutlineColor && setOutlineColor(e.target.value)}
+                            onBlur={() => commitOutline && commitOutline()}
+                            data-tooltip={getUILanguage().startsWith('ja') ? '縁取りの色' : 'Outline color'}
+                            style={{ border: 'none', padding: 0, width: '24px', height: '24px', cursor: 'pointer', background: 'transparent' }}
+                        />
+                        <input
+                            type="range"
+                            min="1"
+                            max="30"
+                            value={outlineWidth}
+                            onChange={(e) => setOutlineWidth && setOutlineWidth(parseInt(e.target.value))}
+                            onMouseUp={() => commitOutline && commitOutline()}
+                            onTouchEnd={() => commitOutline && commitOutline()}
+                            onKeyUp={() => commitOutline && commitOutline()}
+                            data-tooltip={getUILanguage().startsWith('ja') ? '縁取りの太さ' : 'Outline width'}
+                            style={{ width: '80px', cursor: 'pointer' }}
+                        />
+                        <span style={{ fontSize: '12px', color: '#555', minWidth: '28px' }}>{outlineWidth}px</span>
+                    </>
+                )}
+                <div style={{ width: '1px', height: '20px', backgroundColor: '#ddd' }} />
                 <button
                     className={`tool-btn ${showRuler ? 'active' : ''}`}
                     onClick={() => handleToggleRuler && handleToggleRuler()}
-                    data-tooltip={chrome.i18n.getMessage("tooltipDimensions")} /* Will rename to tooltipRuler later */
+                    data-tooltip={t("tooltipDimensions")} /* Will rename to tooltipRuler later */
                     style={{ background: showRuler ? 'rgba(79, 70, 229, 0.1)' : 'transparent', color: showRuler ? '#4f46e5' : 'inherit' }}
                 >
                     <Ruler size={16} />
