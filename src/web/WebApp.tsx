@@ -287,7 +287,7 @@ export default function WebApp() {
                 handleFile(e.dataTransfer.files?.[0]);
             }}
         >
-            <div className="web-landing-card">
+            <main className="web-landing-card">
                 <h1 className="web-landing-title">Lumoshot</h1>
                 <p className="web-landing-sub">
                     {tt('スクリーンショットに注釈をつけて、きれいに書き出す。',
@@ -386,7 +386,7 @@ export default function WebApp() {
                     <a href="privacy.html" target="_blank" rel="noreferrer"><ShieldCheck size={14} />{tt('プライバシー', 'Privacy')}</a>
                     <a href="https://github.com/kenzotakizawa/Lumoshot" target="_blank" rel="noreferrer">{tt('GitHub', 'GitHub')}</a>
                 </div>
-            </div>
+            </main>
         </div>
     );
 }
