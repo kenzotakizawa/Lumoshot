@@ -4,19 +4,90 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Lumoshot is a local-first screenshot annotation editor. Capture, annotate, redact, copy, and download polished screenshots in your browser." />
-    <meta property="og:title" content="Lumoshot — スクリーンショット注釈エディタ" />
-    <meta property="og:description" content="スクリーンショットに注釈、ぼかし、スポットライトを加えて、きれいに書き出す。画像はブラウザ内だけで処理されます。" />
+    <title>Lumoshot — 無料スクリーンショット注釈・編集エディタ（ブラウザ完結）</title>
+    <meta name="description" content="Lumoshotは、スクリーンショットに矢印・テキスト・ぼかし・スポットライト・連番を加えて、きれいに書き出せる無料のオンライン注釈エディタ。インストール不要、画像はブラウザ内だけで処理され、サーバーに送信されません。手順書・マニュアル作成に最適。" />
+    <link rel="canonical" href="https://lumoshot.takizawadetox-lab.com/" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Lumoshot — 無料スクリーンショット注釈・編集エディタ" />
+    <meta property="og:description" content="スクリーンショットに注釈・ぼかし・スポットライトを加えて、きれいに書き出す。インストール不要・ブラウザ内で完結。手順書作成に最適。" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/icons/icon128.png" />
+    <meta property="og:url" content="https://lumoshot.takizawadetox-lab.com/" />
+    <meta property="og:image" content="https://lumoshot.takizawadetox-lab.com/icons/icon128.png" />
+    <meta property="og:site_name" content="Lumoshot" />
+    <meta property="og:locale" content="ja_JP" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Lumoshot — 無料スクリーンショット注釈・編集エディタ" />
+    <meta name="twitter:description" content="スクリーンショットに注釈・ぼかし・スポットライトを加えて、きれいに書き出す。インストール不要・ブラウザ内で完結。" />
+    <meta name="twitter:image" content="https://lumoshot.takizawadetox-lab.com/icons/icon128.png" />
+
     <meta name="theme-color" content="#4f46e5" />
     <link rel="icon" type="image/png" href="/icons/icon16.png" />
     <link rel="apple-touch-icon" href="/icons/icon128.png" />
-    <title>Lumoshot — スクリーンショット注釈エディタ</title>
+
+    <!-- Structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Lumoshot",
+      "url": "https://lumoshot.takizawadetox-lab.com/",
+      "description": "スクリーンショットに矢印・テキスト・ぼかし・スポットライト・連番を加えて、きれいに書き出せる無料のオンライン注釈エディタ。インストール不要、画像はブラウザ内だけで処理されます。",
+      "applicationCategory": "MultimediaApplication",
+      "operatingSystem": "Web",
+      "browserRequirements": "Requires JavaScript. Requires a modern desktop browser.",
+      "inLanguage": "ja",
+      "isAccessibleForFree": true,
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" }
+    }
+    </script>
+
+    <style>
+        /* Pre-render fallback shown to crawlers / before the app loads. */
+        #seo-fallback {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 64px 24px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+            color: #1a1a2e;
+            line-height: 1.7;
+        }
+        #seo-fallback h1 { font-size: 28px; margin: 0 0 8px; }
+        #seo-fallback h2 { font-size: 18px; margin: 28px 0 8px; }
+        #seo-fallback p { color: #444; }
+        #seo-fallback ul { color: #444; padding-left: 1.2em; }
+    </style>
 </head>
 
 <body>
-    <div id="root"></div>
+    <div id="root">
+        <!-- Crawlable fallback content. React replaces this once the app loads. -->
+        <div id="seo-fallback">
+            <h1>Lumoshot — 無料スクリーンショット注釈・編集エディタ</h1>
+            <p>
+                Lumoshotは、スクリーンショットに注釈をつけてきれいに書き出せる、無料のオンライン編集ツールです。
+                インストール不要で、画像はあなたのブラウザ内だけで処理され、サーバーには送信されません。
+                手順書・マニュアル・操作説明の作成に最適です。
+            </p>
+            <h2>主な機能</h2>
+            <ul>
+                <li>矢印・四角・テキストなどの注釈ツール</li>
+                <li>個人情報を隠すぼかし／モザイク</li>
+                <li>注目させるスポットライト・部分ズーム</li>
+                <li>手順を示す連番（ステップ番号）</li>
+                <li>Before / After 比較、画像の縁取り、ウィンドウ風フレーム</li>
+                <li>PNGで保存・クリップボードにコピー</li>
+            </ul>
+            <h2>特長</h2>
+            <p>
+                完全ブラウザ完結・インストール不要・アカウント登録不要。
+                編集した画像はサーバーにアップロードされないため、業務スクリーンショットも安心して扱えます。
+            </p>
+            <p>このアプリの利用にはJavaScriptが必要です。</p>
+        </div>
+    </div>
     <script type="module" src="/src/web/main.tsx"></script>
 </body>
 
