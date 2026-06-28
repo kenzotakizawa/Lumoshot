@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, type MouseEvent, type KeyboardEvent } from 'react';
-import { Monitor, Upload, ClipboardPaste, Trash2, Pencil, Check, X, PlayCircle, HelpCircle, ShieldCheck } from 'lucide-react';
+import { Monitor, Upload, ClipboardPaste, Trash2, Pencil, Check, X, PlayCircle, HelpCircle, ShieldCheck, Puzzle } from 'lucide-react';
 import Editor from '../editor/Editor';
 import '../editor/Editor.css';
 import './web.css';
@@ -18,6 +18,8 @@ import {
 
 const isJa = getUILanguage().toLowerCase().startsWith('ja');
 const tt = (ja: string, en: string) => (isJa ? ja : en);
+
+const CHROME_EXT_URL = 'https://chromewebstore.google.com/detail/lumoshot-screenshot-captu/omcbegppcmmeamdcighjhpeoogljniha?hl=ja';
 
 const fmtMB = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 
@@ -377,6 +379,14 @@ export default function WebApp() {
                     </div>
                 )}
 
+                <a className="web-landing-ext" href={CHROME_EXT_URL} target="_blank" rel="noreferrer">
+                    <Puzzle size={18} />
+                    <span>
+                        {tt('Chrome拡張機能版なら、開いているページをワンクリックで直接キャプチャ',
+                            'Get the Chrome extension to capture any page in one click')}
+                    </span>
+                </a>
+
                 <p className="web-landing-privacy">
                     {tt('画像はあなたのブラウザ内だけで処理され、サーバーに送信されません。',
                         'Images are processed entirely in your browser — never uploaded.')}
@@ -384,6 +394,7 @@ export default function WebApp() {
                 <div className="web-landing-links">
                     <a href="guide.html" target="_blank" rel="noreferrer"><HelpCircle size={14} />{tt('使い方', 'Guide')}</a>
                     <a href="privacy.html" target="_blank" rel="noreferrer"><ShieldCheck size={14} />{tt('プライバシー', 'Privacy')}</a>
+                    <a href={CHROME_EXT_URL} target="_blank" rel="noreferrer"><Puzzle size={14} />{tt('Chrome拡張機能', 'Chrome extension')}</a>
                     <a href="https://github.com/kenzotakizawa/Lumoshot" target="_blank" rel="noreferrer">{tt('GitHub', 'GitHub')}</a>
                 </div>
             </main>

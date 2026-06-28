@@ -115,6 +115,33 @@ html, body, #root {
     margin: 0 0 18px;
 }
 
+.web-landing-ext {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 20px;
+    padding: 12px 14px;
+    border: 1px solid #dfe3ee;
+    border-radius: 12px;
+    background: #f7f8fc;
+    color: #3730a3;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    text-align: left;
+    line-height: 1.4;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.web-landing-ext:hover {
+    background: #eef1fb;
+    border-color: #c7cdf0;
+}
+
+.web-landing-ext svg {
+    flex-shrink: 0;
+}
+
 .web-landing-privacy {
     font-size: 12px;
     color: #4b5563;
