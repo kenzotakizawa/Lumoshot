@@ -172,6 +172,17 @@ const Popup: React.FC = () => {
                     </button>
                 </div>
             </div>
+
+            <a
+                className="popup-webapp-link"
+                href="https://lumoshot.takizawadetox-lab.com/"
+                target="_blank"
+                rel="noreferrer"
+            >
+                {chrome.i18n.getUILanguage().startsWith('ja')
+                    ? 'インストール不要のWeb版もあります →'
+                    : 'Also available as a web app (no install) →'}
+            </a>
         </div>
     );
 };

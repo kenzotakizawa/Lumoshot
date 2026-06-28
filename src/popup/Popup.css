@@ -14,6 +14,25 @@ body {
   padding: 16px;
 }
 
+.popup-webapp-link {
+  display: block;
+  margin-top: 12px;
+  padding: 9px 12px;
+  border: 1px solid #dfe3ee;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #3730a3;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+.popup-webapp-link:hover {
+  background: #eef1fb;
+  border-color: #c7cdf0;
+}
+
 .popup-header {
   position: relative;
   display: flex;
