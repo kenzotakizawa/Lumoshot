@@ -380,10 +380,19 @@ export default function WebApp() {
                 )}
 
                 <a className="web-landing-ext" href={CHROME_EXT_URL} target="_blank" rel="noreferrer">
-                    <Puzzle size={18} />
-                    <span>
-                        {tt('Chrome拡張機能版なら、開いているページをワンクリックで直接キャプチャ',
-                            'Get the Chrome extension to capture any page in one click')}
+                    <Puzzle size={20} className="web-landing-ext-icon" />
+                    <span className="web-landing-ext-body">
+                        <span className="web-landing-ext-title">
+                            {tt('撮影機能つきの Chrome 拡張機能版もあります',
+                                'A Chrome extension with screen capture is also available')}
+                        </span>
+                        <span className="web-landing-ext-desc">
+                            {tt('このWeb版は「貼り付け・アップロード・画面共有」で画像を取り込んで編集します。Chrome拡張機能版なら、表示中のページ・全画面・範囲指定をワンクリックで直接スクリーンショット撮影でき、そのまま編集に進めます。',
+                                'This web app edits images you paste, upload, or share via screen capture. The Chrome extension can take screenshots directly — the visible page, the full screen, or a selected region — in one click, then jump straight to editing.')}
+                        </span>
+                        <span className="web-landing-ext-cta">
+                            {tt('Chrome ウェブストアで見る →', 'View on the Chrome Web Store →')}
+                        </span>
                     </span>
                 </a>
 

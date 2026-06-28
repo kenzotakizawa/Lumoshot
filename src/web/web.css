@@ -117,19 +117,15 @@ html, body, #root {
 
 .web-landing-ext {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    align-items: flex-start;
+    gap: 12px;
     margin: 0 0 20px;
-    padding: 12px 14px;
+    padding: 14px 16px;
     border: 1px solid #dfe3ee;
     border-radius: 12px;
     background: #f7f8fc;
-    color: #3730a3;
-    font-size: 13px;
-    font-weight: 600;
     text-decoration: none;
     text-align: left;
-    line-height: 1.4;
     transition: background 0.15s, border-color 0.15s;
 }
 
@@ -138,8 +134,34 @@ html, body, #root {
     border-color: #c7cdf0;
 }
 
-.web-landing-ext svg {
+.web-landing-ext-icon {
     flex-shrink: 0;
+    margin-top: 2px;
+    color: #4f46e5;
+}
+
+.web-landing-ext-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.web-landing-ext-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.web-landing-ext-desc {
+    font-size: 12px;
+    line-height: 1.6;
+    color: #4b5563;
+}
+
+.web-landing-ext-cta {
+    font-size: 13px;
+    font-weight: 600;
+    color: #4338ca;
 }
 
 .web-landing-privacy {
