@@ -989,6 +989,9 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
             canvas.setZoom(fitScale);
             canvas.requestRenderAll();
 
+            // Re-apply the outline if it was on (e.g. after deleting the Before image)
+            if (outlineEnabled) applyOutline(true, outlineColor, outlineWidth);
+
             // Store initial history state
             saveState();
 
@@ -1148,6 +1151,9 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
             afterLabel.set('isBALabel', true);
             canvas.add(beforeLabel, afterLabel);
 
+            // Re-fit the outline to the new Before/After composition
+            if (outlineEnabled) applyOutline(true, outlineColor, outlineWidth);
+
             canvas.requestRenderAll();
             setHasAfterImage(true);
             setShowBAModal(false);
@@ -1177,6 +1183,10 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
             width: beforeBAWidth.current * zoomLevel,
             height: restoredHeight * zoomLevel,
         });
+
+        // Re-fit the outline to the restored single-image bounds
+        if (outlineEnabled) applyOutline(true, outlineColor, outlineWidth);
+
         canvas.requestRenderAll();
         setHasAfterImage(false);
         setIsBAMode(false);
@@ -1223,19 +1233,32 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
             return;
         }
 
-        const bg = canvas.getObjects().find((o: any) => o.get('isBackground'));
+        const objs = canvas.getObjects() as any[];
+        const bg = objs.find((o) => o.get('isBackground'));
         if (!bg) {
             canvas.requestRenderAll();
             return;
         }
 
-        // Background image bounds in canvas (unzoomed) coordinates
-        const bx = bg.left || 0;
-        const by = bg.top || 0;
-        const bw = bg.getScaledWidth();
-        const bh = bg.getScaledHeight();
+        // Decide what the outline should hug (in canvas / unzoomed coordinates):
+        //  - Frame on   → hug the screenshot inside the browser card (the base image)
+        //  - Otherwise  → hug the full export bounds, so composed layouts like
+        //                 Before/After are framed as a whole (not just the left image).
+        const hasFrameObjs = objs.some((o) => o.get('isFrame'));
+        let bx: number, by: number, bw: number, bh: number;
+        if (hasFrameObjs) {
+            bx = bg.left || 0;
+            by = bg.top || 0;
+            bw = bg.getScaledWidth();
+            bh = bg.getScaledHeight();
+        } else {
+            bx = 0;
+            by = 0;
+            bw = originalSize.current.width;
+            bh = originalSize.current.height;
+        }
 
-        // Inset by half the stroke so the whole line sits inside the image edge
+        // Inset by half the stroke so the whole line sits inside the edge
         const sw = Math.max(1, width);
         const half = sw / 2;
         const rect = new Rect({
@@ -1256,9 +1279,18 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         rect.set('isOutline', true);
         canvas.add(rect);
 
-        // Sit just above the background image (below user annotations)
-        const bgIndex = canvas.getObjects().indexOf(bg);
-        canvas.moveObjectTo(rect, bgIndex + 1);
+        // Sit above all base/system objects (background, Before/After images and
+        // labels, frame) but below user annotations — otherwise the top edge of
+        // the outline can be hidden behind the Before/After header strip.
+        const current = canvas.getObjects() as any[];
+        let maxBaseIndex = 0;
+        current.forEach((o, i) => {
+            if (o === rect) return;
+            if (o.get('isBackground') || o.get('isAfterImage') || o.get('isBALabel') || o.get('isFrame')) {
+                maxBaseIndex = Math.max(maxBaseIndex, i);
+            }
+        });
+        canvas.moveObjectTo(rect, maxBaseIndex + 1);
 
         canvas.requestRenderAll();
     };
@@ -1425,6 +1457,9 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
 
             setHasFrame(false);
         }
+
+        // Re-fit the outline: frame on hugs the screenshot, off hugs the full bounds
+        if (outlineEnabled) applyOutline(true, outlineColor, outlineWidth);
 
         // Update viewport perfectly
         const scaledWidth = originalSize.current.width * zoomLevel;
