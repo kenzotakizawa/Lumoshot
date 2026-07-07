@@ -89,7 +89,7 @@ const Guide: React.FC = () => {
                                 'On the web app, use Capture Screen on the home screen to open the browser picker, then choose another tab, window, or screen. Upload, clipboard paste, and the sample image are also available from the same home screen.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/popup-overview.gif" altJa="ポップアップ全体のGIF" altEn="Popup overview GIF" t={t} />
+                        <FeatureMedia src="/guide/popup-overview.png" altJa="ホーム画面のスクリーンショット" altEn="Home screen screenshot" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -140,14 +140,27 @@ const Guide: React.FC = () => {
                     <div className="feature-divider" />
 
                     <article className="feature-section">
-                        <h3>{t('ローカル画像 / クリップボードから読み込み', 'Open Local File / Paste from Clipboard')}</h3>
+                        <h3>{t('画像をアップロード', 'Upload an Image')}</h3>
                         <p>
                             {t(
-                                'すでに手元にある PNG/JPG を「ファイルを開く」から読み込んだり、コピー済みの画像を「クリップボードから貼り付け」で直接エディタに送り込めます。スクショ済みの画像を後から注釈したいときに便利です。',
-                                'Pull in an existing PNG/JPG with “Open File”, or send a copied image straight to the editor with “Paste from Clipboard”. Perfect when you already took a screenshot and just want to annotate it.'
+                                'すでに手元にある PNG/JPG などの画像は、ホーム画面の「画像をアップロード」から選択してエディタに読み込めます。コピー済みの画像を貼り付けたり、ドラッグ&ドロップで読み込む導線も同じホーム画面から使えます。',
+                                'Use Upload an Image on the home screen to choose an existing PNG/JPG and load it into the editor. You can also paste a copied image or drag and drop one from the same home screen.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/capture-local.gif" altJa="ローカル/クリップボード読み込みのGIF" altEn="Local / Clipboard input GIF" t={t} />
+                        <FeatureMedia src="/guide/capture-local.gif" altJa="画像アップロードのGIF" altEn="Upload image GIF" t={t} />
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section">
+                        <h3>{t('サンプルで試す', 'Try the Sample')}</h3>
+                        <p>
+                            {t(
+                                '「サンプルで試す」は、画像を用意しなくても編集画面を開ける導線です。すぐにエディタへ移動して、矢印・ぼかし・スポットライト・書き出しなど一通りの操作感を確認できます。',
+                                'Try the Sample opens the editor without preparing an image first. It is a quick way to test arrows, blur, spotlight, export, and the rest of the editing flow.'
+                            )}
+                        </p>
+                        <FeatureMedia src="/guide/capture-sample.gif" altJa="サンプルで試すGIF" altEn="Try sample GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
