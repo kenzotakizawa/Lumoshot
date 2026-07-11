@@ -87,7 +87,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         if (!canvas) return null;
 
         // Include custom properties in JSON serialization
-        const obj = canvas.toObject(['isBackground', 'isFrame', 'isOutline', 'isSpotlight', 'isBlur', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel', 'isZoomPanel', 'isZoomSource', 'zoomId', 'zoomColor', 'zoomIsEllipse', 'isArrow', 'arrowStyle']);
+        const obj = canvas.toObject(['isBackground', 'isFrame', 'isOutline', 'outlineColor', 'outlineWidth', 'outlineEdge', 'isSpotlight', 'isBlur', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel', 'isZoomPanel', 'isZoomSource', 'zoomId', 'zoomColor', 'zoomIsEllipse', 'isArrow', 'arrowStyle']);
 
         const stateEntry = JSON.stringify({
             canvasData: obj,
@@ -894,8 +894,22 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
             const outlineObj = objs.find((o) => o.get('isOutline'));
             setOutlineEnabled(!!outlineObj);
             if (outlineObj) {
-                if (typeof outlineObj.stroke === 'string') setOutlineColor(outlineObj.stroke);
-                if (typeof outlineObj.strokeWidth === 'number') setOutlineWidth(outlineObj.strokeWidth);
+                const savedOutlineColor = outlineObj.get('outlineColor');
+                const fillColor = outlineObj.get('fill');
+                if (typeof savedOutlineColor === 'string') {
+                    setOutlineColor(savedOutlineColor);
+                } else if (typeof outlineObj.stroke === 'string') {
+                    setOutlineColor(outlineObj.stroke);
+                } else if (typeof fillColor === 'string' && fillColor !== 'transparent') {
+                    setOutlineColor(fillColor);
+                }
+
+                const savedOutlineWidth = outlineObj.get('outlineWidth');
+                if (typeof savedOutlineWidth === 'number') {
+                    setOutlineWidth(savedOutlineWidth);
+                } else if (typeof outlineObj.strokeWidth === 'number') {
+                    setOutlineWidth(outlineObj.strokeWidth);
+                }
             }
 
             // Before/After: restore flags AND the refs its handlers rely on.
@@ -1258,26 +1272,32 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
             bh = originalSize.current.height;
         }
 
-        // Inset by half the stroke so the whole line sits inside the edge
         const sw = Math.max(1, width);
-        const half = sw / 2;
-        const rect = new Rect({
-            left: bx + half,
-            top: by + half,
-            width: Math.max(1, bw - sw),
-            height: Math.max(1, bh - sw),
-            originX: 'left',
-            originY: 'top',
-            fill: 'transparent',
-            stroke: color,
-            strokeWidth: sw,
-            strokeUniform: true,
+        const clampedW = Math.max(1, Math.min(sw, bw));
+        const clampedH = Math.max(1, Math.min(sw, bh));
+        const common = {
+            originX: 'left' as const,
+            originY: 'top' as const,
+            fill: color,
+            strokeWidth: 0,
             selectable: false,
             evented: false,
             hoverCursor: 'default',
+            objectCaching: false,
+        };
+        const outlineRects = [
+            new Rect({ ...common, left: bx, top: by, width: bw, height: clampedH }),
+            new Rect({ ...common, left: bx + bw - clampedW, top: by + clampedH, width: clampedW, height: Math.max(1, bh - clampedH * 2) }),
+            new Rect({ ...common, left: bx, top: by + bh - clampedH, width: bw, height: clampedH }),
+            new Rect({ ...common, left: bx, top: by + clampedH, width: clampedW, height: Math.max(1, bh - clampedH * 2) }),
+        ];
+        outlineRects.forEach((rect, index) => {
+            rect.set('isOutline', true);
+            rect.set('outlineColor', color);
+            rect.set('outlineWidth', sw);
+            rect.set('outlineEdge', ['top', 'right', 'bottom', 'left'][index]);
         });
-        rect.set('isOutline', true);
-        canvas.add(rect);
+        canvas.add(...outlineRects);
 
         // Sit above all base/system objects (background, Before/After images and
         // labels, frame) but below user annotations — otherwise the top edge of
@@ -1285,12 +1305,12 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         const current = canvas.getObjects() as any[];
         let maxBaseIndex = 0;
         current.forEach((o, i) => {
-            if (o === rect) return;
+            if (outlineRects.includes(o)) return;
             if (o.get('isBackground') || o.get('isAfterImage') || o.get('isBALabel') || o.get('isFrame')) {
                 maxBaseIndex = Math.max(maxBaseIndex, i);
             }
         });
-        canvas.moveObjectTo(rect, maxBaseIndex + 1);
+        outlineRects.forEach((rect, index) => canvas.moveObjectTo(rect, maxBaseIndex + 1 + index));
 
         canvas.requestRenderAll();
     };
@@ -1324,6 +1344,18 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
     const toggleFrame = () => {
         const canvas = fabricCanvas.current;
         if (!canvas) return;
+
+        const getBackgroundViewportPoint = () => {
+            const bg = canvas.getObjects().find((o: any) => o.get('isBackground'));
+            if (!bg) return null;
+            const rect = canvas.lowerCanvasEl.getBoundingClientRect();
+            const zoom = canvas.getZoom();
+            return {
+                x: rect.left + ((bg.left || 0) * zoom),
+                y: rect.top + ((bg.top || 0) * zoom),
+            };
+        };
+        const beforeBackgroundPoint = getBackgroundViewportPoint();
 
         if (!hasFrame) {
             // Toggling ON
@@ -1466,6 +1498,13 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         const scaledHeight = originalSize.current.height * zoomLevel;
         canvas.setDimensions({ width: scaledWidth, height: scaledHeight });
         canvas.requestRenderAll();
+
+        const afterBackgroundPoint = getBackgroundViewportPoint();
+        const wrapper = wrapperRef.current;
+        if (wrapper && beforeBackgroundPoint && afterBackgroundPoint) {
+            wrapper.scrollLeft += afterBackgroundPoint.x - beforeBackgroundPoint.x;
+            wrapper.scrollTop += afterBackgroundPoint.y - beforeBackgroundPoint.y;
+        }
 
         saveState(); // Save state after framing changes
     };

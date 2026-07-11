@@ -108,38 +108,6 @@ const Guide: React.FC = () => {
                     <div className="feature-divider" />
 
                     <article className="feature-section">
-                        <h3>{t('範囲を選択してキャプチャ', 'Capture a Selected Area')}</h3>
-                        <p>
-                            {t(
-                                '拡張機能版の機能です。現在のアクティブタブ上に範囲選択オーバーレイを表示し、ドラッグで囲んだ部分だけを切り出してエディタに渡します。別タブを直接選ぶ機能ではありません。',
-                                'Extension-only. It shows a selection overlay on the current active tab, captures that visible tab, then passes only the dragged region to the editor. It does not directly choose another tab.'
-                            )}
-                        </p>
-                        <div className="guide-note">
-                            {t(
-                                'Web版で別タブや別アプリを撮りたい場合は「画面をキャプチャ」を使い、ブラウザの共有ダイアログで対象を選んでください。範囲調整は撮影後にエディタのクロップで行えます。',
-                                'To capture another tab or app on the web app, use Capture Screen and choose the target in the browser picker. Fine-tune the area afterwards with Crop in the editor.'
-                            )}
-                        </div>
-                        <FeatureMedia src="/guide/capture-selected.gif" altJa="範囲選択キャプチャのGIF" altEn="Capture selected area GIF" t={t} />
-                    </article>
-
-                    <div className="feature-divider" />
-
-                    <article className="feature-section">
-                        <h3>{t('画面全体（システムキャプチャ）', 'Entire Screen (System Capture)')}</h3>
-                        <p>
-                            {t(
-                                'OS のキャプチャダイアログ経由で、ブラウザ外のアプリやデスクトップ全体を撮影します。ブラウザ外のツール画面を共有したいときはこちら。',
-                                'Goes through the OS capture dialog to grab apps outside Chrome or the entire desktop. Use this when you need to share something beyond the browser.'
-                            )}
-                        </p>
-                        <FeatureMedia src="/guide/capture-entire.gif" altJa="画面全体キャプチャのGIF" altEn="Capture entire screen GIF" t={t} />
-                    </article>
-
-                    <div className="feature-divider" />
-
-                    <article className="feature-section">
                         <h3>{t('画像をアップロード', 'Upload an Image')}</h3>
                         <p>
                             {t(
@@ -176,7 +144,33 @@ const Guide: React.FC = () => {
                                 'The top bar holds zoom, frame toggle, theme switch, help, undo/redo, copy, and save. Final export (Copy or Save) lives here.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/header-overview.gif" altJa="上部バー全体のGIF" altEn="Top bar overview GIF" t={t} />
+                        <FeatureMedia src="/guide/header-overview.png" altJa="上部バー全体のスクリーンショット" altEn="Top bar overview screenshot" t={t} />
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section">
+                        <h3>{t('ズーム', 'Zoom')}</h3>
+                        <p>
+                            {t(
+                                '上部バー左寄りのズームコントロールで、作業中の表示倍率を変更できます。画像そのものの書き出しサイズは変えず、細部を確認したいときだけ拡大・縮小できます。',
+                                'Use the zoom controls near the left side of the top bar to change the working view. It does not change the exported image size; it only helps you inspect details while editing.'
+                            )}
+                        </p>
+                        <FeatureMedia src="/guide/header-zoom.gif" altJa="ズーム操作のGIF" altEn="Zoom controls GIF" t={t} />
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section">
+                        <h3>{t('ホームへ戻る', 'Go Home')}</h3>
+                        <p>
+                            {t(
+                                'ホームアイコンを押すと、編集画面を離れてホーム画面へ戻ります。Web版では編集中の内容が自動保存されるため、あとから最近の編集として開き直せます。',
+                                'Click the home icon to leave the editor and return to the home screen. On the web app, the current edit is autosaved so you can reopen it later from recent edits.'
+                            )}
+                        </p>
+                        <FeatureMedia src="/guide/header-home.gif" altJa="ホームへ戻るGIF" altEn="Go home GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -195,6 +189,82 @@ const Guide: React.FC = () => {
                     <div className="feature-divider" />
 
                     <article className="feature-section">
+                        <h3>{t('リサイズ', 'Resize')}</h3>
+                        <p>
+                            {t(
+                                'リサイズでは、編集対象の画像サイズを指定して変更できます。注釈も一緒に拡大・縮小されるため、書き出し前に画像全体のサイズを整えたいときに使います。',
+                                'Resize changes the actual image dimensions being edited. Annotations scale with the image, making it useful when you need to prepare the final exported size.'
+                            )}
+                        </p>
+                        <FeatureMedia src="/guide/header-resize.gif" altJa="リサイズのGIF" altEn="Resize GIF" t={t} />
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section">
+                        <h3>{t('ダークモード', 'Dark Mode')}</h3>
+                        <p>
+                            {t(
+                                '月アイコンでエディタUIをライト/ダークに切り替えられます。画面全体の見やすさを変える機能で、編集している画像や書き出し結果の色は変わりません。',
+                                'Use the moon icon to switch the editor UI between light and dark modes. This changes editor visibility only; it does not alter the image or exported result.'
+                            )}
+                        </p>
+                        <FeatureMedia src="/guide/header-dark-mode.gif" altJa="ダークモード切り替えのGIF" altEn="Dark mode toggle GIF" t={t} />
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section">
+                        <h3>{t('ショートカットとヘルプ', 'Shortcuts and Help')}</h3>
+                        <p>
+                            {t(
+                                'ヘルプアイコンから、ツールの使い方やショートカットを確認できます。慣れてきたら、Vで選択、Rで四角形、Aで矢印など、キーボード中心で素早く操作できます。',
+                                'Open help to review tool usage and shortcuts. Once you get familiar, shortcuts like V for Select, R for Rectangle, and A for Arrow make editing much faster.'
+                            )}
+                        </p>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section">
+                        <h3>{t('Undo / Redo', 'Undo / Redo')}</h3>
+                        <p>
+                            {t(
+                                '描画ミスはボタン、または ⌘Z / ⌘Y（Windows は Ctrl+Z / Ctrl+Y）で何度でも巻き戻し・やり直しが可能です。',
+                                'Undo and redo any drawing mistake with the buttons or ⌘Z / ⌘Y (Ctrl+Z / Ctrl+Y on Windows).'
+                            )}
+                        </p>
+                        <FeatureMedia src="/guide/header-undo-redo.gif" altJa="Undo/RedoのGIF" altEn="Undo / Redo GIF" t={t} />
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section">
+                        <h3>{t('コピー', 'Copy')}</h3>
+                        <p>
+                            {t(
+                                'コピーを押すと、現在の編集結果をPNG画像としてクリップボードへ送ります。Slack、GitHub、Notion、チャットツールなどへそのまま貼り付けられます。',
+                                'Copy sends the current edited result to your clipboard as a PNG image. Paste it directly into Slack, GitHub, Notion, chat tools, and more.'
+                            )}
+                        </p>
+                        <FeatureMedia src="/guide/header-copy-save.gif" altJa="コピー操作のGIF" altEn="Copy action GIF" t={t} />
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section">
+                        <h3>{t('PNG保存', 'Save PNG')}</h3>
+                        <p>
+                            {t(
+                                'PNG保存を押すと、現在の編集結果をPNGファイルとしてダウンロードします。共有前にファイルとして残したい場合や、資料へ添付したい場合に使います。',
+                                'Save PNG downloads the current edited result as a PNG file. Use it when you want to keep a file or attach the image to a document.'
+                            )}
+                        </p>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section">
                         <h3>{t('画像の縁取り', 'Image Outline')}</h3>
                         <p>
                             {t(
@@ -208,45 +278,7 @@ const Guide: React.FC = () => {
                                 'How to use it: click the square icon to turn it on, then adjust the color with the color picker and the width with the slider. The outline sits directly above the background image and below arrows, text, and other annotations, so it does not cover your markup. Click the square icon again to turn it off. It is included in both Copy and Save PNG.'
                             )}
                         </p>
-                    </article>
-
-                    <div className="feature-divider" />
-
-                    <article className="feature-section">
-                        <h3>{t('ズーム / ダーク・ライト切替', 'Zoom / Light & Dark Theme')}</h3>
-                        <p>
-                            {t(
-                                '左側のズームコントロールで作業中の倍率を上下できます。隣のテーマ切替ボタンで、エディタ UI のダークモードとライトモードを瞬時に切り替え可能です。',
-                                'Use the zoom controls on the left to scale your working view. The neighboring theme button flips the editor UI between dark and light mode instantly.'
-                            )}
-                        </p>
-                        <FeatureMedia src="/guide/header-zoom-theme.gif" altJa="ズーム/テーマ切替のGIF" altEn="Zoom & theme toggle GIF" t={t} />
-                    </article>
-
-                    <div className="feature-divider" />
-
-                    <article className="feature-section">
-                        <h3>{t('元に戻す / やり直す', 'Undo / Redo')}</h3>
-                        <p>
-                            {t(
-                                '描画ミスはボタン、または ⌘Z / ⌘Y（Windows は Ctrl+Z / Ctrl+Y）で何度でも巻き戻し・やり直しが可能です。',
-                                'Undo and redo any drawing mistake with the buttons or ⌘Z / ⌘Y (Ctrl+Z / Ctrl+Y on Windows).'
-                            )}
-                        </p>
-                        <FeatureMedia src="/guide/header-undo-redo.gif" altJa="Undo/RedoのGIF" altEn="Undo / Redo GIF" t={t} />
-                    </article>
-
-                    <div className="feature-divider" />
-
-                    <article className="feature-section">
-                        <h3>{t('コピー / 保存', 'Copy / Save')}</h3>
-                        <p>
-                            {t(
-                                'コピー（⌘C / Ctrl+C）で画像をクリップボードに即送り、保存（⌘S / Ctrl+S）で PNG ダウンロード。Slack・GitHub・Notion へそのままペーストできます。',
-                                'Copy (⌘C / Ctrl+C) sends the rendered image to your clipboard; Save (⌘S / Ctrl+S) downloads a PNG. Paste directly into Slack, GitHub, or Notion.'
-                            )}
-                        </p>
-                        <FeatureMedia src="/guide/header-copy-save.gif" altJa="コピー/保存のGIF" altEn="Copy / Save GIF" t={t} />
+                        <FeatureMedia src="/guide/header-outline.gif" altJa="画像の縁取りのGIF" altEn="Image outline GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
