@@ -34,3 +34,6 @@ dist-ssr
 !scripts/generate_guide_gifs.py
 !scripts/compile_real_guide_gifs.py
 /.guide-capture-real/
+
+# Cloud-sync duplicate files (e.g. "file 2.ts", "image 2.gif")
+* [0-9].*

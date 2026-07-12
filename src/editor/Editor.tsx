@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Canvas, FabricImage, Rect, Shadow, Circle as FabricCircle, Line, ActiveSelection, IText } from 'fabric';
+import { Canvas, FabricImage, Rect, Shadow, Circle as FabricCircle, Line, ActiveSelection, IText, InteractiveFabricObject } from 'fabric';
 import { useCanvasTools } from './hooks/useCanvasTools';
 import type { ToolType } from './hooks/useCanvasTools';
 import type { ArrowStyle } from './utils/drawTools/arrow';
@@ -20,6 +20,10 @@ interface EditorProps {
     onGoHome?: () => void;
     saveStatusLabel?: string | null;
 }
+
+// Each undo entry embeds the full canvas JSON (background image data URL
+// included), so history is capped to bound memory during long sessions.
+const MAX_HISTORY_ENTRIES = 30;
 
 const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }) => {
     const canvasEl = useRef<HTMLCanvasElement>(null);
@@ -82,6 +86,77 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
     const fileInputRef = useRef<HTMLInputElement>(null);
     const clipboardRef = useRef<any>(null);
 
+    // Re-derive React UI state (and the internal refs their handlers rely on)
+    // from whatever objects are currently on the canvas. Needed anywhere the
+    // canvas contents are replaced wholesale — Undo/Redo, or opening a saved
+    // project — so toggles like Frame / Outline / Before-After don't go out of
+    // sync with what's actually rendered (e.g. re-adding a frame stacking a
+    // second one because the button still read "off" after an Undo).
+    const syncStateFromCanvas = (canvas: Canvas) => {
+        // Rebuild the offscreen blur source from the (possibly new) background image
+        const bg = canvas.getObjects().find((o: any) => o.get('isBackground')) as any;
+        const imgEl = bg?.getElement?.() as HTMLImageElement | undefined;
+        if (imgEl) {
+            baseImageSize.current = { width: bg.width, height: bg.height };
+            const blurTarget = document.createElement('canvas');
+            blurTarget.width = imgEl.naturalWidth || bg.width;
+            blurTarget.height = imgEl.naturalHeight || bg.height;
+            const bCtx = blurTarget.getContext('2d');
+            if (bCtx) {
+                bCtx.filter = 'blur(15px)';
+                bCtx.drawImage(imgEl, 0, 0);
+            }
+            blurCanvasRef.current = blurTarget;
+            backgroundDataUrl.current = bg.toDataURL?.() ?? null;
+        }
+
+        const objs = canvas.getObjects() as any[];
+
+        const hasFrameObjs = objs.some((o) => o.get('isFrame'));
+        setHasFrame(hasFrameObjs);
+        if (hasFrameObjs) {
+            // Mirror the shift toggleFrame() applies, so turning the frame off
+            // moves everything back by the right amount.
+            const frameScale = Math.max(0.5, baseImageSize.current.width / 1600);
+            frameOffsets.current = { x: (100 + 40) * frameScale, y: (100 + 60) * frameScale };
+        }
+
+        const outlineObj = objs.find((o) => o.get('isOutline'));
+        setOutlineEnabled(!!outlineObj);
+        if (outlineObj) {
+            const savedOutlineColor = outlineObj.get('outlineColor');
+            const fillColor = outlineObj.get('fill');
+            if (typeof savedOutlineColor === 'string') {
+                setOutlineColor(savedOutlineColor);
+            } else if (typeof outlineObj.stroke === 'string') {
+                setOutlineColor(outlineObj.stroke);
+            } else if (typeof fillColor === 'string' && fillColor !== 'transparent') {
+                setOutlineColor(fillColor);
+            }
+
+            const savedOutlineWidth = outlineObj.get('outlineWidth');
+            if (typeof savedOutlineWidth === 'number') {
+                setOutlineWidth(savedOutlineWidth);
+            } else if (typeof outlineObj.strokeWidth === 'number') {
+                setOutlineWidth(outlineObj.strokeWidth);
+            }
+        }
+
+        // Before/After: restore flags AND the refs its handlers rely on.
+        const afterObj = objs.find((o) => o.get('isAfterImage'));
+        if (afterObj) {
+            setHasAfterImage(true);
+            setIsBAMode(true);
+            beforeBAWidth.current = afterObj.left ?? (bg ? bg.getScaledWidth() : 0);
+            const label = objs.find((o) => o.get('isBALabel'));
+            baHeaderHeight.current = label ? label.getScaledHeight() : 0;
+            afterImageDataUrl.current = afterObj.toDataURL?.() ?? null;
+        } else {
+            setHasAfterImage(false);
+            setIsBAMode(false);
+        }
+    };
+
     const createSnapshot = () => {
         const canvas = fabricCanvas.current;
         if (!canvas) return null;
@@ -122,6 +197,12 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
             }
 
             history.current.push(stateEntry);
+            // Cap undo history: each entry embeds the full canvas JSON (including
+            // the background image's data URL), so unbounded growth during a long
+            // editing session can add up to hundreds of MB of retained memory.
+            if (history.current.length > MAX_HISTORY_ENTRIES) {
+                history.current.shift();
+            }
             redoStack.current = [];
 
             // Notify the host (web autosave) with a small thumbnail of the canvas.
@@ -151,7 +232,11 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         }
 
         const canvasData = parsed.canvasData || parsed;
-        canvas.loadFromJSON(canvasData, () => {
+        // fabric v7's 2nd arg to loadFromJSON is a per-object reviver, not a
+        // completion callback — using it as one let isHistoryProcessing drop
+        // before restoration (and the UI-state sync below) actually finished.
+        canvas.loadFromJSON(canvasData).then(() => {
+            syncStateFromCanvas(canvas);
             canvas.requestRenderAll();
             isHistoryProcessing.current = false;
         });
@@ -387,26 +472,28 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
             checkSelection([]);
         });
 
-        // Modern UI Customization for Controls (Canva / PowerPoint style)
-        import('fabric').then(({ InteractiveFabricObject }) => {
-            if (InteractiveFabricObject) {
-                InteractiveFabricObject.ownDefaults = {
-                    ...InteractiveFabricObject.ownDefaults,
-                    transparentCorners: false,
-                    cornerColor: '#ffffff',
-                    cornerStrokeColor: '#0066ff',
-                    borderColor: '#0066ff',
-                    cornerSize: 10,
-                    padding: 0,
-                    cornerStyle: 'circle',
-                    borderDashArray: [4, 4]
-                };
-            }
+        // Modern UI Customization for Controls (Canva / PowerPoint style).
+        // `fabric` is already statically imported above, so this no longer
+        // needs a dynamic import() (which only ever created a spurious
+        // "also statically imported" bundler warning, since fabric can't
+        // actually be split into a separate chunk here).
+        if (InteractiveFabricObject) {
+            InteractiveFabricObject.ownDefaults = {
+                ...InteractiveFabricObject.ownDefaults,
+                transparentCorners: false,
+                cornerColor: '#ffffff',
+                cornerStrokeColor: '#0066ff',
+                borderColor: '#0066ff',
+                cornerSize: 10,
+                padding: 0,
+                cornerStyle: 'circle',
+                borderDashArray: [4, 4]
+            };
+        }
 
-            // Set global canvas defaults for transparent target selection (smooth UX for hollow shapes)
-            fabricCanvas.current!.getObjects().forEach(o => {
-                o.set('perPixelTargetFind', true);
-            });
+        // Set global canvas defaults for transparent target selection (smooth UX for hollow shapes)
+        canvas.getObjects().forEach(o => {
+            o.set('perPixelTargetFind', true);
         });
 
         fabricCanvas.current = canvas;
@@ -861,70 +948,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         const fitScale = Math.min(wrapperW / dims.width, wrapperH / dims.height, 1);
 
         canvas.loadFromJSON(parsed.canvasData ?? parsed).then(() => {
-            // Rebuild the offscreen blur source from the restored background image
-            const bg = canvas.getObjects().find((o: any) => o.get('isBackground')) as any;
-            const imgEl = bg?.getElement?.() as HTMLImageElement | undefined;
-            if (imgEl) {
-                baseImageSize.current = { width: bg.width, height: bg.height };
-                const blurTarget = document.createElement('canvas');
-                blurTarget.width = imgEl.naturalWidth || bg.width;
-                blurTarget.height = imgEl.naturalHeight || bg.height;
-                const bCtx = blurTarget.getContext('2d');
-                if (bCtx) {
-                    bCtx.filter = 'blur(15px)';
-                    bCtx.drawImage(imgEl, 0, 0);
-                }
-                blurCanvasRef.current = blurTarget;
-                backgroundDataUrl.current = bg.toDataURL?.() ?? null;
-            }
-
-            // Sync React UI state with the restored objects so toggles don't desync
-            // (otherwise e.g. re-adding a frame would stack a second one).
-            const objs = canvas.getObjects() as any[];
-
-            const hasFrameObjs = objs.some((o) => o.get('isFrame'));
-            setHasFrame(hasFrameObjs);
-            if (hasFrameObjs) {
-                // Mirror the shift toggleFrame() applies, so turning the frame off
-                // moves everything back by the right amount.
-                const frameScale = Math.max(0.5, baseImageSize.current.width / 1600);
-                frameOffsets.current = { x: (100 + 40) * frameScale, y: (100 + 60) * frameScale };
-            }
-
-            const outlineObj = objs.find((o) => o.get('isOutline'));
-            setOutlineEnabled(!!outlineObj);
-            if (outlineObj) {
-                const savedOutlineColor = outlineObj.get('outlineColor');
-                const fillColor = outlineObj.get('fill');
-                if (typeof savedOutlineColor === 'string') {
-                    setOutlineColor(savedOutlineColor);
-                } else if (typeof outlineObj.stroke === 'string') {
-                    setOutlineColor(outlineObj.stroke);
-                } else if (typeof fillColor === 'string' && fillColor !== 'transparent') {
-                    setOutlineColor(fillColor);
-                }
-
-                const savedOutlineWidth = outlineObj.get('outlineWidth');
-                if (typeof savedOutlineWidth === 'number') {
-                    setOutlineWidth(savedOutlineWidth);
-                } else if (typeof outlineObj.strokeWidth === 'number') {
-                    setOutlineWidth(outlineObj.strokeWidth);
-                }
-            }
-
-            // Before/After: restore flags AND the refs its handlers rely on.
-            const afterObj = objs.find((o) => o.get('isAfterImage'));
-            if (afterObj) {
-                setHasAfterImage(true);
-                setIsBAMode(true);
-                beforeBAWidth.current = afterObj.left ?? (bg ? bg.getScaledWidth() : 0);
-                const label = objs.find((o) => o.get('isBALabel'));
-                baHeaderHeight.current = label ? label.getScaledHeight() : 0;
-                afterImageDataUrl.current = afterObj.toDataURL?.() ?? null;
-            } else {
-                setHasAfterImage(false);
-                setIsBAMode(false);
-            }
+            syncStateFromCanvas(canvas);
 
             canvas.setDimensions({ width: dims.width * fitScale, height: dims.height * fitScale });
             canvas.setZoom(fitScale);
@@ -1215,8 +1239,13 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         const dataUrl = afterImageDataUrl.current;
         if (!dataUrl) return;
 
-        // Remove all objects and reload After image as the new background
+        // Remove all objects and reload After image as the new background.
+        // Guard with isHistoryProcessing so the object:removed handler doesn't
+        // needlessly re-run step-renumbering/zoom-pairing logic and push a
+        // history entry for every object cleared.
+        isHistoryProcessing.current = true;
         canvas.clear();
+        isHistoryProcessing.current = false;
         setHasAfterImage(false);
         setIsBAMode(false);
         afterImageDataUrl.current = null;
@@ -1867,6 +1896,10 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         const scaledH = newH * zoomLevel;
         canvas.setDimensions({ width: scaledW, height: scaledH });
         canvas.setZoom(zoomLevel);
+
+        // Re-fit the outline to the newly cropped bounds (it was sized to the
+        // pre-crop dimensions, so it must be redrawn or it will no longer match)
+        if (outlineEnabled) applyOutline(true, outlineColor, outlineWidth);
 
         // Re-enable all objects
         canvas.forEachObject(obj => {

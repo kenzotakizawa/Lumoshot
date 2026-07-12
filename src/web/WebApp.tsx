@@ -1,8 +1,11 @@
-import { useState, useCallback, useEffect, useRef, type MouseEvent, type KeyboardEvent } from 'react';
+import { useState, useCallback, useEffect, useRef, lazy, Suspense, type MouseEvent, type KeyboardEvent } from 'react';
 import { Monitor, Upload, ClipboardPaste, Trash2, Pencil, Check, X, PlayCircle, HelpCircle, ShieldCheck, Puzzle } from 'lucide-react';
-import Editor from '../editor/Editor';
 import '../editor/Editor.css';
 import './web.css';
+
+// Loaded on demand: the editor pulls in fabric.js (~200KB gz), which the
+// landing screen never needs. Deferring it keeps the initial page light.
+const Editor = lazy(() => import('../editor/Editor'));
 import { setWebInitialImage, setWebInitialState } from '../platform/platform.web';
 import { getUILanguage } from '../lib/i18n';
 import {
@@ -21,7 +24,13 @@ const tt = (ja: string, en: string) => (isJa ? ja : en);
 
 const CHROME_EXT_URL = 'https://chromewebstore.google.com/detail/lumoshot-screenshot-captu/omcbegppcmmeamdcighjhpeoogljniha?hl=ja';
 
-const fmtMB = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+const fmtBytes = (bytes: number) => {
+    const gb = bytes / (1024 * 1024 * 1024);
+    if (gb >= 1) return `${gb.toFixed(1)}GB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+};
+
+const SAVED_LABEL = tt('保存済み', 'Saved');
 
 function makeSampleImage(): string {
     const canvas = document.createElement('canvas');
@@ -87,6 +96,12 @@ export default function WebApp() {
     const currentProjectId = useRef<number | null>(null);
     const currentProjectName = useRef<string | null>(null);
     const saveTimer = useRef<number | null>(null);
+    // Mirrors `saveStatus` for the beforeunload handler, which is registered
+    // once per `started` change and would otherwise close over a stale value.
+    const saveStatusRef = useRef<string | null>(null);
+    useEffect(() => {
+        saveStatusRef.current = saveStatus;
+    }, [saveStatus]);
 
     const refreshGallery = useCallback(async () => {
         setProjects(await listProjects());
@@ -113,6 +128,9 @@ export default function WebApp() {
     useEffect(() => {
         if (!started) return;
         const onBeforeUnload = (e: BeforeUnloadEvent) => {
+            // Only warn when there's something that could actually be lost —
+            // once the current edit is fully saved, let the tab close quietly.
+            if (saveStatusRef.current === SAVED_LABEL) return;
             e.preventDefault();
             e.returnValue = '';
         };
@@ -228,9 +246,12 @@ export default function WebApp() {
     }, []);
 
     const goHome = useCallback(() => {
-        setStarted(false);
-        refreshGallery();
-    }, [refreshGallery]);
+        // Route through the same path as the browser Back button so the
+        // history entry pushed by enterEditor() is consumed either way,
+        // instead of leaving a stale "editor" entry that Back would later
+        // land on with nothing left to do.
+        window.history.back();
+    }, []);
 
     const onDelete = useCallback(async (e: MouseEvent, id: number) => {
         e.stopPropagation();
@@ -270,11 +291,13 @@ export default function WebApp() {
 
     if (started) {
         return (
-            <Editor
-                onSnapshot={handleSnapshot}
-                onGoHome={goHome}
-                saveStatusLabel={saveStatus}
-            />
+            <Suspense fallback={<div className="web-editor-loading">{tt('読み込み中…', 'Loading…')}</div>}>
+                <Editor
+                    onSnapshot={handleSnapshot}
+                    onGoHome={goHome}
+                    saveStatusLabel={saveStatus}
+                />
+            </Suspense>
         );
     }
 
@@ -372,8 +395,8 @@ export default function WebApp() {
                         </div>
                         {usage.usage > 0 && (
                             <p className="web-recent-usage">
-                                {tt('保存容量', 'Storage')}: {fmtMB(usage.usage)}
-                                {usage.quota ? ` / ${fmtMB(usage.quota)}` : ''}
+                                {tt('保存容量', 'Storage')}: {fmtBytes(usage.usage)}
+                                {usage.quota ? ` / ${fmtBytes(usage.quota)}` : ''}
                             </p>
                         )}
                     </div>

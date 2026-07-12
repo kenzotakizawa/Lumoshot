@@ -29,6 +29,10 @@ export default defineConfig({
       workbox: {
         // Cache the app shell so editing works offline after first load.
         globPatterns: ['**/*.{js,css,html,png,svg}'],
+        // The /guide page's screenshots (~2.3MB) are documentation assets, not
+        // part of the editing experience — don't force them into the initial
+        // precache, they'll simply load from the network if /guide is visited.
+        globIgnores: ['guide/**'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
     }),

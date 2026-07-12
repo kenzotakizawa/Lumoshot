@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Canvas } from 'fabric';
+import { Canvas, PencilBrush } from 'fabric';
 import type { TPointerEventInfo } from 'fabric';
 
 import type { DrawToolContext } from '../utils/drawTools/types';
@@ -75,23 +75,24 @@ export const useCanvasTools = (
         canvas.selection = currentTool === 'select';
         canvas.defaultCursor = currentTool === 'select' ? 'default' : 'crosshair';
 
-        // Handle Free Drawing modes
+        // Handle Free Drawing modes. `fabric` is already statically imported
+        // above, so PencilBrush no longer needs a dynamic import() (it only
+        // produced a spurious bundler warning, since fabric can't actually be
+        // split into a separate chunk here).
         if (currentTool === 'pen' || currentTool === 'highlighter') {
             canvas.isDrawingMode = true;
-            import('fabric').then(({ PencilBrush }) => {
-                const brush = new PencilBrush(canvas);
-                let brushColor = strokeColor;
-                let brushWidth = strokeWidth;
+            const brush = new PencilBrush(canvas);
+            let brushColor = strokeColor;
+            let brushWidth = strokeWidth;
 
-                if (currentTool === 'highlighter') {
-                    brushColor = strokeColor + '80';
-                    brushWidth = Math.max(20, strokeWidth * 2);
-                }
+            if (currentTool === 'highlighter') {
+                brushColor = strokeColor + '80';
+                brushWidth = Math.max(20, strokeWidth * 2);
+            }
 
-                brush.color = brushColor;
-                brush.width = brushWidth;
-                canvas.freeDrawingBrush = brush;
-            });
+            brush.color = brushColor;
+            brush.width = brushWidth;
+            canvas.freeDrawingBrush = brush;
         } else {
             canvas.isDrawingMode = false;
         }

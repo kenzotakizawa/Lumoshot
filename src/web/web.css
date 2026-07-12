@@ -338,3 +338,12 @@ html, body, #root {
     color: #6b7280;
     margin: 10px 0 0;
 }
+
+.web-editor-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #6b7280;
+    font-size: 14px;
+}
