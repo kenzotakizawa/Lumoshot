@@ -302,6 +302,19 @@ h1 {
     display: block;
 }
 
+/* Tall, narrow screenshots (e.g. the sidebar column) would otherwise be
+   stretched to the full article width by the rule above, ballooning their
+   height. Cap their width instead and center them. */
+.feature-media-block.media-narrow {
+    background: #ffffff;
+}
+
+.feature-media-block.media-narrow img {
+    width: auto;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
 .media-pair {
     position: relative;
     z-index: 1;
