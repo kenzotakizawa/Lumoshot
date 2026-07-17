@@ -3,7 +3,7 @@ import { getUILanguage } from '../lib/i18n';
 
 
 
-const FeatureMedia: React.FC<{ src: string, altJa: string, altEn: string, t: (ja: string, en: string) => string }> = ({ src, altJa, altEn, t }) => {
+const FeatureMedia: React.FC<{ src: string, altJa: string, altEn: string, t: (ja: string, en: string) => string, narrow?: boolean }> = ({ src, altJa, altEn, t, narrow }) => {
     const [error, setError] = React.useState(false);
 
     if (error) {
@@ -16,7 +16,7 @@ const FeatureMedia: React.FC<{ src: string, altJa: string, altEn: string, t: (ja
     }
 
     return (
-        <figure className="feature-media-block">
+        <figure className={`feature-media-block${narrow ? ' media-narrow' : ''}`}>
                 <img src={src} alt={t(altJa, altEn)} onError={() => setError(true)} />
         </figure>
     );
@@ -295,7 +295,7 @@ const Guide: React.FC = () => {
                                 'From here we walk through every tool in the left sidebar, top to bottom. Each tool has a single-key shortcut shown in parentheses.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/sidebar-overview.png" altJa="左サイドバー全体の一覧図" altEn="Left sidebar overview" t={t} />
+                        <FeatureMedia src="/guide/sidebar-overview.png" altJa="左サイドバー全体の一覧図" altEn="Left sidebar overview" t={t} narrow />
                     </article>
 
                     <div className="feature-divider" />
