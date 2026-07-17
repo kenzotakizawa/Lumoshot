@@ -260,6 +260,7 @@ const Guide: React.FC = () => {
                                 'Save PNG downloads the current edited result as a PNG file. Use it when you want to keep a file or attach the image to a document.'
                             )}
                         </p>
+                        <FeatureMedia src="/guide/header-copy-save.gif" altJa="コピー/PNG保存操作のGIF" altEn="Copy / Save PNG action GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -294,6 +295,7 @@ const Guide: React.FC = () => {
                                 'From here we walk through every tool in the left sidebar, top to bottom. Each tool has a single-key shortcut shown in parentheses.'
                             )}
                         </p>
+                        <FeatureMedia src="/guide/sidebar-overview.png" altJa="左サイドバー全体の一覧図" altEn="Left sidebar overview" t={t} />
                     </article>
 
                     <div className="feature-divider" />
