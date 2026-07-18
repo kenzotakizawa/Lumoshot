@@ -247,7 +247,7 @@ const Guide: React.FC = () => {
                                 'Copy sends the current edited result to your clipboard as a PNG image. Paste it directly into Slack, GitHub, Notion, chat tools, and more.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/header-copy-save.gif" altJa="コピー操作のGIF" altEn="Copy action GIF" t={t} />
+                        <FeatureMedia src="/guide/header-copy.gif" altJa="コピー操作のGIF" altEn="Copy action GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
@@ -260,7 +260,7 @@ const Guide: React.FC = () => {
                                 'Save PNG downloads the current edited result as a PNG file. Use it when you want to keep a file or attach the image to a document.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/header-copy-save.gif" altJa="コピー/PNG保存操作のGIF" altEn="Copy / Save PNG action GIF" t={t} />
+                        <FeatureMedia src="/guide/header-save.gif" altJa="PNG保存操作のGIF" altEn="Save PNG action GIF" t={t} />
                     </article>
 
                     <div className="feature-divider" />
