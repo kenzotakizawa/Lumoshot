@@ -3,8 +3,18 @@ import { getUILanguage } from '../lib/i18n';
 
 
 
-const FeatureMedia: React.FC<{ src: string, altJa: string, altEn: string, t: (ja: string, en: string) => string, narrow?: boolean }> = ({ src, altJa, altEn, t, narrow }) => {
+const FeatureMedia: React.FC<{ src: string, altJa: string, altEn: string, t: (ja: string, en: string) => string, lang?: 'ja' | 'en', narrow?: boolean }> = ({ src, altJa, altEn, t, lang, narrow }) => {
     const [error, setError] = React.useState(false);
+    // English-mode captures live under /guide/en/ with the same filename.
+    // Fall back to the Japanese capture until an English one is provided.
+    const [enMissing, setEnMissing] = React.useState(false);
+
+    React.useEffect(() => {
+        setError(false);
+        setEnMissing(false);
+    }, [lang, src]);
+
+    const resolvedSrc = lang === 'en' && !enMissing ? src.replace('/guide/', '/guide/en/') : src;
 
     if (error) {
         return (
@@ -17,7 +27,15 @@ const FeatureMedia: React.FC<{ src: string, altJa: string, altEn: string, t: (ja
 
     return (
         <figure className={`feature-media-block${narrow ? ' media-narrow' : ''}`}>
-                <img src={src} alt={t(altJa, altEn)} onError={() => setError(true)} />
+                <img
+                    src={resolvedSrc}
+                    alt={t(altJa, altEn)}
+                    loading={lang === 'en' ? 'eager' : 'lazy'}
+                    onError={() => {
+                        if (resolvedSrc !== src) setEnMissing(true);
+                        else setError(true);
+                    }}
+                />
         </figure>
     );
 };
@@ -37,20 +55,57 @@ const Guide: React.FC = () => {
 
     const t = (ja: string, en: string) => lang === 'ja' ? ja : en;
 
+    const tocItems: Array<{ id: string, ja: string, en: string }> = [
+        { id: 'capture', ja: '1. 撮る', en: '1. Capture' },
+        { id: 'topbar', ja: '2. 上部バー', en: '2. Top Bar' },
+        { id: 'tools', ja: '3. 描画ツール', en: '3. Tools' },
+        { id: 'image-ops', ja: '4. 画像操作', en: '4. Image Ops' },
+        { id: 'power', ja: '5. 整列・複製', en: '5. Arrange' },
+        { id: 'shortcuts', ja: 'ショートカット', en: 'Shortcuts' },
+        { id: 'tips', ja: 'Tips', en: 'Tips' },
+    ];
+    const [activeChapter, setActiveChapter] = useState('');
+
+    useEffect(() => {
+        const onScroll = () => {
+            let current = '';
+            for (const { id } of tocItems) {
+                const el = document.getElementById(id);
+                if (el && el.getBoundingClientRect().top <= 170) current = id;
+            }
+            setActiveChapter(current);
+        };
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('hashchange', onScroll);
+        return () => {
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('hashchange', onScroll);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     return (
         <div className="guide-container">
             <header className="guide-header">
-                <div className="header-content">
-                    <img src="/icons/icon48.png" alt="Lumoshot Logo" className="logo" />
-                    <div>
-                        <h1>Lumoshot Guide</h1>
-                        <p className="guide-kicker">{t('実際のエディタ操作に沿った機能ツアー', 'A feature tour based on the real editor workflow')}</p>
+                <div className="header-bar">
+                    <div className="header-content">
+                        <img src="/icons/icon48.png" alt="Lumoshot Logo" className="logo" />
+                        <div>
+                            <h1>Lumoshot Guide</h1>
+                            <p className="guide-kicker">{t('実際のエディタ操作に沿った機能ツアー', 'A feature tour based on the real editor workflow')}</p>
+                        </div>
+                    </div>
+                    <div className="lang-switch">
+                        <button className={lang === 'en' ? 'active' : ''} onClick={() => setLang('en')}>English</button>
+                        <button className={lang === 'ja' ? 'active' : ''} onClick={() => setLang('ja')}>日本語</button>
                     </div>
                 </div>
-                <div className="lang-switch">
-                    <button className={lang === 'en' ? 'active' : ''} onClick={() => setLang('en')}>English</button>
-                    <button className={lang === 'ja' ? 'active' : ''} onClick={() => setLang('ja')}>日本語</button>
-                </div>
+                <nav className="guide-toc" aria-label={t('目次', 'Table of contents')}>
+                    {tocItems.map(({ id, ja, en }) => (
+                        <a key={id} href={`#${id}`} className={activeChapter === id ? 'active' : ''}>{t(ja, en)}</a>
+                    ))}
+                </nav>
             </header>
 
             <main className="guide-main">
@@ -81,7 +136,7 @@ const Guide: React.FC = () => {
                     {/* ============================================================
                         SECTION 1 — Capture modes (popup entry points)
                        ============================================================ */}
-                    <article className="feature-section">
+                    <article className="feature-section chapter-head" id="capture">
                         <h3>{t('1. キャプチャを開始する', '1. Start a Capture')}</h3>
                         <p>
                             {t(
@@ -89,12 +144,17 @@ const Guide: React.FC = () => {
                                 'On the web app, use Capture Screen on the home screen to open the browser picker, then choose another tab, window, or screen. Upload, clipboard paste, and the sample image are also available from the same home screen.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/popup-overview.png" altJa="ホーム画面のスクリーンショット" altEn="Home screen screenshot" t={t} />
+                        <div className="tool-chip-row">
+                            <a href="#cap-visible">{t('画面キャプチャ', 'Capture Screen')}</a>
+                            <a href="#cap-upload">{t('アップロード', 'Upload')}</a>
+                            <a href="#cap-sample">{t('サンプルで試す', 'Try the Sample')}</a>
+                        </div>
+                        <FeatureMedia src="/guide/popup-overview.png" altJa="ホーム画面のスクリーンショット" altEn="Home screen screenshot" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="cap-visible">
                         <h3>{t('表示中の画面をキャプチャ', 'Capture the Visible Area')}</h3>
                         <p>
                             {t(
@@ -102,12 +162,12 @@ const Guide: React.FC = () => {
                                 'On the web app, Capture Screen opens the browser picker. After you choose a tab, window, or screen, the visible content is captured as an image and loaded into the editor.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/capture-visible.gif" altJa="表示中の画面キャプチャのGIF" altEn="Capture visible GIF" t={t} />
+                        <FeatureMedia src="/guide/capture-visible.gif" altJa="表示中の画面キャプチャのGIF" altEn="Capture visible GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="cap-upload">
                         <h3>{t('画像をアップロード', 'Upload an Image')}</h3>
                         <p>
                             {t(
@@ -115,12 +175,12 @@ const Guide: React.FC = () => {
                                 'Use Upload an Image on the home screen to choose an existing PNG/JPG and load it into the editor. You can also paste a copied image or drag and drop one from the same home screen.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/capture-local.gif" altJa="画像アップロードのGIF" altEn="Upload image GIF" t={t} />
+                        <FeatureMedia src="/guide/capture-local.gif" altJa="画像アップロードのGIF" altEn="Upload image GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="cap-sample">
                         <h3>{t('サンプルで試す', 'Try the Sample')}</h3>
                         <p>
                             {t(
@@ -128,7 +188,7 @@ const Guide: React.FC = () => {
                                 'Try the Sample opens the editor without preparing an image first. It is a quick way to test arrows, blur, spotlight, export, and the rest of the editing flow.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/capture-sample.gif" altJa="サンプルで試すGIF" altEn="Try sample GIF" t={t} />
+                        <FeatureMedia src="/guide/capture-sample.gif" altJa="サンプルで試すGIF" altEn="Try sample GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
@@ -136,7 +196,7 @@ const Guide: React.FC = () => {
                     {/* ============================================================
                         SECTION 2 — Top header (frame, zoom, undo/redo, export)
                        ============================================================ */}
-                    <article className="feature-section">
+                    <article className="feature-section chapter-head" id="topbar">
                         <h3>{t('2. 編集画面の上部バー', '2. The Editor Top Bar')}</h3>
                         <p>
                             {t(
@@ -144,12 +204,24 @@ const Guide: React.FC = () => {
                                 'The top bar holds zoom, frame toggle, theme switch, help, undo/redo, copy, and save. Final export (Copy or Save) lives here.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/header-overview.png" altJa="上部バー全体のスクリーンショット" altEn="Top bar overview screenshot" t={t} />
+                        <div className="tool-chip-row">
+                            <a href="#top-zoom">{t('ズーム', 'Zoom')}</a>
+                            <a href="#top-home">{t('ホーム', 'Home')}</a>
+                            <a href="#top-frame">{t('フレーム追加', 'Add Frame')}</a>
+                            <a href="#top-resize">{t('リサイズ', 'Resize')}</a>
+                            <a href="#top-dark">{t('ダークモード', 'Dark Mode')}</a>
+                            <a href="#top-help">{t('ヘルプ', 'Help')}</a>
+                            <a href="#top-undo">Undo / Redo</a>
+                            <a href="#top-copy">{t('コピー', 'Copy')}</a>
+                            <a href="#top-save">{t('PNG保存', 'Save PNG')}</a>
+                            <a href="#top-outline">{t('縁取り', 'Outline')}</a>
+                        </div>
+                        <FeatureMedia src="/guide/header-overview.png" altJa="上部バー全体のスクリーンショット" altEn="Top bar overview screenshot" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="top-zoom">
                         <h3>{t('ズーム', 'Zoom')}</h3>
                         <p>
                             {t(
@@ -157,12 +229,12 @@ const Guide: React.FC = () => {
                                 'Use the zoom controls near the left side of the top bar to change the working view. It does not change the exported image size; it only helps you inspect details while editing.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/header-zoom.gif" altJa="ズーム操作のGIF" altEn="Zoom controls GIF" t={t} />
+                        <FeatureMedia src="/guide/header-zoom.gif" altJa="ズーム操作のGIF" altEn="Zoom controls GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="top-home">
                         <h3>{t('ホームへ戻る', 'Go Home')}</h3>
                         <p>
                             {t(
@@ -170,12 +242,12 @@ const Guide: React.FC = () => {
                                 'Click the home icon to leave the editor and return to the home screen. On the web app, the current edit is autosaved so you can reopen it later from recent edits.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/header-home.gif" altJa="ホームへ戻るGIF" altEn="Go home GIF" t={t} />
+                        <FeatureMedia src="/guide/header-home.gif" altJa="ホームへ戻るGIF" altEn="Go home GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="top-frame">
                         <h3>{t('フレーム追加', 'Add Frame')}</h3>
                         <p>
                             {t(
@@ -183,12 +255,12 @@ const Guide: React.FC = () => {
                                 'Wraps the screenshot in a subtle drop shadow and padding so it looks polished in tweets and blog posts. Toggle on or off.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/header-frame.gif" altJa="フレーム追加のGIF" altEn="Add Frame GIF" t={t} />
+                        <FeatureMedia src="/guide/header-frame.gif" altJa="フレーム追加のGIF" altEn="Add Frame GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="top-resize">
                         <h3>{t('リサイズ', 'Resize')}</h3>
                         <p>
                             {t(
@@ -196,12 +268,12 @@ const Guide: React.FC = () => {
                                 'Resize changes the actual image dimensions being edited. Annotations scale with the image, making it useful when you need to prepare the final exported size.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/header-resize.gif" altJa="リサイズのGIF" altEn="Resize GIF" t={t} />
+                        <FeatureMedia src="/guide/header-resize.gif" altJa="リサイズのGIF" altEn="Resize GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="top-dark">
                         <h3>{t('ダークモード', 'Dark Mode')}</h3>
                         <p>
                             {t(
@@ -209,12 +281,12 @@ const Guide: React.FC = () => {
                                 'Use the moon icon to switch the editor UI between light and dark modes. This changes editor visibility only; it does not alter the image or exported result.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/header-dark-mode.gif" altJa="ダークモード切り替えのGIF" altEn="Dark mode toggle GIF" t={t} />
+                        <FeatureMedia src="/guide/header-dark-mode.gif" altJa="ダークモード切り替えのGIF" altEn="Dark mode toggle GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="top-help">
                         <h3>{t('ショートカットとヘルプ', 'Shortcuts and Help')}</h3>
                         <p>
                             {t(
@@ -226,7 +298,7 @@ const Guide: React.FC = () => {
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="top-undo">
                         <h3>{t('Undo / Redo', 'Undo / Redo')}</h3>
                         <p>
                             {t(
@@ -234,12 +306,12 @@ const Guide: React.FC = () => {
                                 'Undo and redo any drawing mistake with the buttons or ⌘Z / ⌘Y (Ctrl+Z / Ctrl+Y on Windows).'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/header-undo-redo.gif" altJa="Undo/RedoのGIF" altEn="Undo / Redo GIF" t={t} />
+                        <FeatureMedia src="/guide/header-undo-redo.gif" altJa="Undo/RedoのGIF" altEn="Undo / Redo GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="top-copy">
                         <h3>{t('コピー', 'Copy')}</h3>
                         <p>
                             {t(
@@ -247,12 +319,12 @@ const Guide: React.FC = () => {
                                 'Copy sends the current edited result to your clipboard as a PNG image. Paste it directly into Slack, GitHub, Notion, chat tools, and more.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/header-copy.gif" altJa="コピー操作のGIF" altEn="Copy action GIF" t={t} />
+                        <FeatureMedia src="/guide/header-copy.gif" altJa="コピー操作のGIF" altEn="Copy action GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="top-save">
                         <h3>{t('PNG保存', 'Save PNG')}</h3>
                         <p>
                             {t(
@@ -260,12 +332,12 @@ const Guide: React.FC = () => {
                                 'Save PNG downloads the current edited result as a PNG file. Use it when you want to keep a file or attach the image to a document.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/header-save.gif" altJa="PNG保存操作のGIF" altEn="Save PNG action GIF" t={t} />
+                        <FeatureMedia src="/guide/header-save.gif" altJa="PNG保存操作のGIF" altEn="Save PNG action GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="top-outline">
                         <h3>{t('画像の縁取り', 'Image Outline')}</h3>
                         <p>
                             {t(
@@ -279,7 +351,7 @@ const Guide: React.FC = () => {
                                 'How to use it: click the square icon to turn it on, then adjust the color with the color picker and the width with the slider. The outline sits directly above the background image and below arrows, text, and other annotations, so it does not cover your markup. Click the square icon again to turn it off. It is included in both Copy and Save PNG.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/header-outline.gif" altJa="画像の縁取りのGIF" altEn="Image outline GIF" t={t} />
+                        <FeatureMedia src="/guide/header-outline.gif" altJa="画像の縁取りのGIF" altEn="Image outline GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
@@ -287,7 +359,7 @@ const Guide: React.FC = () => {
                     {/* ============================================================
                         SECTION 3 — Sidebar tools (in actual order)
                        ============================================================ */}
-                    <article className="feature-section">
+                    <article className="feature-section chapter-head" id="tools">
                         <h3>{t('3. 描画ツール（左サイドバー）', '3. Drawing Tools (Left Sidebar)')}</h3>
                         <p>
                             {t(
@@ -295,12 +367,29 @@ const Guide: React.FC = () => {
                                 'From here we walk through every tool in the left sidebar, top to bottom. Each tool has a single-key shortcut shown in parentheses.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/sidebar-overview.png" altJa="左サイドバー全体の一覧図" altEn="Left sidebar overview" t={t} narrow />
+                        <div className="tool-chip-row">
+                            <a href="#tool-select">{t('選択', 'Select')}<kbd>V</kbd></a>
+                            <a href="#tool-rect">{t('四角形', 'Rectangle')}<kbd>R</kbd></a>
+                            <a href="#tool-rounded-rect">{t('角丸四角形', 'Rounded Rect')}</a>
+                            <a href="#tool-arrow">{t('矢印', 'Arrow')}<kbd>A</kbd></a>
+                            <a href="#tool-bubble">{t('吹き出し', 'Speech Bubble')}<kbd>B</kbd></a>
+                            <a href="#tool-text">{t('テキスト', 'Text')}<kbd>T</kbd></a>
+                            <a href="#tool-step">{t('ステップ番号', 'Step Number')}<kbd>N</kbd></a>
+                            <a href="#tool-click">{t('クリックアイコン', 'Click Icon')}<kbd>M</kbd></a>
+                            <a href="#tool-pen">{t('ペン', 'Pen')}<kbd>P</kbd></a>
+                            <a href="#tool-highlighter">{t('マーカー', 'Highlighter')}<kbd>H</kbd></a>
+                            <a href="#tool-spot-rect">{t('スポットライト（四角）', 'Spotlight (Rect)')}<kbd>S</kbd></a>
+                            <a href="#tool-spot-ellipse">{t('スポットライト（円）', 'Spotlight (Ellipse)')}</a>
+                            <a href="#tool-blur">{t('ぼかし', 'Blur')}<kbd>U</kbd></a>
+                            <a href="#tool-zoom-rect">{t('部分ズーム（四角）', 'Zoom (Rect)')}</a>
+                            <a href="#tool-zoom-ellipse">{t('部分ズーム（楕円）', 'Zoom (Ellipse)')}</a>
+                        </div>
+                        <FeatureMedia src="/guide/sidebar-overview.png" altJa="左サイドバー全体の一覧図" altEn="Left sidebar overview" t={t} lang={lang} narrow />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="tool-select">
                         <h3>{t('選択', 'Select')} <span className="shortcut-badge">V</span></h3>
                         <p>
                             {t(
@@ -308,12 +397,12 @@ const Guide: React.FC = () => {
                                 'The universal tool for moving, resizing, recoloring, and aligning shapes you have already drawn. Tap V whenever you need to exit a drawing tool. ⌘-click (Ctrl-click) or marquee-drag to multi-select.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-select.gif" altJa="選択ツールのGIF" altEn="Select tool GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-select.gif" altJa="選択ツールのGIF" altEn="Select tool GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="tool-rect">
                         <h3>{t('四角形', 'Rectangle')} <span className="shortcut-badge">R</span></h3>
                         <p>
                             {t(
@@ -321,12 +410,12 @@ const Guide: React.FC = () => {
                                 'Draw a rectangle to highlight an area. Change stroke width and color from the sub-toolbar at the top.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-rect.gif" altJa="四角形のGIF" altEn="Rectangle GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-rect.gif" altJa="四角形のGIF" altEn="Rectangle GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="tool-rounded-rect">
                         <h3>{t('角丸四角形', 'Rounded Rectangle')}</h3>
                         <p>
                             {t(
@@ -334,12 +423,12 @@ const Guide: React.FC = () => {
                                 'A rectangle with rounded corners — ideal for modern UI elements or softer highlights. Toggle fill and adjust corner radius from the sub-toolbar.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-rounded-rect.gif" altJa="角丸四角形のGIF" altEn="Rounded Rectangle GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-rounded-rect.gif" altJa="角丸四角形のGIF" altEn="Rounded Rectangle GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="tool-arrow">
                         <h3>{t('矢印', 'Arrow')} <span className="shortcut-badge">A</span></h3>
                         <p>
                             {t(
@@ -361,16 +450,16 @@ const Guide: React.FC = () => {
                                 <span>{t('クリックで曲がり角追加 / ダブルクリックで確定', 'Click to add corners / double-click to finish')}</span>
                             </div>
                         </div>
-                        <FeatureMedia src="/guide/tool-arrow.gif" altJa="矢印のGIF" altEn="Arrow GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-arrow.gif" altJa="矢印のGIF" altEn="Arrow GIF" t={t} lang={lang} />
                         <div className="media-pair">
-                            <FeatureMedia src="/guide/tool-arrow-curved.gif" altJa="曲線矢印のGIF" altEn="Curved arrow GIF" t={t} />
-                            <FeatureMedia src="/guide/tool-arrow-elbow.gif" altJa="折れ線矢印のGIF" altEn="Elbow arrow GIF" t={t} />
+                            <FeatureMedia src="/guide/tool-arrow-curved.gif" altJa="曲線矢印のGIF" altEn="Curved arrow GIF" t={t} lang={lang} />
+                            <FeatureMedia src="/guide/tool-arrow-elbow.gif" altJa="折れ線矢印のGIF" altEn="Elbow arrow GIF" t={t} lang={lang} />
                         </div>
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="tool-bubble">
                         <h3>{t('吹き出し', 'Speech Bubble')} <span className="shortcut-badge">B</span></h3>
                         <p>
                             {t(
@@ -378,12 +467,12 @@ const Guide: React.FC = () => {
                                 'A text bubble with a customizable tail. Drag the blue control point at the tail tip to point exactly where you want. Text, border, and background colors are all independently adjustable.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-speech-bubble.gif" altJa="吹き出しのGIF" altEn="Speech Bubble GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-speech-bubble.gif" altJa="吹き出しのGIF" altEn="Speech Bubble GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="tool-text">
                         <h3>{t('テキスト', 'Text')} <span className="shortcut-badge">T</span></h3>
                         <p>
                             {t(
@@ -391,12 +480,12 @@ const Guide: React.FC = () => {
                                 'Type directly onto the canvas. Adjust font size, color, bold, italic, and background fill from the sub-toolbar. Use the alignment buttons (left/center/right, top/middle/bottom) to line up multiple text blocks.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-text.gif" altJa="テキストのGIF" altEn="Text GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-text.gif" altJa="テキストのGIF" altEn="Text GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="tool-step">
                         <h3>{t('ステップ番号', 'Step Number')} <span className="shortcut-badge">N</span></h3>
                         <p>
                             {t(
@@ -404,12 +493,12 @@ const Guide: React.FC = () => {
                                 'Drops a numbered badge that counts up (1, 2, 3...) with each click. Indispensable for step-by-step bug reports and onboarding docs. You can rearrange numbers by dragging them afterwards.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-step-number.gif" altJa="ステップ番号のGIF" altEn="Step Number GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-step-number.gif" altJa="ステップ番号のGIF" altEn="Step Number GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="tool-click">
                         <h3>{t('クリックアイコン', 'Click Icon')} <span className="shortcut-badge">M</span></h3>
                         <p>
                             {t(
@@ -417,12 +506,12 @@ const Guide: React.FC = () => {
                                 'Drops a mouse cursor icon with action lines (speed lines). One stamp conveys “click here” without writing a word. Switch between LEFT and RIGHT click from the sub-toolbar.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-click-icon.gif" altJa="クリックアイコンのGIF" altEn="Click Icon GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-click-icon.gif" altJa="クリックアイコンのGIF" altEn="Click Icon GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="tool-pen">
                         <h3>{t('ペン', 'Pen')} <span className="shortcut-badge">P</span></h3>
                         <p>
                             {t(
@@ -430,12 +519,12 @@ const Guide: React.FC = () => {
                                 'Draw freely with your mouse or trackpad. Strokes are auto-smoothed so even mouse-drawn markup stays clean.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-pen.gif" altJa="ペンのGIF" altEn="Pen GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-pen.gif" altJa="ペンのGIF" altEn="Pen GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="tool-highlighter">
                         <h3>{t('蛍光ペン（マーカー）', 'Highlighter')} <span className="shortcut-badge">H</span></h3>
                         <p>
                             {t(
@@ -443,12 +532,12 @@ const Guide: React.FC = () => {
                                 'A thick translucent stroke that highlights text or UI elements just like a real highlighter pen. Color and opacity adjustable from the sub-toolbar.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-highlighter.gif" altJa="マーカーのGIF" altEn="Highlighter GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-highlighter.gif" altJa="マーカーのGIF" altEn="Highlighter GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="tool-spot-rect">
                         <h3>{t('スポットライト（四角）', 'Spotlight (Rectangle)')} <span className="shortcut-badge">S</span></h3>
                         <p>
                             {t(
@@ -456,12 +545,12 @@ const Guide: React.FC = () => {
                                 'Dims everything and brightly reveals only the rectangle you drag — visually hiding the rest while pulling the eye to one spot. A signature Lumoshot feature.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-spotlight-rect.gif" altJa="スポットライト矩形のGIF" altEn="Spotlight Rect GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-spotlight-rect.gif" altJa="スポットライト矩形のGIF" altEn="Spotlight Rect GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="tool-spot-ellipse">
                         <h3>{t('スポットライト（円）', 'Spotlight (Ellipse)')}</h3>
                         <p>
                             {t(
@@ -469,12 +558,12 @@ const Guide: React.FC = () => {
                                 'Ellipse version of Spotlight. A natural shape for highlighting round elements like icons or avatars.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-spotlight-ellipse.gif" altJa="スポットライト円形のGIF" altEn="Spotlight Ellipse GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-spotlight-ellipse.gif" altJa="スポットライト円形のGIF" altEn="Spotlight Ellipse GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="tool-blur">
                         <h3>{t('ぼかし（モザイク）', 'Blur')} <span className="shortcut-badge">U</span></h3>
                         <p>
                             {t(
@@ -482,12 +571,12 @@ const Guide: React.FC = () => {
                                 'Applies a heavy Gaussian blur to the area you drag. Essential for hiding personal data, passwords, or internal information. Blur strength is adjustable from the sub-toolbar.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-blur.gif" altJa="ぼかしのGIF" altEn="Blur GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-blur.gif" altJa="ぼかしのGIF" altEn="Blur GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="tool-zoom-rect">
                         <h3>{t('部分ズーム（四角）', 'Zoom (Rectangle)')}</h3>
                         <p>
                             {t(
@@ -495,12 +584,12 @@ const Guide: React.FC = () => {
                                 'Magnifies a region of the screenshot and shows it elsewhere like a lens. Perfect when a tiny error message needs to be readable in your bug report.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-zoom-rect.gif" altJa="部分ズーム矩形のGIF" altEn="Zoom Rect GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-zoom-rect.gif" altJa="部分ズーム矩形のGIF" altEn="Zoom Rect GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="tool-zoom-ellipse">
                         <h3>{t('部分ズーム（楕円）', 'Zoom (Ellipse)')}</h3>
                         <p>
                             {t(
@@ -508,7 +597,7 @@ const Guide: React.FC = () => {
                                 'Ellipse version of Zoom — gives a magnifying-glass look when you want to expand part of the UI.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-zoom-ellipse.gif" altJa="部分ズーム楕円のGIF" altEn="Zoom Ellipse GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-zoom-ellipse.gif" altJa="部分ズーム楕円のGIF" altEn="Zoom Ellipse GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
@@ -516,7 +605,7 @@ const Guide: React.FC = () => {
                     {/* ============================================================
                         SECTION 4 — Image operations
                        ============================================================ */}
-                    <article className="feature-section">
+                    <article className="feature-section chapter-head" id="image-ops">
                         <h3>{t('4. 画像操作', '4. Image Operations')}</h3>
                         <p>
                             {t(
@@ -524,11 +613,17 @@ const Guide: React.FC = () => {
                                 'These tools operate on the canvas itself or on the underlying image. They sit at the bottom of the sidebar.'
                             )}
                         </p>
+                        <div className="tool-chip-row">
+                            <a href="#op-insert">{t('画像スタンプ', 'Insert Image')}</a>
+                            <a href="#op-resize">{t('リサイズ', 'Resize')}</a>
+                            <a href="#op-crop">{t('クロップ', 'Crop')}<kbd>C</kbd></a>
+                            <a href="#op-before-after">Before / After</a>
+                        </div>
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="op-insert">
                         <h3>{t('画像スタンプ（追加）', 'Insert Image (Stamp)')}</h3>
                         <p>
                             {t(
@@ -536,12 +631,12 @@ const Guide: React.FC = () => {
                                 'Stamp a local PNG/JPG onto the canvas — handy for adding icons, logos, or pasting another screenshot. Move and resize with the Select tool (V).'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-insert-image.gif" altJa="画像スタンプのGIF" altEn="Insert Image GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-insert-image.gif" altJa="画像スタンプのGIF" altEn="Insert Image GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="op-resize">
                         <h3>{t('リサイズ', 'Resize')}</h3>
                         <p>
                             {t(
@@ -549,12 +644,12 @@ const Guide: React.FC = () => {
                                 'Resizes the entire screenshot. Keep aspect ratio on and type a target pixel size — useful when you need to match a blog or social platform’s size requirements.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-resize.gif" altJa="リサイズのGIF" altEn="Resize GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-resize.gif" altJa="リサイズのGIF" altEn="Resize GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="op-crop">
                         <h3>{t('クロップ（切り抜き）', 'Crop')} <span className="shortcut-badge">C</span></h3>
                         <p>
                             {t(
@@ -562,12 +657,12 @@ const Guide: React.FC = () => {
                                 'Trim away unwanted parts of the screenshot. Drag to select the keep area and confirm — a useful safety net when you forget to crop while capturing.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-crop.gif" altJa="クロップのGIF" altEn="Crop GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-crop.gif" altJa="クロップのGIF" altEn="Crop GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
 
-                    <article className="feature-section">
+                    <article className="feature-section" id="op-before-after">
                         <h3>{t('Before / After 比較', 'Before / After Comparison')}</h3>
                         <p>
                             {t(
@@ -575,7 +670,7 @@ const Guide: React.FC = () => {
                                 'Drops two images into a side-by-side or slider Before / After layout. Instantly boosts the persuasive power of redesign proposals and A/B comparisons.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-before-after.gif" altJa="Before/AfterのGIF" altEn="Before / After GIF" t={t} />
+                        <FeatureMedia src="/guide/tool-before-after.gif" altJa="Before/AfterのGIF" altEn="Before / After GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
@@ -583,7 +678,7 @@ const Guide: React.FC = () => {
                     {/* ============================================================
                         SECTION 5 — Context menu / multi-select power features
                        ============================================================ */}
-                    <article className="feature-section">
+                    <article className="feature-section chapter-head" id="power">
                         <h3>{t('5. 整列・複製・ロック・重ね順', '5. Align, Duplicate, Lock, Stack Order')}</h3>
                         <p>
                             {t(
@@ -591,7 +686,7 @@ const Guide: React.FC = () => {
                                 'Marquee-select with the Select tool (V) and the sub-toolbar reveals Left / Center / Right and Top / Middle / Bottom alignment, plus horizontal and vertical distribution. Right-click any shape for Duplicate (⌘D), Lock (⌘L), Bring to Front / Send to Back, Delete, and more.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/power-align-duplicate.gif" altJa="整列/複製/ロックのGIF" altEn="Align / Duplicate / Lock GIF" t={t} />
+                        <FeatureMedia src="/guide/power-align-duplicate.gif" altJa="整列/複製/ロックのGIF" altEn="Align / Duplicate / Lock GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
@@ -600,7 +695,7 @@ const Guide: React.FC = () => {
 
                 <div className="divider" />
 
-                <section className="shortcuts-section">
+                <section className="shortcuts-section" id="shortcuts">
                     <h3>{t('キーボードショートカット一覧', 'Keyboard Shortcuts')}</h3>
                     <div className="table-container">
                         <table>
@@ -644,7 +739,7 @@ const Guide: React.FC = () => {
 
                 <div className="divider" />
 
-                <section className="shortcuts-section">
+                <section className="shortcuts-section" id="tips">
                     <h3>{t('プロ向け Tips', 'Pro Tips')}</h3>
                     <div className="table-container">
                         <table>

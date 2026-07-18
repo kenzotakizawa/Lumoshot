@@ -40,13 +40,55 @@ body {
     top: 0;
     z-index: 20;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 24px;
-    padding: 14px 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 14px 0 12px;
     margin-bottom: 34px;
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
+}
+
+.header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+}
+
+.guide-toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.guide-toc a {
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--guide-muted);
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid var(--guide-border);
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.guide-toc a:hover {
+    color: var(--guide-accent-strong);
+    border-color: #c7d2fe;
+    background: #eef2ff;
+}
+
+.guide-toc a.active {
+    background: var(--guide-accent);
+    border-color: var(--guide-accent);
+    color: #ffffff;
+}
+
+article[id],
+section[id] {
+    scroll-margin-top: 138px;
 }
 
 .header-content {
@@ -113,7 +155,7 @@ h1 {
 .features-list {
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: 18px;
 }
 
 .release-intro {
@@ -232,11 +274,11 @@ h1 {
     background: var(--guide-surface);
     border: 1px solid rgba(219, 227, 239, 0.9);
     border-radius: 18px;
-    padding: 28px;
+    padding: 24px 26px;
     box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
 }
 
-.feature-section::after,
+.chapter-head::after,
 .shortcuts-section::after {
     content: "";
     position: absolute;
@@ -249,11 +291,17 @@ h1 {
     pointer-events: none;
 }
 
+.chapter-head {
+    margin-top: 26px;
+    background: linear-gradient(135deg, #eef2ff 0%, #ffffff 55%);
+    border-color: #c7d2fe;
+}
+
 .feature-section h3,
 .shortcuts-section h3 {
     position: relative;
     z-index: 1;
-    font-size: 23px;
+    font-size: 20px;
     font-weight: 800;
     margin: 0 0 12px;
     color: var(--guide-ink);
@@ -261,6 +309,52 @@ h1 {
     align-items: center;
     gap: 10px;
     letter-spacing: 0;
+}
+
+.chapter-head h3,
+.shortcuts-section h3 {
+    font-size: 24px;
+}
+
+.tool-chip-row {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 2px 0 12px;
+}
+
+.tool-chip-row a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 1px solid var(--guide-border);
+    color: var(--guide-text);
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.tool-chip-row a:hover {
+    border-color: #a5b4fc;
+    color: var(--guide-accent-strong);
+    background: #eef2ff;
+}
+
+.tool-chip-row kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10.5px;
+    font-weight: 800;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    color: var(--guide-accent-strong);
+    border-radius: 5px;
+    padding: 1px 5px;
 }
 
 .feature-section p {
