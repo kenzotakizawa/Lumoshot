@@ -384,7 +384,6 @@ const Guide: React.FC = () => {
                             <a href="#tool-zoom-rect">{t('部分ズーム（四角）', 'Zoom (Rect)')}</a>
                             <a href="#tool-zoom-ellipse">{t('部分ズーム（楕円）', 'Zoom (Ellipse)')}</a>
                         </div>
-                        <FeatureMedia src="/guide/sidebar-overview.png" altJa="左サイドバー全体の一覧図" altEn="Left sidebar overview" t={t} lang={lang} narrow />
                     </article>
 
                     <div className="feature-divider" />
