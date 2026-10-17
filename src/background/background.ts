@@ -1,3 +1,5 @@
+import { captureFullPage } from "./fullPage";
+
 console.log("Lumoshot background script loaded");
 
 chrome.runtime.onInstalled.addListener((details) => {
@@ -103,6 +105,14 @@ chrome.runtime.onMessage.addListener((message, sender) => {
             });
           });
         }, 300);
+
+      } else if (mode === 'fullpage') {
+        captureFullPage(activeTab).then((res) => {
+          if (!res) return;
+          chrome.storage.local.set({ "capturedImage": res.dataUrl, "captureNotice": res.notice ?? null }, () => {
+            chrome.tabs.create({ url: 'editor.html?mode=capture', active: true });
+          });
+        });
 
       } else if (mode === 'selected') {
         chrome.scripting.executeScript({

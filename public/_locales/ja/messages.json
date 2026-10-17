@@ -118,6 +118,12 @@
     "popupVisiblePartDesc": {
         "message": "今見えている画面をキャプチャ"
     },
+    "popupFullPage": {
+        "message": "ページ全体（スクロール）"
+    },
+    "popupFullPageDesc": {
+        "message": "縦に長いページをスクロールして1枚に"
+    },
     "popupSelectedArea": {
         "message": "範囲を選択"
     },

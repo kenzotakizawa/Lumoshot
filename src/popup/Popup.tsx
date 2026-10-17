@@ -5,7 +5,8 @@ import {
     Crop,
     Image as ImageIcon,
     ClipboardPaste,
-    Upload
+    Upload,
+    ScrollText
 } from 'lucide-react';
 import './Popup.css';
 import { assetsForProject, importedProjectName, isLumoshotFileName, lumoshotFileErrorMessage, readLumoshotFile } from '../lib/lumoshotFile';
@@ -148,6 +149,13 @@ const Popup: React.FC = () => {
                         <div className="btn-text">
                             <span className="title">{t('popupVisiblePart')}</span>
                             <span className="desc">{t('popupVisiblePartDesc')}</span>
+                        </div>
+                    </button>
+                    <button className="menu-btn" onClick={() => handleAction('fullpage')}>
+                        <ScrollText size={18} />
+                        <div className="btn-text">
+                            <span className="title">{t('popupFullPage')}</span>
+                            <span className="desc">{t('popupFullPageDesc')}</span>
                         </div>
                     </button>
                     <button className="menu-btn" onClick={() => handleAction('selected')}>

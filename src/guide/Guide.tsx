@@ -146,6 +146,7 @@ const Guide: React.FC = () => {
                         </p>
                         <div className="tool-chip-row">
                             <a href="#cap-visible">{t('画面キャプチャ', 'Capture Screen')}</a>
+                            <a href="#cap-fullpage">{t('ページ全体（拡張版）', 'Entire page (extension)')}</a>
                             <a href="#cap-upload">{t('アップロード', 'Upload')}</a>
                             <a href="#cap-sample">{t('サンプルで試す', 'Try the Sample')}</a>
                         </div>
@@ -163,6 +164,24 @@ const Guide: React.FC = () => {
                             )}
                         </p>
                         <FeatureMedia src="/guide/capture-visible.gif" altJa="表示中の画面キャプチャのGIF" altEn="Capture visible GIF" t={t} lang={lang} />
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section" id="cap-fullpage">
+                        <h3>{t('ページ全体をキャプチャ（Chrome拡張版）', 'Capture an Entire Page (Chrome extension)')}</h3>
+                        <p>
+                            {t(
+                                'Chrome拡張機能のポップアップで「ページ全体（スクロール）」を選ぶと、縦に長いページを自動でスクロールしながら撮影し、1枚の画像につなげてエディタで開きます。撮影中は拡張機能アイコンに「3/12」のように進み具合が表示されるので、終わるまでタブを切り替えずにお待ちください。',
+                                'In the Chrome extension popup, choose Entire Page (Scroll). Lumoshot scrolls through the page, captures it piece by piece, stitches it into one image, and opens it in the editor. Progress such as “3/12” appears on the extension icon — please stay on the tab until it finishes.'
+                            )}
+                        </p>
+                        <p>
+                            {t(
+                                '画面に固定されたヘッダーやチャットボタンが何度も写り込まないよう、上部に固定された要素は最初の1枚だけ、下部の要素は最後の1枚だけに写します。Gmail や Notion のようにページの内側の枠がスクロールするアプリでは表示範囲のみを撮影し、極端に長いページは途中までの撮影になります（どちらもエディタ上部にお知らせが出ます）。Web版ではブラウザの制約上この撮影はできません。',
+                                'To keep fixed headers and chat buttons from repeating, elements pinned to the top appear only in the first piece and those pinned to the bottom only in the last. Apps that scroll an inner panel (like Gmail or Notion) are captured as the visible area only, and extremely long pages are cut off partway (the editor tells you when either happens). The web app can’t do this because of browser restrictions.'
+                            )}
+                        </p>
                     </article>
 
                     <div className="feature-divider" />

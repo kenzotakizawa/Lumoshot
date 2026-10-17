@@ -19,6 +19,8 @@ export interface InitialImage {
     restoreAssets?: Record<string, string>;
     // Name of the project being restored (e.g. from a .lumoshot file).
     projectName?: string;
+    // A message to show once the image is open (e.g. "the page was truncated").
+    notice?: string;
 }
 
 // Things the editor needs from its host environment (extension vs web).

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, lazy, Suspense, type MouseEvent, type KeyboardEvent } from 'react';
-import { Monitor, Upload, ClipboardPaste, Trash2, Pencil, Check, X, PlayCircle, HelpCircle, ShieldCheck, Puzzle } from 'lucide-react';
+import { Monitor, Upload, ClipboardPaste, Trash2, Pencil, Check, X, PlayCircle, HelpCircle, ShieldCheck, Puzzle, ScrollText } from 'lucide-react';
 import '../editor/Editor.css';
 import './web.css';
 
@@ -377,6 +377,12 @@ export default function WebApp() {
                     </button>
                 </div>
 
+                <a className="web-landing-fullpage" href={CHROME_EXT_URL} target="_blank" rel="noreferrer">
+                    <ScrollText size={14} />
+                    {tt('縦に長いページを丸ごと撮るなら、Chrome 拡張機能版の「ページ全体（スクロール）」を使えます →',
+                        'Need a whole long page in one shot? The Chrome extension can capture an entire scrolling page →')}
+                </a>
+
                 <p className="web-landing-hint">
                     <ClipboardPaste size={14} />
                     {tt(' 画像を貼り付け（Ctrl/⌘+V）、または画像や .lumoshot ファイルをここにドラッグ&ドロップ',
@@ -442,8 +448,8 @@ export default function WebApp() {
                                 'A Chrome extension with screen capture is also available')}
                         </span>
                         <span className="web-landing-ext-desc">
-                            {tt('このWeb版は「貼り付け・アップロード・画面共有」で画像を取り込んで編集します。Chrome拡張機能版なら、表示中のページ・全画面・範囲指定をワンクリックで直接スクリーンショット撮影でき、そのまま編集に進めます。',
-                                'This web app edits images you paste, upload, or share via screen capture. The Chrome extension can take screenshots directly — the visible page, the full screen, or a selected region — in one click, then jump straight to editing.')}
+                            {tt('このWeb版は「貼り付け・アップロード・画面共有」で画像を取り込んで編集します。Chrome拡張機能版なら、表示中のページ・縦に長いページ全体（スクロール）・全画面・範囲指定をワンクリックで直接スクリーンショット撮影でき、そのまま編集に進めます。',
+                                'This web app edits images you paste, upload, or share via screen capture. The Chrome extension can take screenshots directly — the visible page, an entire scrolling page, the full screen, or a selected region — in one click, then jump straight to editing.')}
                         </span>
                         <span className="web-landing-ext-cta">
                             {tt('Chrome ウェブストアで見る →', 'View on the Chrome Web Store →')}

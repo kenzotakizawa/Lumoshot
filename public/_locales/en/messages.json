@@ -118,6 +118,12 @@
     "popupVisiblePartDesc": {
         "message": "Capture what you see right now"
     },
+    "popupFullPage": {
+        "message": "Entire Page (Scroll)"
+    },
+    "popupFullPageDesc": {
+        "message": "Scroll through a long page and capture it as one image"
+    },
     "popupSelectedArea": {
         "message": "Selected Area"
     },

@@ -735,6 +735,14 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
                 return;
             }
             const { dataUrl, cropRect: rect, mode } = init;
+            if (init.notice) {
+                const notice = init.notice;
+                // After the "Loading image… / Ready" updates from loading the image
+                setTimeout(() => {
+                    setStatus(notice);
+                    setTimeout(() => setStatus("Ready"), 8000);
+                }, 1200);
+            }
             if (mode === 'crop' && rect && rect.windowWidth) {
                 const img = new Image();
                 img.onload = () => {

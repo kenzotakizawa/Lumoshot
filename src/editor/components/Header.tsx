@@ -58,7 +58,7 @@ const Header: React.FC<HeaderProps> = ({
             <span className="header-title">
                 <img className="header-app-icon" src="/icons/icon48.png" alt="" />
                 <span className="header-title-text">Lumoshot</span>
-                <span className="header-status" style={{ color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '8px' }}>{status}</span>
+                <span className="header-status" title={status} style={{ color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '8px' }}>{status}</span>
                 {saveStatusLabel && <span className="header-save-status">{saveStatusLabel}</span>}
             </span>
 
