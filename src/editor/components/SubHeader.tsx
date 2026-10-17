@@ -5,6 +5,7 @@ import type { ToolType } from '../hooks/useCanvasTools';
 import type { ArrowStyle } from '../utils/drawTools/arrow';
 import { buildClickCursorGroup } from '../utils/drawTools/clickIcon';
 import { t, getUILanguage } from '../../lib/i18n';
+import { REDACT_STRENGTH_RANGE, applyRedaction, getRedactMode, isRedaction, type RedactMode } from '../utils/redaction';
 
 interface SubHeaderProps {
     currentTool: ToolType;
@@ -43,6 +44,10 @@ interface SubHeaderProps {
     outlineWidth?: number;
     setOutlineWidth?: (width: number) => void;
     commitOutline?: () => void;
+    redactMode?: RedactMode;
+    setRedactMode?: (mode: RedactMode) => void;
+    redactStrength?: number;
+    setRedactStrength?: (strength: number) => void;
 }
 
 
@@ -89,10 +94,30 @@ const SubHeader: React.FC<SubHeaderProps> = ({
     outlineWidth = 1,
     setOutlineWidth,
     commitOutline,
+    redactMode = 'fill',
+    setRedactMode,
+    redactStrength = 12,
+    setRedactStrength,
 }) => {
     const isArrowContext = currentTool === 'arrow';
     const isBubbleContext = currentTool === 'speech-bubble' || isBubbleSelected;
     const isClickIconContext = currentTool === 'click-icon' || !!fabricCanvas.current?.getActiveObject()?.get('isClickIcon');
+    const isRedactContext = currentTool === 'blur-rect' || isRedaction(fabricCanvas.current?.getActiveObject());
+    const showColor = !isClickIconContext && !(isRedactContext && redactMode !== 'fill');
+    const isJa = getUILanguage().startsWith('ja');
+
+    // Mode/strength changes apply live to the selected redaction(s).
+    const updateSelectedRedactions = (patch: { redactMode?: RedactMode; redactStrength?: number }) => {
+        const canvas = fabricCanvas.current;
+        const active = canvas?.getActiveObject();
+        if (!canvas || !active) return;
+        const objs = active.type === 'activeSelection' ? (active as any).getObjects() : [active];
+        objs.filter(isRedaction).forEach((o: any) => {
+            o.set(patch);
+            applyRedaction(canvas, o, patch.redactMode === 'fill' ? strokeColor : undefined);
+        });
+        canvas.requestRenderAll();
+    };
     const canDistribute = selectionCount >= 3;
 
     // The controls below restyle the selected object(s) live but only ask for a
@@ -173,7 +198,7 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                     border: '1px solid rgba(255, 255, 255, 0.4)', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
                     display: 'flex', alignItems: 'center', padding: '0 20px', gap: '20px', fontSize: '13px', color: '#555'
                 }}>
-                    {!isClickIconContext && <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {showColor && <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <label>Color:</label>
                         <input
                             type="color"
@@ -191,7 +216,7 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                                             obj.set('fill', val);
                                         } else if (obj.type === 'path' || obj.type === 'line' || obj.type === 'rect' || obj.type === 'polygon' || isPlainEllipse(obj)) {
                                             if (obj.get?.('isBlur')) {
-                                                obj.set({ fill: val, stroke: val });
+                                                if (getRedactMode(obj) === 'fill') obj.set({ fill: val, stroke: val });
                                                 return;
                                             }
                                             // If it's the invisible cover for speech bubble, skip
@@ -257,6 +282,61 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                             style={{ border: 'none', padding: 0, width: '24px', height: '24px', cursor: 'pointer', background: 'transparent' }}
                         />
                     </div>}
+
+                    {/* Redact (塗りつぶし): mode + strength */}
+                    {isRedactContext && (
+                        <>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} role="radiogroup" aria-label={isJa ? '塗りつぶしの方式' : 'Redaction style'}>
+                                {([
+                                    { id: 'fill', ja: '単色', en: 'Solid' },
+                                    { id: 'mosaic', ja: 'モザイク', en: 'Pixelate' },
+                                    { id: 'blur', ja: 'ぼかし', en: 'Blur' },
+                                ] as const).map(option => {
+                                    const isActive = redactMode === option.id;
+                                    return (
+                                        <button
+                                            key={option.id}
+                                            role="radio"
+                                            aria-checked={isActive}
+                                            className={`tool-btn ${isActive ? 'active' : ''}`}
+                                            onClick={() => {
+                                                setRedactMode?.(option.id);
+                                                updateSelectedRedactions({ redactMode: option.id });
+                                            }}
+                                            style={{
+                                                width: 'auto', padding: '0 10px', fontSize: '12px', fontWeight: 600,
+                                                background: isActive ? 'rgba(79, 70, 229, 0.1)' : 'transparent',
+                                                color: isActive ? '#4f46e5' : 'inherit'
+                                            }}
+                                        >
+                                            {isJa ? option.ja : option.en}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            {redactMode !== 'fill' && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <label>{redactMode === 'mosaic' ? (isJa ? '粗さ' : 'Block') : (isJa ? '強さ' : 'Strength')}: {redactStrength}px</label>
+                                    <input
+                                        type="range"
+                                        min={REDACT_STRENGTH_RANGE.min}
+                                        max={REDACT_STRENGTH_RANGE.max}
+                                        value={redactStrength}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            setRedactStrength?.(val);
+                                            updateSelectedRedactions({ redactStrength: val });
+                                        }}
+                                    />
+                                </div>
+                            )}
+                            {redactMode === 'blur' && (
+                                <span style={{ fontSize: '12px', color: '#b45309' }}>
+                                    {isJa ? '大きな文字は読めることがあります。強く隠すなら単色を' : 'Large text may stay readable. Use Solid to fully hide.'}
+                                </span>
+                            )}
+                        </>
+                    )}
 
                     {/* Arrow Style */}
                     {isArrowContext && (
@@ -400,7 +480,7 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                         </>
                     )}
 
-                    {!isBubbleContext && !isClickIconContext && (
+                    {!isBubbleContext && !isClickIconContext && !isRedactContext && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <label>Width/Size: {strokeWidth}px</label>
                             <input

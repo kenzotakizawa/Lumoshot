@@ -14,6 +14,18 @@ import { initSmartGuides } from './utils/smartGuides';
 import { platform } from '@platform';
 import { t } from '../lib/i18n';
 import {
+    REDACT_PROPS,
+    DEFAULT_REDACT_STRENGTH,
+    applyRedaction,
+    getRedactMode,
+    getRedactStrength,
+    isRedaction,
+    normalizeRedactionGeometry,
+    refreshRedactions,
+    withoutRedactionPatterns,
+    type RedactMode,
+} from './utils/redaction';
+import {
     EXPORT_FORMATS,
     buildExportFileName,
     downloadBlob,
@@ -59,6 +71,8 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
     const zoomLevelRef = useRef<number>(1);
     const [exportOptions, setExportOptions] = useState<ExportOptions>(loadExportOptions);
     const exportOptionsRef = useRef<ExportOptions>(exportOptions);
+    const [redactMode, setRedactMode] = useState<RedactMode>('fill');
+    const [redactStrength, setRedactStrength] = useState<number>(DEFAULT_REDACT_STRENGTH);
     const [hasFrame, setHasFrame] = useState<boolean>(false);
     const [outlineEnabled, setOutlineEnabled] = useState<boolean>(false);
     const [outlineColor, setOutlineColor] = useState<string>('#1f2937');
@@ -91,7 +105,6 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
     const cropStartX = useRef<number>(0);
     const cropStartY = useRef<number>(0);
 
-    const blurCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const backgroundDataUrl = useRef<string | null>(null);
 
     // History states for Undo/Redo
@@ -109,22 +122,15 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
     // sync with what's actually rendered (e.g. re-adding a frame stacking a
     // second one because the button still read "off" after an Undo).
     const syncStateFromCanvas = (canvas: Canvas) => {
-        // Rebuild the offscreen blur source from the (possibly new) background image
         const bg = canvas.getObjects().find((o: any) => o.get('isBackground')) as any;
         const imgEl = bg?.getElement?.() as HTMLImageElement | undefined;
         if (imgEl) {
             baseImageSize.current = { width: bg.width, height: bg.height };
-            const blurTarget = document.createElement('canvas');
-            blurTarget.width = imgEl.naturalWidth || bg.width;
-            blurTarget.height = imgEl.naturalHeight || bg.height;
-            const bCtx = blurTarget.getContext('2d');
-            if (bCtx) {
-                bCtx.filter = 'blur(15px)';
-                bCtx.drawImage(imgEl, 0, 0);
-            }
-            blurCanvasRef.current = blurTarget;
             backgroundDataUrl.current = bg.toDataURL?.() ?? null;
         }
+        // Snapshots store mosaic/blur redactions as mode + geometry only;
+        // rebuild their imagery for the (possibly new) image layers.
+        refreshRedactions(canvas);
 
         const objs = canvas.getObjects() as any[];
 
@@ -178,7 +184,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         if (!canvas) return null;
 
         // Include custom properties in JSON serialization
-        const obj = canvas.toObject(['isBackground', 'isFrame', 'isOutline', 'outlineColor', 'outlineWidth', 'outlineEdge', 'isSpotlight', 'isBlur', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel', 'isZoomPanel', 'isZoomSource', 'zoomId', 'zoomColor', 'zoomIsEllipse', 'isArrow', 'arrowStyle']);
+        const obj = withoutRedactionPatterns(canvas, () => canvas.toObject(['isBackground', 'isFrame', 'isOutline', 'outlineColor', 'outlineWidth', 'outlineEdge', 'isSpotlight', 'isBlur', 'redactMode', 'redactStrength', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel', 'isZoomPanel', 'isZoomSource', 'zoomId', 'zoomColor', 'zoomIsEllipse', 'isArrow', 'arrowStyle']));
 
         const stateEntry = JSON.stringify({
             canvasData: obj,
@@ -383,7 +389,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
     };
 
     // Initialize custom canvas drawing tools hook
-    useCanvasTools(fabricCanvas.current, currentTool, strokeColor, strokeWidth, fontColor, fontSize, arrowStyle, bubbleFillColor, blurCanvasRef.current, () => setCurrentTool('select'), clickIconScheme);
+    useCanvasTools(fabricCanvas.current, currentTool, strokeColor, strokeWidth, fontColor, fontSize, arrowStyle, bubbleFillColor, () => setCurrentTool('select'), clickIconScheme, redactMode, redactStrength);
 
     useEffect(() => {
         if (!canvasEl.current) return;
@@ -453,6 +459,8 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                     setIsBold(obj.fontWeight === 'bold');
                     setIsItalic(obj.fontStyle === 'italic');
                 } else if (obj.get?.('isBlur')) {
+                    setRedactMode(getRedactMode(obj));
+                    setRedactStrength(getRedactStrength(obj));
                     if (typeof obj.fill === 'string') setStrokeColor(obj.fill);
                     setIsBold(false);
                     setIsItalic(false);
@@ -514,6 +522,9 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         });
 
         fabricCanvas.current = canvas;
+        // Dev-only handle for inspecting canvas state from the browser console
+        // (stripped from production builds).
+        if (import.meta.env.DEV) (window as any).__lumoshotCanvas = canvas;
 
         // Initialize smart guides for better UX
         initSmartGuides(canvas);
@@ -580,14 +591,18 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                 });
                 canvas.requestRenderAll();
             }
-            // Always save state after any removal
-            saveState();
+            // Always save state after any removal (except mid-drag churn while
+            // a shape is being drawn; the finished shape is committed later)
+            if (!(canvas as any).__lumoshotDrawing) saveState();
         });
 
         // Trigger save state after modify and add
         canvas.on('object:modified', () => saveState());
         canvas.on('object:added', (e) => {
             if (isHistoryProcessing.current) return;
+            // A shape being dragged out is committed when the drag ends
+            // (useCanvasTools fires object:modified), not half-drawn here.
+            if ((canvas as any).__lumoshotDrawing) return;
             // Ignore system additions
             if (e.target && (e.target.get('isBackground') || e.target.get('isFrame') || e.target.get('isOutline'))) return;
 
@@ -751,12 +766,25 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         }
     }, [saveState]);
 
+    // fabric's clone() drops custom props; keep the redaction ones (so a copied
+    // mosaic stays a mosaic) and don't serialize pattern sources while cloning.
+    const cloneObject = (obj: any): Promise<any> => {
+        const canvas = fabricCanvas.current;
+        return canvas ? withoutRedactionPatterns(canvas, () => obj.clone(REDACT_PROPS)) : obj.clone(REDACT_PROPS);
+    };
+    const reapplyRedactions = (cloned: any) => {
+        const canvas = fabricCanvas.current;
+        if (!canvas) return;
+        const objs = cloned.type === 'activeSelection' ? cloned.getObjects() : [cloned];
+        objs.forEach((o: any) => isRedaction(o) && applyRedaction(canvas, o));
+    };
+
     const handleDuplicate = useCallback(() => {
         const canvas = fabricCanvas.current;
         if (!canvas) return;
         const active = canvas.getActiveObject();
         if (active && !active.get('isBackground') && !active.get('isFrame')) {
-            active.clone().then((cloned: any) => {
+            cloneObject(active).then((cloned: any) => {
                 canvas.discardActiveObject();
                 cloned.set({
                     left: (cloned.left || 0) + 20,
@@ -772,6 +800,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                 } else {
                     canvas.add(cloned);
                 }
+                reapplyRedactions(cloned);
                 canvas.setActiveObject(cloned);
                 canvas.requestRenderAll();
                 saveState();
@@ -848,7 +877,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                     // Copy selected object(s)
                     const active = canvas.getActiveObject();
                     if (active && !active.get('isBackground') && !active.get('isFrame')) {
-                        active.clone().then((cloned: any) => {
+                        cloneObject(active).then((cloned: any) => {
                             clipboardRef.current = cloned;
                         });
                         return;
@@ -866,7 +895,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                     // Paste cloned object(s)
                     if (!clipboardRef.current) return;
                     e.preventDefault();
-                    clipboardRef.current.clone().then((cloned: any) => {
+                    cloneObject(clipboardRef.current).then((cloned: any) => {
                         canvas.discardActiveObject();
                         cloned.set({
                             left: (cloned.left || 0) + 20,
@@ -887,6 +916,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                             left: (clipboardRef.current.left || 0) + 20,
                             top: (clipboardRef.current.top || 0) + 20,
                         });
+                        reapplyRedactions(cloned);
                         canvas.setActiveObject(cloned);
                         canvas.requestRenderAll();
                         saveState();
@@ -897,7 +927,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                     const active = canvas.getActiveObject();
                     if (active && !active.get('isBackground') && !active.get('isFrame')) {
                         e.preventDefault();
-                        active.clone().then((cloned: any) => {
+                        cloneObject(active).then((cloned: any) => {
                             canvas.discardActiveObject();
                             cloned.set({
                                 left: (cloned.left || 0) + 20,
@@ -913,6 +943,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                             } else {
                                 canvas.add(cloned);
                             }
+                            reapplyRedactions(cloned);
                             canvas.setActiveObject(cloned);
                             canvas.requestRenderAll();
                             saveState();
@@ -1003,19 +1034,6 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         FabricImage.fromURL(dataUrl).then((img: FabricImage) => {
             const canvas = fabricCanvas.current;
             if (!canvas || !wrapperRef.current) return;
-
-            // Generate blurred offscreen canvas for the Blur tool
-            const imgEl = img.getElement() as HTMLImageElement;
-            const blurTarget = document.createElement('canvas');
-            // use intrinsic dimensions
-            blurTarget.width = imgEl.naturalWidth || img.width;
-            blurTarget.height = imgEl.naturalHeight || img.height;
-            const bCtx = blurTarget.getContext('2d');
-            if (bCtx) {
-                bCtx.filter = 'blur(15px)';
-                bCtx.drawImage(imgEl, 0, 0);
-            }
-            blurCanvasRef.current = blurTarget;
 
             // Store original physical size
             originalSize.current = { width: img.width, height: img.height };
@@ -1452,8 +1470,8 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                 obj.setCoords();
             });
 
-            // Re-align blur patterns
-            canvas.getObjects().forEach((o: any) => o.get('isBlur') && o.fire('moving'));
+            // Re-align mosaic/blur redactions to the moved image layers
+            refreshRedactions(canvas);
 
             // 1. Create Frame Background
             const frameWidth = baseW + PADDING_X * 2;
@@ -1540,8 +1558,8 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                 obj.setCoords();
             });
 
-            // Re-align blur patterns
-            canvas.getObjects().forEach((o: any) => o.get('isBlur') && o.fire('moving'));
+            // Re-align mosaic/blur redactions to the moved image layers
+            refreshRedactions(canvas);
 
             // Restore canvas size to original base image size
             originalSize.current = {
@@ -1737,6 +1755,11 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         // Re-derive the outline so its stroke width stays uniform after scaling
         if (outlineEnabled) applyOutline(true, outlineColor, outlineWidth);
 
+        // Image layers were rescaled: bake the scale into redactions and
+        // rebuild their mosaic/blur imagery.
+        canvas.getObjects().filter(isRedaction).forEach(normalizeRedactionGeometry);
+        refreshRedactions(canvas);
+
         canvas.requestRenderAll();
 
         setShowResizeModal(false);
@@ -1900,6 +1923,10 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         // pre-crop dimensions, so it must be redrawn or it will no longer match)
         if (outlineEnabled) applyOutline(true, outlineColor, outlineWidth);
 
+        // Image layers moved: re-snap redactions and rebuild their imagery.
+        canvas.getObjects().filter(isRedaction).forEach(normalizeRedactionGeometry);
+        refreshRedactions(canvas);
+
         // Re-enable all objects
         canvas.forEachObject(obj => {
             if (obj.get('isBackground') || obj.get('isFrame')) return;
@@ -2041,6 +2068,10 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                     outlineWidth={outlineWidth}
                     setOutlineWidth={handleOutlineWidth}
                     commitOutline={commitOutline}
+                    redactMode={redactMode}
+                    setRedactMode={setRedactMode}
+                    redactStrength={redactStrength}
+                    setRedactStrength={setRedactStrength}
                 />
                 </div>
 

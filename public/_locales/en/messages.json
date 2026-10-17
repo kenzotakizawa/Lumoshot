@@ -53,7 +53,7 @@
         "message": "Zoom In (Ellipse)"
     },
     "toolBlurRect": {
-        "message": "Blur"
+        "message": "Redact (U)"
     },
     "toolInsertImage": {
         "message": "Insert Image"
@@ -191,7 +191,7 @@
         "message": "Spotlight (S)"
     },
     "tooltipBlur": {
-        "message": "Blur (U)"
+        "message": "Redact (U)"
     },
     "tooltipCrop": {
         "message": "Crop (C)"

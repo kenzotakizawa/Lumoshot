@@ -1,5 +1,9 @@
 import { Canvas, Rect } from 'fabric';
 import type { DrawToolContext } from './types';
+import { applyRedaction, DEFAULT_REDACT_STRENGTH, normalizeRedactionGeometry } from '../redaction';
+
+// The "塗りつぶし" (redact) tool. File/ids keep the legacy "blur" name because
+// saved data uses `isBlur`.
 
 /**
  * mouseDown handler for blur-rect tool.
@@ -12,14 +16,13 @@ export function blurMouseDown(
     const { controlConfig, strokeColor } = ctx;
     const fillColor = strokeColor || '#000000';
 
-    const sw = 0;
     const shape = new Rect({
-        left: pointer.x - sw / 2,
-        top: pointer.y - sw / 2,
+        left: pointer.x,
+        top: pointer.y,
         originX: 'left',
         originY: 'top',
-        width: sw,
-        height: sw,
+        width: 0,
+        height: 0,
         rx: 8,
         ry: 8,
         fill: fillColor,
@@ -30,7 +33,12 @@ export function blurMouseDown(
         ...controlConfig
     });
 
-    shape.set('isBlur', true);
+    shape.set({
+        isBlur: true,
+        redactMode: ctx.redactMode ?? 'fill',
+        redactStrength: ctx.redactStrength ?? DEFAULT_REDACT_STRENGTH,
+    });
+    applyRedaction(canvas, shape, fillColor);
     ctx.currentShape.current = shape;
     canvas.add(shape);
 }
@@ -39,32 +47,31 @@ export function blurMouseDown(
  * mouseMove handler for blur-rect tool.
  */
 export function blurMouseMove(
-    _canvas: Canvas,
+    canvas: Canvas,
     pointer: { x: number; y: number },
     ctx: DrawToolContext
 ) {
     const shape = ctx.currentShape.current as Rect;
-    const sw = shape.strokeWidth ?? 1;
 
     const minX = Math.min(pointer.x, ctx.startX.current);
     const maxX = Math.max(pointer.x, ctx.startX.current);
     const minY = Math.min(pointer.y, ctx.startY.current);
     const maxY = Math.max(pointer.y, ctx.startY.current);
 
-    // Mirror rect.ts: offset by sw/2 so the stroke's inner edge aligns with the drag area
     shape.set({
-        left: minX - sw / 2,
-        top: minY - sw / 2,
-        width: maxX - minX + sw,
-        height: maxY - minY + sw
+        left: minX,
+        top: minY,
+        width: maxX - minX,
+        height: maxY - minY
     });
     shape.setCoords();
-
+    // Mosaic/blur imagery is anchored to the document, so re-align as the
+    // shape grows.
+    applyRedaction(canvas, shape);
 }
 
 /**
  * mouseUp handler for blur-rect tool.
- * Reuses the same logic as rect (min-size check).
  */
 export function blurMouseUp(canvas: Canvas, ctx: DrawToolContext) {
     const rect = ctx.currentShape.current as Rect;
@@ -72,5 +79,7 @@ export function blurMouseUp(canvas: Canvas, ctx: DrawToolContext) {
         canvas.remove(rect);
     } else {
         rect.set({ selectable: true, evented: true });
+        normalizeRedactionGeometry(rect);
+        applyRedaction(canvas, rect);
     }
 }

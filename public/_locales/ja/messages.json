@@ -53,7 +53,7 @@
         "message": "部分ズーム (楕円)"
     },
     "toolBlurRect": {
-        "message": "ボカシ"
+        "message": "塗りつぶし (U)"
     },
     "toolInsertImage": {
         "message": "画像スタンプ"
@@ -191,7 +191,7 @@
         "message": "スポットライト (S)"
     },
     "tooltipBlur": {
-        "message": "ぼかし (U)"
+        "message": "塗りつぶし (U)"
     },
     "tooltipCrop": {
         "message": "切り抜き (C)"

@@ -387,7 +387,7 @@ const Guide: React.FC = () => {
                             <a href="#tool-highlighter">{t('マーカー', 'Highlighter')}<kbd>H</kbd></a>
                             <a href="#tool-spot-rect">{t('スポットライト（四角）', 'Spotlight (Rect)')}<kbd>S</kbd></a>
                             <a href="#tool-spot-ellipse">{t('スポットライト（円）', 'Spotlight (Ellipse)')}</a>
-                            <a href="#tool-blur">{t('ぼかし', 'Blur')}<kbd>U</kbd></a>
+                            <a href="#tool-blur">{t('塗りつぶし', 'Redact')}<kbd>U</kbd></a>
                             <a href="#tool-zoom-rect">{t('部分ズーム（四角）', 'Zoom (Rect)')}</a>
                             <a href="#tool-zoom-ellipse">{t('部分ズーム（楕円）', 'Zoom (Ellipse)')}</a>
                         </div>
@@ -582,14 +582,28 @@ const Guide: React.FC = () => {
                     <div className="feature-divider" />
 
                     <article className="feature-section" id="tool-blur">
-                        <h3>{t('ぼかし（モザイク）', 'Blur')} <span className="shortcut-badge">U</span></h3>
+                        <h3>{t('塗りつぶし（単色・モザイク・ぼかし）', 'Redact (Solid / Pixelate / Blur)')} <span className="shortcut-badge">U</span></h3>
                         <p>
                             {t(
-                                '指定領域に強いガウスぼかしを掛けます。個人情報・パスワード・社内情報を安全に隠すために必須の機能。ぼかし強度はサブツールバーで調整できます。',
-                                'Applies a heavy Gaussian blur to the area you drag. Essential for hiding personal data, passwords, or internal information. Blur strength is adjustable from the sub-toolbar.'
+                                'ドラッグした範囲を覆って、個人情報・パスワード・社内情報などを隠します。上部のサブツールバーで隠し方を選べます。',
+                                'Covers the area you drag to hide personal data, passwords, or internal information. Choose how it hides from the sub-toolbar.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-blur.gif" altJa="ぼかしのGIF" altEn="Blur GIF" t={t} lang={lang} />
+                        <div className="behavior-grid">
+                            <div>
+                                <strong>{t('単色（既定）', 'Solid (default)')}</strong>
+                                <span>{t('指定した色で完全に覆います。元の文字は残らないので、確実に隠したい情報向け', 'Covers completely with a color. Nothing underneath remains — use this for anything that must stay hidden')}</span>
+                            </div>
+                            <div>
+                                <strong>{t('モザイク', 'Pixelate')}</strong>
+                                <span>{t('下の画像を粗いブロックにします。「粗さ」で大きさを調整', 'Turns the image underneath into coarse blocks. Adjust the block size')}</span>
+                            </div>
+                            <div>
+                                <strong>{t('ぼかし', 'Blur')}</strong>
+                                <span>{t('柔らかくぼかします。大きな文字は読めることがあるので、見た目を整える用途向け', 'Softly blurs. Large text may stay readable, so use it for looks rather than secrecy')}</span>
+                            </div>
+                        </div>
+                        <FeatureMedia src="/guide/tool-blur.gif" altJa="塗りつぶしのGIF" altEn="Redact GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
@@ -736,7 +750,7 @@ const Guide: React.FC = () => {
                                 <tr><td><code>P</code></td><td>{t('ペン（フリーハンド）', 'Pen (freehand)')}</td></tr>
                                 <tr><td><code>H</code></td><td>{t('蛍光ペン（マーカー）', 'Highlighter')}</td></tr>
                                 <tr><td><code>S</code></td><td>{t('スポットライト（矩形）', 'Spotlight (rectangle)')}</td></tr>
-                                <tr><td><code>U</code></td><td>{t('ぼかし（モザイク）', 'Blur')}</td></tr>
+                                <tr><td><code>U</code></td><td>{t('塗りつぶし（単色・モザイク・ぼかし）', 'Redact (Solid / Pixelate / Blur)')}</td></tr>
                                 <tr><td><code>C</code></td><td>{t('切り抜き（クロップ）', 'Crop')}</td></tr>
 
                                 <tr><td colSpan={2} style={{ fontWeight: 600, color: '#94a3b8' }}>{t('— 編集 —', '— Editing —')}</td></tr>
@@ -792,10 +806,10 @@ const Guide: React.FC = () => {
                                 </tr>
                                 <tr>
                                     <td>
-                                        <strong>{t('④ 個人情報は必ず「ぼかし（U）」で隠す', '④ Always hide personal info with Blur (U)')}</strong><br />
+                                        <strong>{t('④ 個人情報は「塗りつぶし（U）」の単色で隠す', '④ Hide personal info with Redact (U) set to Solid')}</strong><br />
                                         {t(
-                                            '黒い四角を上から被せるだけでは、元データを抜かれる事故があり得ます。U キーの「ぼかし」を使えば、元画像のピクセルが破壊されるので安全です。',
-                                            'Covering with a black rectangle isn’t enough — the underlying pixels can sometimes be recovered. Press U for the proper Blur, which destroys the underlying pixels.'
+                                            '書き出した画像は1枚の平らな画像になるので、単色で覆った部分の元の画素は残りません。モザイクやぼかしは見た目が柔らかい反面、大きな文字だと読めてしまうことがあります。パスワードや個人情報は単色を選びましょう。',
+                                            'Exported images are flattened, so nothing under a solid cover survives. Pixelate and Blur look softer, but large text can stay readable — choose Solid for passwords and personal data.'
                                         )}
                                     </td>
                                 </tr>
