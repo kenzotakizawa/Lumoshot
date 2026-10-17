@@ -11,6 +11,7 @@ import BeforeAfterModal from './components/BeforeAfterModal';
 import Ruler from './components/Ruler';
 import { Check, X, Trash2, Info } from 'lucide-react';
 import { initSmartGuides } from './utils/smartGuides';
+import { renumberStepBadges } from './utils/drawTools/stepNumber';
 import { platform } from '@platform';
 import type { InitialImage } from '../platform/types';
 import { t, getUILanguage } from '../lib/i18n';
@@ -65,6 +66,9 @@ interface EditorProps {
     // Rendered inside the editor container (so theme variables apply), e.g.
     // the projects panel.
     overlay?: React.ReactNode;
+    // The screenshot edited just before this one, offered as "continue step
+    // numbers from it" in the step-number tool.
+    stepContinuation?: { name: string; lastStep: number } | null;
 }
 
 export interface EditorController {
@@ -77,7 +81,7 @@ export interface EditorController {
 // included), so history is capped to bound memory during long sessions.
 const MAX_HISTORY_ENTRIES = 30;
 
-const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, projectName, initial, controllerRef, onOpenProjects, overlay }) => {
+const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, projectName, initial, controllerRef, onOpenProjects, overlay, stepContinuation }) => {
     const canvasEl = useRef<HTMLCanvasElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const fabricCanvas = useRef<Canvas | null>(null);
@@ -103,6 +107,9 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
     const exportOptionsRef = useRef<ExportOptions>(exportOptions);
     const [redactMode, setRedactMode] = useState<RedactMode>('fill');
     const [notice, setNotice] = useState<string | null>(null);
+    // Step numbers start after this (0 = from 1). Saved with the project.
+    const [stepOffset, setStepOffset] = useState(0);
+    const stepOffsetRef = useRef(0);
     const [redactStrength, setRedactStrength] = useState<number>(DEFAULT_REDACT_STRENGTH);
     const [hasFrame, setHasFrame] = useState<boolean>(false);
     const [outlineEnabled, setOutlineEnabled] = useState<boolean>(false);
@@ -225,7 +232,8 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
         const stateEntry = JSON.stringify({
             formatVersion: SNAPSHOT_FORMAT_VERSION,
             canvasData: obj,
-            dimensions: { ...originalSize.current }
+            dimensions: { ...originalSize.current },
+            ...(stepOffsetRef.current ? { stepOffset: stepOffsetRef.current } : {}),
         });
 
         const lower = canvas.lowerCanvasEl;
@@ -237,6 +245,20 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
         tc.getContext('2d')?.drawImage(lower, 0, 0, tw, th);
 
         return { stateEntry, thumbnail: tc.toDataURL('image/jpeg', 0.6) };
+    };
+
+    const applyStepOffset = (offset: number) => {
+        stepOffsetRef.current = offset;
+        setStepOffset(offset);
+    };
+
+    // "Continue step numbers from the previous screenshot" toggled.
+    const changeStepOffset = (offset: number) => {
+        const canvas = fabricCanvas.current;
+        applyStepOffset(offset);
+        if (!canvas) return;
+        renumberStepBadges(canvas, offset);
+        saveState();
     };
 
     // Data for every asset a serialized state references.
@@ -310,6 +332,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
         if (!canvas) return;
 
         const parsed = JSON.parse(stateStr);
+        applyStepOffset(Number(parsed.stepOffset) || 0);
 
         // Restore dimensions if present (new format), fall back to current for old entries
         if (parsed.dimensions) {
@@ -458,7 +481,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
     };
 
     // Initialize custom canvas drawing tools hook
-    useCanvasTools(fabricCanvas.current, currentTool, strokeColor, strokeWidth, fontColor, fontSize, arrowStyle, bubbleFillColor, () => setCurrentTool('select'), clickIconScheme, redactMode, redactStrength);
+    useCanvasTools(fabricCanvas.current, currentTool, strokeColor, strokeWidth, fontColor, fontSize, arrowStyle, bubbleFillColor, () => setCurrentTool('select'), clickIconScheme, redactMode, redactStrength, stepOffset);
 
     useEffect(() => {
         if (!canvasEl.current) return;
@@ -650,18 +673,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
 
             // Check if the removed object was a step number
             if (e.target && e.target.get('isStepNumber')) {
-                const stepObjects = canvas.getObjects().filter((o: any) => o.get('isStepNumber'));
-                stepObjects.sort((a: any, b: any) => a.get('stepValue') - b.get('stepValue'));
-
-                stepObjects.forEach((obj: any, index) => {
-                    const newValue = index + 1;
-                    obj.set('stepValue', newValue);
-                    const textObj = obj.getObjects().find((o: any) => o.type === 'i-text' || o.type === 'text');
-                    if (textObj) {
-                        textObj.set('text', newValue.toString());
-                    }
-                });
-                canvas.requestRenderAll();
+                renumberStepBadges(canvas, stepOffsetRef.current);
             }
             // Always save state after any removal (except mid-drag churn while
             // a shape is being drawn; the finished shape is committed later)
@@ -1080,6 +1092,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
 
         if (assets) for (const [hash, data] of Object.entries(assets)) assetsRef.current.set(hash, data);
         const parsed = JSON.parse(stateStr);
+        applyStepOffset(Number(parsed.stepOffset) || 0);
         const dims = parsed.dimensions ?? { width: 800, height: 600 };
         originalSize.current = { width: dims.width, height: dims.height };
         baseImageSize.current = { width: dims.width, height: dims.height };
@@ -2196,6 +2209,9 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
                     outlineWidth={outlineWidth}
                     setOutlineWidth={handleOutlineWidth}
                     commitOutline={commitOutline}
+                    stepOffset={stepOffset}
+                    stepContinuation={stepContinuation ?? null}
+                    onChangeStepOffset={changeStepOffset}
                     redactMode={redactMode}
                     setRedactMode={setRedactMode}
                     redactStrength={redactStrength}

@@ -20,6 +20,8 @@ export interface DrawToolContext {
     currentShape: React.MutableRefObject<any>;
     redactMode?: 'fill' | 'mosaic' | 'blur';
     redactStrength?: number;
+    // Step numbers start after this (continuing from a previous screenshot).
+    stepOffset?: number;
     onToolComplete?: () => void;
     clickIconScheme?: 'dark' | 'light';
 }

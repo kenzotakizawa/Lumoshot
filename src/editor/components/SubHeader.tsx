@@ -48,6 +48,9 @@ interface SubHeaderProps {
     setRedactMode?: (mode: RedactMode) => void;
     redactStrength?: number;
     setRedactStrength?: (strength: number) => void;
+    stepOffset?: number;
+    stepContinuation?: { name: string; lastStep: number } | null;
+    onChangeStepOffset?: (offset: number) => void;
 }
 
 
@@ -98,6 +101,9 @@ const SubHeader: React.FC<SubHeaderProps> = ({
     setRedactMode,
     redactStrength = 12,
     setRedactStrength,
+    stepOffset = 0,
+    stepContinuation = null,
+    onChangeStepOffset,
 }) => {
     const isArrowContext = currentTool === 'arrow';
     const isBubbleContext = currentTool === 'speech-bubble' || isBubbleSelected;
@@ -105,6 +111,11 @@ const SubHeader: React.FC<SubHeaderProps> = ({
     const isRedactContext = currentTool === 'blur-rect' || isRedaction(fabricCanvas.current?.getActiveObject());
     const showColor = !isClickIconContext && !(isRedactContext && redactMode !== 'fill');
     const isJa = getUILanguage().startsWith('ja');
+    const isStepContext = currentTool === 'step-number' || !!fabricCanvas.current?.getActiveObject()?.get('isStepNumber');
+    // Offer "continue from the previous screenshot" when it has numbers (or
+    // when this project already continues, so it can be turned off).
+    const continueFrom = stepOffset > 0 ? stepOffset : (stepContinuation?.lastStep ?? 0);
+    const showStepContinue = isStepContext && continueFrom > 0 && !!onChangeStepOffset;
 
     // Mode/strength changes apply live to the selected redaction(s).
     const updateSelectedRedactions = (patch: { redactMode?: RedactMode; redactStrength?: number }) => {
@@ -336,6 +347,23 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                                 </span>
                             )}
                         </>
+                    )}
+
+                    {/* Step numbers: continue from the previous screenshot */}
+                    {showStepContinue && (
+                        <label
+                            style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none' }}
+                            title={stepContinuation
+                                ? (isJa ? `「${stepContinuation.name}」の ${stepContinuation.lastStep} の次から番号を振ります` : `Number from ${stepContinuation.lastStep + 1}, after "${stepContinuation.name}"`)
+                                : undefined}
+                        >
+                            <input
+                                type="checkbox"
+                                checked={stepOffset > 0}
+                                onChange={(e) => onChangeStepOffset?.(e.target.checked ? continueFrom : 0)}
+                            />
+                            {isJa ? `前の画像の続きから（${continueFrom + 1}〜）` : `Continue from previous (${continueFrom + 1}–)`}
+                        </label>
                     )}
 
                     {/* Arrow Style */}

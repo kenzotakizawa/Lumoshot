@@ -44,7 +44,8 @@ export const useCanvasTools = (
     onToolComplete?: () => void,
     clickIconScheme: 'dark' | 'light' = 'dark',
     redactMode: RedactMode = 'fill',
-    redactStrength: number = 12
+    redactStrength: number = 12,
+    stepOffset: number = 0
 ) => {
     const isDrawing = useRef(false);
     const startX = useRef(0);
@@ -59,7 +60,7 @@ export const useCanvasTools = (
             strokeColor, strokeWidth, fontColor, fontSize,
             arrowStyle, bubbleFillColor,
             controlConfig, isDrawing, startX, startY, currentShape,
-            onToolComplete, clickIconScheme, redactMode, redactStrength
+            onToolComplete, clickIconScheme, redactMode, redactStrength, stepOffset
         };
 
         // While a shape is being dragged out, the Editor must not snapshot it
@@ -362,5 +363,5 @@ export const useCanvasTools = (
             canvas.off('object:rotating', handleTransforming);
             canvas.off('object:modified', handleTransformEnd);
         };
-    }, [canvas, currentTool, strokeColor, strokeWidth, fontColor, fontSize, arrowStyle, bubbleFillColor, clickIconScheme, redactMode, redactStrength]);
+    }, [canvas, currentTool, strokeColor, strokeWidth, fontColor, fontSize, arrowStyle, bubbleFillColor, clickIconScheme, redactMode, redactStrength, stepOffset]);
 };

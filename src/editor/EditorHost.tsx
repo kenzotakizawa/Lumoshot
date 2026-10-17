@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Editor, { type EditorController } from './Editor';
 import ProjectsPanel from './components/ProjectsPanel';
 import type { InitialImage } from '../platform/types';
-import { getProject, getProjectAssets, upsertProject } from '../lib/projectStore';
+import { getProject, getProjectAssets, listProjects, upsertProject } from '../lib/projectStore';
+import { lastStepInState } from './utils/drawTools/stepNumber';
 import { getUILanguage } from '../lib/i18n';
 
 // Owns "which project is open" for both the web app and the extension:
@@ -64,6 +65,8 @@ export default function EditorHost({ start, onGoHome, onProjectChange }: EditorH
     const [savedCount, setSavedCount] = useState(0);
     const saveStatusRef = useRef(saveStatus);
     saveStatusRef.current = saveStatus;
+    // The screenshot edited just before this one (for continuing step numbers).
+    const [stepContinuation, setStepContinuation] = useState<{ name: string; lastStep: number } | null>(null);
 
     const controller = useRef<EditorController | null>(null);
     const projectId = useRef<number | null>(null);
@@ -81,6 +84,21 @@ export default function EditorHost({ start, onGoHome, onProjectChange }: EditorH
         projectId.current = id;
         onProjectChangeRef.current?.(id);
     };
+
+    // Each time a session starts, look up the most recently edited *other*
+    // project as the "previous screenshot".
+    useEffect(() => {
+        if (!session) return;
+        let cancelled = false;
+        listProjects().then((all) => {
+            if (cancelled) return;
+            const previous = all.find((p) => p.id !== session.projectId);
+            setStepContinuation(previous ? { name: previous.name, lastStep: lastStepInState(previous.state) } : null);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [session]);
 
     // Open whatever we were asked to start with.
     useEffect(() => {
@@ -210,6 +228,7 @@ export default function EditorHost({ start, onGoHome, onProjectChange }: EditorH
             saveStatusLabel={saveStatus}
             projectName={session.name}
             onOpenProjects={() => setPanelOpen(true)}
+            stepContinuation={stepContinuation}
             overlay={
                 <ProjectsPanel
                     open={panelOpen}
