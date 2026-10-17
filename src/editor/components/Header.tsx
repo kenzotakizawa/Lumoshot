@@ -24,6 +24,7 @@ interface HeaderProps {
     exportOptions: ExportOptions;
     onChangeExportOptions: (next: ExportOptions) => void;
     getExportBaseSize: () => { width: number; height: number };
+    onSaveProjectFile: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -46,6 +47,7 @@ const Header: React.FC<HeaderProps> = ({
     exportOptions,
     onChangeExportOptions,
     getExportBaseSize,
+    onSaveProjectFile,
 }) => {
     const isJapanese = getUILanguage().startsWith('ja');
     const t = (ja: string, en: string) => isJapanese ? ja : en;
@@ -99,6 +101,7 @@ const Header: React.FC<HeaderProps> = ({
                     onChange={onChangeExportOptions}
                     onSave={handleDownload}
                     getBaseSize={getExportBaseSize}
+                    onSaveProjectFile={onSaveProjectFile}
                     t={t}
                     isJapanese={isJapanese}
                 />

@@ -140,7 +140,7 @@
         "message": "ファイルを開く"
     },
     "popupUploadFileDesc": {
-        "message": "PCから画像を選択"
+        "message": "画像または編集データ（.lumoshot）を選択"
     },
     "popupPasteClipboard": {
         "message": "クリップボードから貼り付け"

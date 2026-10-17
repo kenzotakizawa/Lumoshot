@@ -33,6 +33,7 @@ import {
     withAssetRefs,
     type AssetMap,
 } from './utils/snapshotAssets';
+import { buildLumoshotFile, defaultProjectName, LUMOSHOT_FILE_EXTENSION, safeFileBaseName } from '../lib/lumoshotFile';
 import {
     EXPORT_FORMATS,
     buildExportFileName,
@@ -51,13 +52,15 @@ interface EditorProps {
     onSnapshot?: (state: string, thumbnail: string, assets: Record<string, string>) => void;
     onGoHome?: () => void;
     saveStatusLabel?: string | null;
+    // Name used for the .lumoshot file (web: the saved project's name).
+    projectName?: string | null;
 }
 
 // Each undo entry embeds the full canvas JSON (background image data URL
 // included), so history is capped to bound memory during long sessions.
 const MAX_HISTORY_ENTRIES = 30;
 
-const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }) => {
+const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, projectName }) => {
     const canvasEl = useRef<HTMLCanvasElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const fabricCanvas = useRef<Canvas | null>(null);
@@ -122,6 +125,8 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
     // Image data referenced by snapshots ("asset:<hash>" → data URL), held once
     // instead of being embedded in every undo entry.
     const assetsRef = useRef<AssetMap>(new Map());
+    // Name of a project opened from a .lumoshot file (extension), reused when saving again.
+    const openedProjectName = useRef<string | null>(null);
     const redoStack = useRef<string[]>([]);
     const isHistoryProcessing = useRef<boolean>(false);
     const saveTimeout = useRef<number | null>(null);
@@ -725,6 +730,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
             }
             // Reopen a saved project: restore the full snapshot instead of an image.
             if (init.restoreState) {
+                openedProjectName.current = init.projectName ?? null;
                 restoreSnapshotOnLoad(init.restoreState, init.restoreAssets);
                 return;
             }
@@ -1712,6 +1718,23 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         saveExportOptions(next);
     };
 
+    // Saves an editable .lumoshot file (annotations stay editable; the image is
+    // embedded unredacted — see the note next to the button).
+    const handleSaveProjectFile = () => {
+        const canvas = fabricCanvas.current;
+        if (!canvas) return;
+        canvas.discardActiveObject();
+        const snapshot = createSnapshot();
+        if (!snapshot) return;
+        const name = (projectName || openedProjectName.current || '').trim() || defaultProjectName();
+        const content = buildLumoshotFile(
+            [{ name, state: snapshot.stateEntry, thumbnail: snapshot.thumbnail }],
+            assetsFor(snapshot.stateEntry),
+        );
+        downloadBlob(new Blob([content], { type: 'application/json' }), safeFileBaseName(name) + LUMOSHOT_FILE_EXTENSION);
+        flashStatus('Project file saved!');
+    };
+
     const addImageToCanvas = (dataUrl: string) => {
         FabricImage.fromURL(dataUrl, { crossOrigin: 'anonymous' }).then((img) => {
             const canvas = fabricCanvas.current;
@@ -2076,6 +2099,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                     exportOptions={exportOptions}
                     onChangeExportOptions={updateExportOptions}
                     getExportBaseSize={() => ({ ...originalSize.current })}
+                    onSaveProjectFile={handleSaveProjectFile}
                     isDarkMode={isDarkMode}
                     toggleDarkMode={toggleDarkMode}
                     onOpenHelp={() => window.open('guide.html', '_blank')}

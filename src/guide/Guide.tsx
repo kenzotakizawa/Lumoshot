@@ -213,7 +213,8 @@ const Guide: React.FC = () => {
                             <a href="#top-help">{t('ヘルプ', 'Help')}</a>
                             <a href="#top-undo">Undo / Redo</a>
                             <a href="#top-copy">{t('コピー', 'Copy')}</a>
-                            <a href="#top-save">{t('PNG保存', 'Save PNG')}</a>
+                            <a href="#top-save">{t('保存', 'Save')}</a>
+                            <a href="#top-project-file">{t('編集データ', 'Project file')}</a>
                             <a href="#top-outline">{t('縁取り', 'Outline')}</a>
                         </div>
                         <FeatureMedia src="/guide/header-overview.png" altJa="上部バー全体のスクリーンショット" altEn="Top bar overview screenshot" t={t} lang={lang} />
@@ -339,6 +340,30 @@ const Guide: React.FC = () => {
                             )}
                         </p>
                         <FeatureMedia src="/guide/header-save.gif" altJa="保存操作のGIF" altEn="Save action GIF" t={t} lang={lang} />
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section" id="top-project-file">
+                        <h3>{t('編集データの保存と読み込み（.lumoshot）', 'Project Files (.lumoshot)')}</h3>
+                        <p>
+                            {t(
+                                '保存ボタン横の ▾ にある「編集データを保存」で、図形や文字を後から編集できる状態のまま .lumoshot ファイルとして保存できます。別のPCで続きを作業したいときや、バックアップに使えます。',
+                                'Use “Save project file” in the ▾ menu next to Save to keep your work as a .lumoshot file, with every shape and text still editable. Handy for continuing on another computer or as a backup.'
+                            )}
+                        </p>
+                        <p>
+                            {t(
+                                '開くときは、Web版ならホーム画面の「画像をアップロード」で選ぶかドラッグ&ドロップ、Chrome拡張版ならポップアップの「ファイルを開く」から選びます。Web版で保存したファイルを拡張版で開くこともできます（その逆も可能です）。',
+                                'To open one, use Upload image or drag & drop on the web app home screen, or Open File in the Chrome extension popup. Files work across the web app and the extension.'
+                            )}
+                        </p>
+                        <div className="guide-note">
+                            {t(
+                                '注意：編集データには元の画像がそのまま入っています。塗りつぶしやモザイクは上に重ねた図形として保存されるため、ファイルを受け取った人は隠した部分を元に戻せます。人に渡すときは、編集データではなく画像（PNGなど）で保存してください。',
+                                'Note: a project file contains the original image. Redactions are stored as shapes on top, so anyone with the file can remove them. To share your work, save an image (PNG etc.) instead of a project file.'
+                            )}
+                        </div>
                     </article>
 
                     <div className="feature-divider" />

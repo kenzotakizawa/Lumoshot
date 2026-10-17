@@ -140,7 +140,7 @@
         "message": "Upload File"
     },
     "popupUploadFileDesc": {
-        "message": "Choose an image from your computer"
+        "message": "Choose an image or a project file (.lumoshot)"
     },
     "popupPasteClipboard": {
         "message": "Paste Clipboard"

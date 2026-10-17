@@ -11,12 +11,14 @@ export interface CropRectLike {
 export interface InitialImage {
     dataUrl: string;
     cropRect?: CropRectLike | null;
-    mode: 'capture' | 'crop' | 'web';
+    mode: 'capture' | 'crop' | 'web' | 'restore';
     // When set (web only), the editor restores this saved snapshot instead of
     // loading a fresh background image.
     restoreState?: string;
     // Image data for the "asset:<hash>" refs in restoreState (format 2).
     restoreAssets?: Record<string, string>;
+    // Name of the project being restored (e.g. from a .lumoshot file).
+    projectName?: string;
 }
 
 // Things the editor needs from its host environment (extension vs web).

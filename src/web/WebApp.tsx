@@ -8,10 +8,13 @@ import './web.css';
 const Editor = lazy(() => import('../editor/Editor'));
 import { setWebInitialImage, setWebInitialState } from '../platform/platform.web';
 import { getUILanguage } from '../lib/i18n';
+import { assetsForProject, importedProjectName, isLumoshotFileName, lumoshotFileErrorMessage, readLumoshotFile } from '../lib/lumoshotFile';
 import {
     listProjects,
     upsertProject,
     getProjectAssets,
+    getProject,
+    createProjectFromFile,
     renameProject,
     deleteProject,
     clearAll,
@@ -186,12 +189,38 @@ export default function WebApp() {
         enterEditor();
     }, [enterEditor, cancelPendingSave]);
 
+    // Imports every project in a .lumoshot file into the gallery; a file with a
+    // single project opens straight away.
+    const importProjectFile = useCallback(async (file: File) => {
+        setError(null);
+        try {
+            const data = await readLumoshotFile(file);
+            const ids: number[] = [];
+            for (const project of data.projects) {
+                ids.push(await createProjectFromFile(importedProjectName(data, project, file.name), project.state, project.thumbnail, assetsForProject(data, project)));
+            }
+            await refreshGallery();
+            if (ids.length === 1) {
+                const project = await getProject(ids[0]);
+                if (project) await reopen(project);
+            }
+        } catch (err) {
+            console.warn('Failed to open project file', err);
+            setError(lumoshotFileErrorMessage(err, isJa));
+        }
+    }, [refreshGallery, reopen]);
+
     const handleFile = useCallback((file: File | null | undefined) => {
-        if (!file || !file.type.startsWith('image/')) return;
+        if (!file) return;
+        if (isLumoshotFileName(file.name)) {
+            importProjectFile(file);
+            return;
+        }
+        if (!file.type.startsWith('image/')) return;
         const reader = new FileReader();
         reader.onload = (e) => begin(e.target?.result as string);
         reader.readAsDataURL(file);
-    }, [begin]);
+    }, [begin, importProjectFile]);
 
     // Paste image from clipboard while on the landing screen
     useEffect(() => {
@@ -298,6 +327,7 @@ export default function WebApp() {
                     onSnapshot={handleSnapshot}
                     onGoHome={goHome}
                     saveStatusLabel={saveStatus}
+                    projectName={currentProjectName.current}
                 />
             </Suspense>
         );
@@ -337,7 +367,7 @@ export default function WebApp() {
                         <Upload size={18} /> {tt('画像をアップロード', 'Upload image')}
                         <input
                             type="file"
-                            accept="image/*"
+                            accept="image/*,.lumoshot"
                             style={{ display: 'none' }}
                             onChange={(e) => handleFile(e.target.files?.[0])}
                         />
@@ -349,8 +379,8 @@ export default function WebApp() {
 
                 <p className="web-landing-hint">
                     <ClipboardPaste size={14} />
-                    {tt(' 画像を貼り付け（Ctrl/⌘+V）、またはここにドラッグ&ドロップ',
-                        ' Paste an image (Ctrl/⌘+V) or drag & drop it here')}
+                    {tt(' 画像を貼り付け（Ctrl/⌘+V）、または画像や .lumoshot ファイルをここにドラッグ&ドロップ',
+                        ' Paste an image (Ctrl/⌘+V), or drag & drop an image or a .lumoshot file here')}
                 </p>
 
                 {error && <p className="web-landing-error">{error}</p>}

@@ -8,6 +8,7 @@ import {
     Upload
 } from 'lucide-react';
 import './Popup.css';
+import { assetsForProject, importedProjectName, isLumoshotFileName, lumoshotFileErrorMessage, readLumoshotFile } from '../lib/lumoshotFile';
 
 const Popup: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -36,8 +37,30 @@ const Popup: React.FC = () => {
         }
     };
 
+    // A .lumoshot project file opens in the editor as an editable project (the
+    // first one, if the file holds several).
+    const openProjectFile = async (file: File) => {
+        setErrorMsg(null);
+        try {
+            const data = await readLumoshotFile(file);
+            const project = data.projects[0];
+            await chrome.storage.local.set({
+                restoreProject: { state: project.state, assets: assetsForProject(data, project), name: importedProjectName(data, project, file.name) },
+            });
+            await chrome.runtime.sendMessage({ type: "OPEN_EDITOR", mode: "restore" });
+            window.close();
+        } catch (err) {
+            console.error(err);
+            setErrorMsg(lumoshotFileErrorMessage(err, chrome.i18n.getUILanguage().startsWith('ja')));
+        }
+    };
+
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
+        if (file && isLumoshotFileName(file.name)) {
+            openProjectFile(file);
+            return;
+        }
         if (file) {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -158,7 +181,7 @@ const Popup: React.FC = () => {
                     </button>
                     <input
                         type="file"
-                        accept="image/*"
+                        accept="image/*,.lumoshot"
                         ref={fileInputRef}
                         onChange={handleFileSelect}
                         style={{ display: 'none' }}

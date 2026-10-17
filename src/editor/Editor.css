@@ -605,6 +605,40 @@ body {
     margin-top: -2px;
 }
 
+.export-project {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.export-project-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.export-project-btn:hover {
+    border-color: #a5b4fc;
+    color: #4f46e5;
+}
+
+.export-project-note {
+    margin: 8px 0 0;
+    color: #b45309;
+    font-size: 11.5px;
+    line-height: 1.5;
+}
+
 .export-note {
     margin: 10px 0 0;
     padding-top: 10px;

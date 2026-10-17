@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Download } from 'lucide-react';
+import { ChevronDown, Download, FileArchive } from 'lucide-react';
 import {
     EXPORT_FORMATS,
     EXPORT_SCALES,
@@ -14,6 +14,7 @@ interface ExportMenuProps {
     onSave: () => void;
     // Read when the menu opens, so it reflects resizes/crops since last render.
     getBaseSize: () => { width: number; height: number };
+    onSaveProjectFile: () => void;
     t: (ja: string, en: string) => string;
     isJapanese: boolean;
 }
@@ -22,7 +23,7 @@ const FORMAT_ORDER: ExportFormat[] = ['png', 'jpeg', 'webp'];
 const MOD_KEY = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl+';
 
 // The primary "Save" button plus a ▾ that opens the export settings.
-const ExportMenu: React.FC<ExportMenuProps> = ({ options, onChange, onSave, getBaseSize, t, isJapanese }) => {
+const ExportMenu: React.FC<ExportMenuProps> = ({ options, onChange, onSave, getBaseSize, onSaveProjectFile, t, isJapanese }) => {
     const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
 
@@ -128,6 +129,22 @@ const ExportMenu: React.FC<ExportMenuProps> = ({ options, onChange, onSave, getB
                         {t('コピーは常にPNGです（サイズは反映されます）。',
                             'Copy always uses PNG (the size setting applies).')}
                     </p>
+
+                    <div className="export-project">
+                        <button
+                            className="export-project-btn"
+                            onClick={() => {
+                                onSaveProjectFile();
+                                setOpen(false);
+                            }}
+                        >
+                            <FileArchive size={15} /> {t('編集データを保存（.lumoshot）', 'Save project file (.lumoshot)')}
+                        </button>
+                        <p className="export-project-note">
+                            {t('あとで開いて続きを編集できます。元の画像がそのまま入るため、塗りつぶした部分も元に戻せます。人に渡すときは画像（PNGなど）で保存してください。',
+                                'Reopen it later to keep editing. It contains the original, unredacted image, so redacted areas can be recovered — share an image (PNG etc.) instead.')}
+                        </p>
+                    </div>
                 </div>
             )}
         </div>
