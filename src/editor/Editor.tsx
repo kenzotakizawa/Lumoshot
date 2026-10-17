@@ -13,6 +13,16 @@ import { Check, X, Trash2 } from 'lucide-react';
 import { initSmartGuides } from './utils/smartGuides';
 import { platform } from '@platform';
 import { t } from '../lib/i18n';
+import {
+    EXPORT_FORMATS,
+    buildExportFileName,
+    downloadBlob,
+    encodeCanvas,
+    loadExportOptions,
+    renderDocumentToCanvas,
+    saveExportOptions,
+    type ExportOptions,
+} from './utils/exportImage';
 
 interface EditorProps {
     // Called (debounced) whenever the editor state changes, for web-side autosave.
@@ -47,6 +57,8 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
     // keydown handler is registered once, so its handleUndo/handleRedo would
     // otherwise restore at the mount-time zoom of 1 instead of the current one).
     const zoomLevelRef = useRef<number>(1);
+    const [exportOptions, setExportOptions] = useState<ExportOptions>(loadExportOptions);
+    const exportOptionsRef = useRef<ExportOptions>(exportOptions);
     const [hasFrame, setHasFrame] = useState<boolean>(false);
     const [outlineEnabled, setOutlineEnabled] = useState<boolean>(false);
     const [outlineColor, setOutlineColor] = useState<string>('#1f2937');
@@ -827,6 +839,11 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                     e.preventDefault();
                     handleRedo();
                     return;
+                } else if (e.key.toLowerCase() === 's') {
+                    // Save with the current export settings (instead of the browser's "Save page")
+                    e.preventDefault();
+                    handleDownloadRef.current();
+                    return;
                 } else if (e.key.toLowerCase() === 'c') {
                     // Copy selected object(s)
                     const active = canvas.getActiveObject();
@@ -834,6 +851,15 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                         active.clone().then((cloned: any) => {
                             clipboardRef.current = cloned;
                         });
+                        return;
+                    }
+                    // Nothing selected: copy the whole image — unless the user is
+                    // copying text from a field or a text selection on the page.
+                    const target = e.target as HTMLElement | null;
+                    const inField = !!target?.closest?.('input, textarea, select, [contenteditable="true"]');
+                    if (!inField && !window.getSelection()?.toString()) {
+                        e.preventDefault();
+                        handleCopyRef.current();
                     }
                     return;
                 } else if (e.key.toLowerCase() === 'v') {
@@ -1545,107 +1571,73 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         saveState(); // Save state after framing changes
     };
 
-    const handleDownload = () => {
+    // Renders the document at the chosen size without touching the live view
+    // (see renderDocumentToCanvas). Selection is cleared like before so the
+    // user sees exactly what was exported.
+    const renderForExport = (scale: number): HTMLCanvasElement | null => {
         const canvas = fabricCanvas.current;
-        if (!canvas) return;
-
-        // Deselect everything so selection boxes aren't in the screenshot
+        if (!canvas) return null;
         canvas.discardActiveObject();
+        canvas.requestRenderAll();
+        return renderDocumentToCanvas(canvas, originalSize.current, scale);
+    };
 
-        // 1. Save current viewport and dimensions
-        const currentZoom = canvas.getZoom();
-        const currentWidth = canvas.getWidth();
-        const currentHeight = canvas.getHeight();
-        const currentVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : null;
-
-        // 2. Temporarily set canvas to original unscaled resolution for perfect export
-        // This guarantees `after:render` hooks like Spotlight are executed accurately on the exported image
-        canvas.setZoom(1);
-        canvas.setDimensions({
-            width: originalSize.current.width,
-            height: originalSize.current.height
-        });
-        if (canvas.viewportTransform) {
-            canvas.viewportTransform = [1, 0, 0, 1, 0, 0] as any;
-        }
-
-        // 3. Force synchronous render to apply changes
-        canvas.renderAll();
-
-        // 4. Capture native data URL from the lower canvas (excluding upper UI layer)
-        const dataURL = canvas.lowerCanvasEl.toDataURL('image/png', 1.0);
-
-        // 5. Restore original UI viewport silently
-        if (currentVpt) {
-            canvas.viewportTransform = currentVpt as any;
-        }
-        canvas.setZoom(currentZoom);
-        canvas.setDimensions({
-            width: currentWidth,
-            height: currentHeight
-        });
-        canvas.renderAll();
-
-        // 6. Trigger download
-        const link = document.createElement('a');
-        link.download = `lumoshot_${new Date().getTime()}.png`;
-        link.href = dataURL;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        setStatus("PNG saved!");
-        // Revert status message after 2s
+    const flashStatus = (message: string) => {
+        setStatus(message);
         setTimeout(() => setStatus("Ready"), 2000);
     };
 
-    const handleCopy = () => {
-        const canvas = fabricCanvas.current;
-        if (!canvas) return;
+    const handleDownload = async () => {
+        const opts = exportOptionsRef.current;
+        try {
+            const rendered = renderForExport(opts.scale);
+            if (!rendered) return;
+            const blob = await encodeCanvas(rendered, opts.format, opts.quality);
+            downloadBlob(blob, buildExportFileName(opts.format));
+            flashStatus(`${EXPORT_FORMATS[opts.format].label} saved!`);
+        } catch (err) {
+            // Most likely the output exceeds the browser's canvas size limit.
+            console.error('Export failed', err);
+            flashStatus('Save failed. Try a smaller size.');
+        }
+    };
 
+    // Copy is always PNG (the only image type browsers reliably accept on the
+    // clipboard) but honors the chosen size, e.g. 50% for chat paste.
+    const handleCopy = async () => {
+        const opts = exportOptionsRef.current;
         setStatus("Copying...");
-        canvas.discardActiveObject();
-
-        const currentZoom = canvas.getZoom();
-        const currentWidth = canvas.getWidth();
-        const currentHeight = canvas.getHeight();
-        const currentVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : null;
-
-        canvas.setZoom(1);
-        canvas.setDimensions({
-            width: originalSize.current.width,
-            height: originalSize.current.height
-        });
-        if (canvas.viewportTransform) {
-            canvas.viewportTransform = [1, 0, 0, 1, 0, 0] as any;
+        let blob: Blob;
+        try {
+            const rendered = renderForExport(opts.scale);
+            if (!rendered) return;
+            blob = await encodeCanvas(rendered, 'png', 1);
+        } catch (err) {
+            console.error('Export failed', err);
+            flashStatus('Copy failed. Try a smaller size.');
+            return;
         }
-
-        canvas.renderAll();
-
-        // Capture synchronously so canvas can be restored before any async work
-        const dataURL = canvas.lowerCanvasEl.toDataURL('image/png', 1.0);
-
-        if (currentVpt) {
-            canvas.viewportTransform = currentVpt as any;
+        try {
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            flashStatus("Copied to clipboard!");
+        } catch (err) {
+            console.error("Clipboard API failed", err);
+            downloadBlob(blob, buildExportFileName('png'));
+            flashStatus("Copy failed. Downloaded PNG instead.");
         }
-        canvas.setZoom(currentZoom);
-        canvas.setDimensions({ width: currentWidth, height: currentHeight });
-        canvas.renderAll();
+    };
 
-        // Convert dataURL to Blob and write to clipboard asynchronously
-        fetch(dataURL)
-            .then(res => res.blob())
-            .then(blob => navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]))
-            .then(() => {
-                setStatus("Copied to clipboard!");
-                setTimeout(() => setStatus("Ready"), 2000);
-            })
-            .catch(err => {
-                console.error("Clipboard API failed", err);
-                handleDownload();
-                setStatus("Copy failed. Downloaded PNG instead.");
-                setTimeout(() => setStatus("Ready"), 2000);
-            });
+    // The keydown listener is registered once; route ⌘S / ⌘C through refs so
+    // it always calls the current handlers.
+    const handleDownloadRef = useRef(handleDownload);
+    handleDownloadRef.current = handleDownload;
+    const handleCopyRef = useRef(handleCopy);
+    handleCopyRef.current = handleCopy;
+
+    const updateExportOptions = (next: ExportOptions) => {
+        exportOptionsRef.current = next;
+        setExportOptions(next);
+        saveExportOptions(next);
     };
 
     const addImageToCanvas = (dataUrl: string) => {
@@ -2000,6 +1992,9 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                     handleRedo={handleRedo}
                     handleCopy={handleCopy}
                     handleDownload={handleDownload}
+                    exportOptions={exportOptions}
+                    onChangeExportOptions={updateExportOptions}
+                    getExportBaseSize={() => ({ ...originalSize.current })}
                     isDarkMode={isDarkMode}
                     toggleDarkMode={toggleDarkMode}
                     onOpenHelp={() => window.open('guide.html', '_blank')}

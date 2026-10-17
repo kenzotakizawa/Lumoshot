@@ -96,12 +96,12 @@ export function spotlightMouseUp(canvas: Canvas, ctx: DrawToolContext, isEllipse
 
 /**
  * after:render handler that draws the spotlight overlay using evenodd fill rule.
+ * `ctx` is the context fabric just rendered into: the live canvas normally, or
+ * an offscreen canvas during export (toCanvasElement).
  */
-export function spotlightAfterRender(canvas: Canvas) {
+export function spotlightAfterRender(canvas: Canvas, ctx: CanvasRenderingContext2D = canvas.getContext()) {
     const spotlights = canvas.getObjects().filter(o => o.get('isSpotlight'));
     if (spotlights.length === 0) return;
-
-    const ctx = canvas.getContext();
 
     ctx.save();
 

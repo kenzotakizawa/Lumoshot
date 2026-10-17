@@ -297,9 +297,12 @@ export const useCanvasTools = (
 
         // ─── After Render (Spotlight Overlay) ──────────────────────
 
-        const handleAfterRender = () => {
-            spotlightAfterRender(canvas);
-            zoomAfterRender(canvas);
+        const handleAfterRender = ({ ctx }: { ctx: CanvasRenderingContext2D }) => {
+            // fabric also fires after:render for the upper (selection/controls)
+            // layer; the overlays belong to the document layer only.
+            if (ctx === canvas.contextTop) return;
+            spotlightAfterRender(canvas, ctx);
+            zoomAfterRender(canvas, ctx);
         };
 
         canvas.on('mouse:down', handleMouseDown);

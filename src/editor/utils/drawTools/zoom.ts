@@ -181,7 +181,9 @@ function facingSide(
     }
 }
 
-export function zoomAfterRender(canvas: Canvas) {
+// `ctx` is the context fabric just rendered into (live canvas, or an offscreen
+// export canvas).
+export function zoomAfterRender(canvas: Canvas, ctx2d: CanvasRenderingContext2D = canvas.getContext()) {
     const panels = canvas.getObjects().filter((o: any) => o.get('isZoomPanel'));
     if (panels.length === 0) return;
 
@@ -189,10 +191,13 @@ export function zoomAfterRender(canvas: Canvas) {
     if (!bgImg) return;
     const imgEl = bgImg.getElement() as HTMLImageElement;
 
-    const ctx2d = canvas.getContext();
     const retinaScaling = (canvas as any).getRetinaScaling ? (canvas as any).getRetinaScaling() : 1;
     const vpt = canvas.viewportTransform;
-    const vptScale = vpt ? vpt[0] : 1;
+    // On screen the border/connector widths stay constant regardless of zoom.
+    // When exporting, keep them proportional to the image instead, so a 2x
+    // export looks like the 1x one, only sharper.
+    const isExport = ctx2d !== canvas.getContext();
+    const vptScale = isExport ? 1 : (vpt ? vpt[0] : 1);
 
     for (const panel of panels as any[]) {
         const zoomId = panel.get('zoomId');

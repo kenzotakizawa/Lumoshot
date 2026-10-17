@@ -1,6 +1,8 @@
 import React from 'react';
-import { Monitor, Undo, Redo, Copy, Download, ZoomIn, ZoomOut, Moon, Sun, HelpCircle, Scaling, Home } from 'lucide-react';
+import { Monitor, Undo, Redo, Copy, ZoomIn, ZoomOut, Moon, Sun, HelpCircle, Scaling, Home } from 'lucide-react';
 import { t as msg, getUILanguage } from '../../lib/i18n';
+import ExportMenu from './ExportMenu';
+import type { ExportOptions } from '../utils/exportImage';
 
 interface HeaderProps {
     status: string;
@@ -19,6 +21,9 @@ interface HeaderProps {
     onOpenResize: () => void;
     onGoHome?: () => void;
     saveStatusLabel?: string | null;
+    exportOptions: ExportOptions;
+    onChangeExportOptions: (next: ExportOptions) => void;
+    getExportBaseSize: () => { width: number; height: number };
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -38,9 +43,13 @@ const Header: React.FC<HeaderProps> = ({
     onOpenResize,
     onGoHome,
     saveStatusLabel,
+    exportOptions,
+    onChangeExportOptions,
+    getExportBaseSize,
 }) => {
     const isJapanese = getUILanguage().startsWith('ja');
     const t = (ja: string, en: string) => isJapanese ? ja : en;
+    const modKey = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl+';
 
     return (
         <div className="header">
@@ -84,10 +93,15 @@ const Header: React.FC<HeaderProps> = ({
                 <div className="header-divider" />
                 <button className="action-btn" onClick={handleUndo} data-tooltip={msg("actionUndo")}><Undo size={16} /></button>
                 <button className="action-btn" onClick={handleRedo} data-tooltip={msg("actionRedo")}><Redo size={16} /></button>
-                <button className="action-btn" onClick={handleCopy}><Copy size={16} /> <span className="action-label">{msg("actionCopy")}</span></button>
-                <button className="action-btn primary" onClick={handleDownload} data-tooltip={t('PNG画像として保存', 'Save as a PNG image')}>
-                    <Download size={16} /> <span className="action-label">{msg("actionSave")}</span>
-                </button>
+                <button className="action-btn" onClick={handleCopy} data-tooltip={t(`画像をクリップボードにコピー（何も選択していないとき ${modKey}C）`, `Copy the image to the clipboard (${modKey}C with nothing selected)`)}><Copy size={16} /> <span className="action-label">{msg("actionCopy")}</span></button>
+                <ExportMenu
+                    options={exportOptions}
+                    onChange={onChangeExportOptions}
+                    onSave={handleDownload}
+                    getBaseSize={getExportBaseSize}
+                    t={t}
+                    isJapanese={isJapanese}
+                />
             </div>
         </div>
     );

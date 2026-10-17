@@ -315,8 +315,8 @@ const Guide: React.FC = () => {
                         <h3>{t('コピー', 'Copy')}</h3>
                         <p>
                             {t(
-                                'コピーを押すと、現在の編集結果をPNG画像としてクリップボードへ送ります。Slack、GitHub、Notion、チャットツールなどへそのまま貼り付けられます。',
-                                'Copy sends the current edited result to your clipboard as a PNG image. Paste it directly into Slack, GitHub, Notion, chat tools, and more.'
+                                'コピーを押すと、現在の編集結果をPNG画像としてクリップボードへ送ります。Slack、GitHub、Notion、チャットツールなどへそのまま貼り付けられます。図形を何も選択していないときは ⌘C（Windows は Ctrl+C）でも同じようにコピーできます。',
+                                'Copy sends the current edited result to your clipboard as a PNG image. Paste it directly into Slack, GitHub, Notion, chat tools, and more. With nothing selected, ⌘C (Ctrl+C on Windows) does the same.'
                             )}
                         </p>
                         <FeatureMedia src="/guide/header-copy.gif" altJa="コピー操作のGIF" altEn="Copy action GIF" t={t} lang={lang} />
@@ -325,14 +325,20 @@ const Guide: React.FC = () => {
                     <div className="feature-divider" />
 
                     <article className="feature-section" id="top-save">
-                        <h3>{t('PNG保存', 'Save PNG')}</h3>
+                        <h3>{t('保存（PNG / JPEG / WebP）', 'Save (PNG / JPEG / WebP)')} <span className="shortcut-badge">⌘S</span></h3>
                         <p>
                             {t(
-                                'PNG保存を押すと、現在の編集結果をPNGファイルとしてダウンロードします。共有前にファイルとして残したい場合や、資料へ添付したい場合に使います。',
-                                'Save PNG downloads the current edited result as a PNG file. Use it when you want to keep a file or attach the image to a document.'
+                                '保存ボタンを押すと、現在の編集結果を画像ファイルとしてダウンロードします。共有前にファイルとして残したい場合や、資料へ添付したい場合に使います。',
+                                'The Save button downloads the current edited result as an image file. Use it when you want to keep a file or attach the image to a document.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/header-save.gif" altJa="PNG保存操作のGIF" altEn="Save PNG action GIF" t={t} lang={lang} />
+                        <p>
+                            {t(
+                                '保存ボタン横の ▾ から、形式（PNG / JPEG / WebP）、品質（JPEG・WebP）、サイズ（50% / 等倍 / 200%）を選べます。等倍は元の画像と同じ画素数です。チャットに貼る画像を軽くしたいときは JPEG や 50% が便利です。選んだ設定は次回も使われ、コピーにもサイズが反映されます（コピーの形式は常に PNG）。',
+                                'Use the ▾ next to Save to choose the format (PNG / JPEG / WebP), quality (JPEG and WebP), and size (50% / 100% / 200%). 100% keeps the original pixel size. JPEG or 50% is handy for lighter images in chat. Your choice is remembered and the size also applies to Copy (Copy always uses PNG).'
+                            )}
+                        </p>
+                        <FeatureMedia src="/guide/header-save.gif" altJa="保存操作のGIF" altEn="Save action GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
@@ -743,8 +749,8 @@ const Guide: React.FC = () => {
                                 <tr><td><code>[</code> / <code>]</code></td><td>{t('重ね順を最背面 / 最前面へ', 'Send to back / Bring to front')}</td></tr>
 
                                 <tr><td colSpan={2} style={{ fontWeight: 600, color: '#94a3b8' }}>{t('— 出力 —', '— Export —')}</td></tr>
-                                <tr><td><code>⌘C</code> / <code>Ctrl+C</code></td><td>{t('画像をクリップボードへコピー', 'Copy image to clipboard')}</td></tr>
-                                <tr><td><code>⌘S</code> / <code>Ctrl+S</code></td><td>{t('画像をダウンロード（PNG）', 'Download image (PNG)')}</td></tr>
+                                <tr><td><code>⌘C</code> / <code>Ctrl+C</code></td><td>{t('画像をクリップボードへコピー（図形を選択していないとき。選択中はその図形をコピー）', 'Copy the image to the clipboard (with nothing selected; with a selection, copies that shape)')}</td></tr>
+                                <tr><td><code>⌘S</code> / <code>Ctrl+S</code></td><td>{t('画像を保存（書き出し設定の形式・サイズ）', 'Save the image (using your export settings)')}</td></tr>
                             </tbody>
                         </table>
                     </div>
