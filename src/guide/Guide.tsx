@@ -371,6 +371,7 @@ const Guide: React.FC = () => {
                             <a href="#tool-select">{t('選択', 'Select')}<kbd>V</kbd></a>
                             <a href="#tool-rect">{t('四角形', 'Rectangle')}<kbd>R</kbd></a>
                             <a href="#tool-rounded-rect">{t('角丸四角形', 'Rounded Rect')}</a>
+                            <a href="#tool-ellipse">{t('楕円', 'Ellipse')}<kbd>O</kbd></a>
                             <a href="#tool-arrow">{t('矢印', 'Arrow')}<kbd>A</kbd></a>
                             <a href="#tool-bubble">{t('吹き出し', 'Speech Bubble')}<kbd>B</kbd></a>
                             <a href="#tool-text">{t('テキスト', 'Text')}<kbd>T</kbd></a>
@@ -423,6 +424,18 @@ const Guide: React.FC = () => {
                             )}
                         </p>
                         <FeatureMedia src="/guide/tool-rounded-rect.gif" altJa="角丸四角形のGIF" altEn="Rounded Rectangle GIF" t={t} lang={lang} />
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section" id="tool-ellipse">
+                        <h3>{t('楕円', 'Ellipse')} <span className="shortcut-badge">O</span></h3>
+                        <p>
+                            {t(
+                                'ドラッグした範囲に収まる楕円の枠を描画します。ボタンやアイコンなど、丸みのある要素を「ここ」と囲むのに向いています。線の太さや色は四角形と同じく上部のサブツールバーから変更できます。',
+                                'Draws an ellipse outline that fits the area you drag. Great for circling buttons, icons, and other rounded elements. Change stroke width and color from the sub-toolbar, just like Rectangle.'
+                            )}
+                        </p>
                     </article>
 
                     <div className="feature-divider" />
@@ -708,6 +721,7 @@ const Guide: React.FC = () => {
                                 <tr><td colSpan={2} style={{ fontWeight: 600, color: '#94a3b8' }}>{t('— ツール切替 —', '— Tool Switch —')}</td></tr>
                                 <tr><td><code>V</code></td><td>{t('選択ツール（移動/リサイズ）', 'Select tool (move/resize)')}</td></tr>
                                 <tr><td><code>R</code></td><td>{t('四角形を描画', 'Rectangle')}</td></tr>
+                                <tr><td><code>O</code></td><td>{t('楕円を描画', 'Ellipse')}</td></tr>
                                 <tr><td><code>A</code></td><td>{t('矢印を描画', 'Arrow')}</td></tr>
                                 <tr><td><code>B</code></td><td>{t('吹き出しを描画', 'Speech Bubble')}</td></tr>
                                 <tr><td><code>T</code></td><td>{t('テキストを入力', 'Add Text')}</td></tr>

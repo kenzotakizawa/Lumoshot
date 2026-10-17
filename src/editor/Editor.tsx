@@ -43,6 +43,10 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
     const [isItalic, setIsItalic] = useState<boolean>(false);
     const [bubbleFillColor, setBubbleFillColor] = useState<string>('#ffffff');
     const [zoomLevel, setZoomLevel] = useState<number>(1);
+    // Mirror of zoomLevel for code reached from long-lived listeners (the
+    // keydown handler is registered once, so its handleUndo/handleRedo would
+    // otherwise restore at the mount-time zoom of 1 instead of the current one).
+    const zoomLevelRef = useRef<number>(1);
     const [hasFrame, setHasFrame] = useState<boolean>(false);
     const [outlineEnabled, setOutlineEnabled] = useState<boolean>(false);
     const [outlineColor, setOutlineColor] = useState<string>('#1f2937');
@@ -225,10 +229,11 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         // Restore dimensions if present (new format), fall back to current for old entries
         if (parsed.dimensions) {
             originalSize.current = { width: parsed.dimensions.width, height: parsed.dimensions.height };
-            const scaledW = originalSize.current.width * zoomLevel;
-            const scaledH = originalSize.current.height * zoomLevel;
+            const zoom = zoomLevelRef.current;
+            const scaledW = originalSize.current.width * zoom;
+            const scaledH = originalSize.current.height * zoom;
             canvas.setDimensions({ width: scaledW, height: scaledH });
-            canvas.setZoom(zoomLevel);
+            canvas.setZoom(zoom);
         }
 
         const canvasData = parsed.canvasData || parsed;
@@ -682,6 +687,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
 
     // Effect to apply zoom changes
     useEffect(() => {
+        zoomLevelRef.current = zoomLevel;
         const canvas = fabricCanvas.current;
         if (!canvas) return;
 
@@ -900,6 +906,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                 switch (e.key.toLowerCase()) {
                     case 'v': setCurrentTool('select'); break;
                     case 'r': setCurrentTool('rect'); setStrokeWidth(2); break;
+                    case 'o': setCurrentTool('ellipse'); setStrokeWidth(2); break;
                     case 'a': setCurrentTool('arrow'); setStrokeWidth(2); break;
                     case 't': setCurrentTool('text'); break;
                     case 'n': setCurrentTool('step-number'); setStrokeWidth(8); break;

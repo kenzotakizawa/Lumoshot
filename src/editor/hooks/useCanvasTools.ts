@@ -4,6 +4,7 @@ import type { TPointerEventInfo } from 'fabric';
 
 import type { DrawToolContext } from '../utils/drawTools/types';
 import { rectMouseDown, rectMouseMove, rectMouseUp } from '../utils/drawTools/rect';
+import { ellipseMouseDown, ellipseMouseMove, ellipseMouseUp } from '../utils/drawTools/ellipse';
 import { arrowMouseDown, arrowMouseMove, arrowMouseUp } from '../utils/drawTools/arrow';
 import { textMouseDown } from '../utils/drawTools/text';
 import { stepNumberMouseDown } from '../utils/drawTools/stepNumber';
@@ -17,7 +18,7 @@ import type { ArrowStyle } from '../utils/drawTools/arrow';
 // Re-export for external consumers
 export { updateSpeechBubble, createSpeechBubblePath } from '../utils/drawTools/speechBubble';
 
-export type ToolType = 'select' | 'rect' | 'arrow' | 'text' | 'spotlight-rect' | 'spotlight-ellipse' | 'blur-rect' | 'step-number' | 'pen' | 'highlighter' | 'rounded-rect' | 'speech-bubble' | 'click-icon' | 'zoom-rect' | 'zoom-ellipse';
+export type ToolType = 'select' | 'rect' | 'arrow' | 'text' | 'spotlight-rect' | 'spotlight-ellipse' | 'blur-rect' | 'step-number' | 'pen' | 'highlighter' | 'rounded-rect' | 'ellipse' | 'speech-bubble' | 'click-icon' | 'zoom-rect' | 'zoom-ellipse';
 
 const controlConfig = {
     transparentCorners: false,
@@ -153,6 +154,9 @@ export const useCanvasTools = (
                 case 'rounded-rect':
                     rectMouseDown(canvas, pointer, ctx, true);
                     break;
+                case 'ellipse':
+                    ellipseMouseDown(canvas, pointer, ctx);
+                    break;
                 case 'arrow':
                     arrowMouseDown(canvas, pointer, ctx, (opt.e as MouseEvent).detail || 1);
                     break;
@@ -197,6 +201,9 @@ export const useCanvasTools = (
                 case 'rect':
                 case 'rounded-rect':
                     rectMouseMove(canvas, pointer, ctx);
+                    break;
+                case 'ellipse':
+                    ellipseMouseMove(canvas, pointer, ctx);
                     break;
                 case 'arrow':
                     arrowMouseMove(canvas, pointer, ctx);
@@ -246,6 +253,9 @@ export const useCanvasTools = (
                     case 'rect':
                     case 'rounded-rect':
                         rectMouseUp(canvas, ctx);
+                        break;
+                    case 'ellipse':
+                        ellipseMouseUp(canvas, ctx);
                         break;
                     case 'blur-rect':
                         blurMouseUp(canvas, ctx);

@@ -16,6 +16,9 @@
     "toolRoundedRect": {
         "message": "角丸四角形"
     },
+    "toolEllipse": {
+        "message": "楕円 (O)"
+    },
     "toolArrow": {
         "message": "矢印 (A)"
     },

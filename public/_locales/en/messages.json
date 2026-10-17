@@ -16,6 +16,9 @@
     "toolRoundedRect": {
         "message": "Rounded Rectangle"
     },
+    "toolEllipse": {
+        "message": "Ellipse (O)"
+    },
     "toolArrow": {
         "message": "Arrow (A)"
     },

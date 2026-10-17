@@ -45,6 +45,13 @@ interface SubHeaderProps {
     commitOutline?: () => void;
 }
 
+
+// Ellipse-tool shapes. Spotlight and zoom-panel ellipses are also fabric
+// Ellipses but deliberately have a transparent stroke, so they must not be
+// recolored/resized like ordinary outlines.
+const isPlainEllipse = (obj: any) =>
+    obj.type === 'ellipse' && !obj.get?.('isSpotlight') && !obj.get?.('isZoomPanel') && !obj.get?.('isZoomSource');
+
 const SubHeader: React.FC<SubHeaderProps> = ({
     currentTool,
     isMultiSelection,
@@ -87,6 +94,24 @@ const SubHeader: React.FC<SubHeaderProps> = ({
     const isBubbleContext = currentTool === 'speech-bubble' || isBubbleSelected;
     const isClickIconContext = currentTool === 'click-icon' || !!fabricCanvas.current?.getActiveObject()?.get('isClickIcon');
     const canDistribute = selectionCount >= 3;
+
+    // The controls below restyle the selected object(s) live but only ask for a
+    // re-render, so the change never reached undo history or web autosave
+    // (both are driven by 'object:modified'). Commit once, shortly after the
+    // last input/click in this toolbar; saveState drops no-op duplicates.
+    const commitTimer = React.useRef<number | null>(null);
+    const scheduleCommit = () => {
+        if (commitTimer.current !== null) window.clearTimeout(commitTimer.current);
+        commitTimer.current = window.setTimeout(() => {
+            commitTimer.current = null;
+            const canvas = fabricCanvas.current;
+            const active = canvas?.getActiveObject();
+            if (canvas && active) canvas.fire('object:modified' as any, { target: active });
+        }, 300);
+    };
+    React.useEffect(() => () => {
+        if (commitTimer.current !== null) window.clearTimeout(commitTimer.current);
+    }, []);
     const getReadableTextColor = (color: string) => {
         const hex = color.replace('#', '');
         if (hex.length !== 6) return '#111827';
@@ -99,7 +124,7 @@ const SubHeader: React.FC<SubHeaderProps> = ({
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }} onInputCapture={scheduleCommit} onClickCapture={scheduleCommit}>
             {/* Sub-Header Toolbar (Alignment) */}
             {currentTool === 'select' && isMultiSelection && (
                 <div className="sub-header alignment-toolbar" style={{
@@ -164,7 +189,7 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                                     const applyColor = (obj: any) => {
                                         if (obj.type === 'i-text' || obj.type === 'text') {
                                             obj.set('fill', val);
-                                        } else if (obj.type === 'path' || obj.type === 'line' || obj.type === 'rect' || obj.type === 'polygon') {
+                                        } else if (obj.type === 'path' || obj.type === 'line' || obj.type === 'rect' || obj.type === 'polygon' || isPlainEllipse(obj)) {
                                             if (obj.get?.('isBlur')) {
                                                 obj.set({ fill: val, stroke: val });
                                                 return;
@@ -392,7 +417,7 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                                         const applySize = (obj: any) => {
                                             if (obj.type === 'i-text' || obj.type === 'text') {
                                                 obj.set('fontSize', Math.max(16, val * 4));
-                                            } else if (obj.type === 'path' || obj.type === 'line' || obj.type === 'rect') {
+                                            } else if (obj.type === 'path' || obj.type === 'line' || obj.type === 'rect' || isPlainEllipse(obj)) {
                                                 // Don't change cover polygon stroke width
                                                 if (obj.stroke !== 'white' || obj.fill !== 'white') {
                                                     obj.set('strokeWidth', val);

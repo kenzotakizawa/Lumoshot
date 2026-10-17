@@ -21,6 +21,15 @@ interface SidebarProps {
     isBAMode: boolean;
 }
 
+// lucide has no ellipse glyph; draw one in the same style (24 viewBox, 2px
+// stroke) so it reads as a shape and isn't confused with Spotlight's circle.
+const EllipseIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <ellipse cx="12" cy="12" rx="10" ry="7" />
+    </svg>
+);
+
 /* ─── Tool definitions grouped by functional similarity ─── */
 interface ToolDef {
     id: ToolType | 'resize' | 'crop' | 'insert-image' | 'click-icon' | 'before-after';
@@ -39,6 +48,7 @@ const TOOL_GROUPS: ToolDef[][] = [
     [
         { id: 'rect', icon: <Square size={20} />, i18nKey: 'toolRect', resetStrokeIfThick: true },
         { id: 'rounded-rect', icon: <Square size={20} style={{ rx: 4, ry: 4 }} />, i18nKey: 'toolRoundedRect', resetStrokeIfThick: true },
+        { id: 'ellipse', icon: <EllipseIcon size={20} />, i18nKey: 'toolEllipse', resetStrokeIfThick: true },
         { id: 'arrow', icon: <ArrowUpRight size={20} />, i18nKey: 'toolArrow', resetStrokeIfThick: true },
         { id: 'speech-bubble', icon: <MessageSquare size={20} />, i18nKey: 'toolSpeechBubble', resetStrokeIfThick: true },
     ],
