@@ -9,10 +9,10 @@ import SubHeader from './components/SubHeader';
 import ResizeModal from './components/ResizeModal';
 import BeforeAfterModal from './components/BeforeAfterModal';
 import Ruler from './components/Ruler';
-import { Check, X, Trash2 } from 'lucide-react';
+import { Check, X, Trash2, Info } from 'lucide-react';
 import { initSmartGuides } from './utils/smartGuides';
 import { platform } from '@platform';
-import { t } from '../lib/i18n';
+import { t, getUILanguage } from '../lib/i18n';
 import {
     REDACT_PROPS,
     DEFAULT_REDACT_STRENGTH,
@@ -85,6 +85,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
     const [exportOptions, setExportOptions] = useState<ExportOptions>(loadExportOptions);
     const exportOptionsRef = useRef<ExportOptions>(exportOptions);
     const [redactMode, setRedactMode] = useState<RedactMode>('fill');
+    const [notice, setNotice] = useState<string | null>(null);
     const [redactStrength, setRedactStrength] = useState<number>(DEFAULT_REDACT_STRENGTH);
     const [hasFrame, setHasFrame] = useState<boolean>(false);
     const [outlineEnabled, setOutlineEnabled] = useState<boolean>(false);
@@ -735,14 +736,9 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
                 return;
             }
             const { dataUrl, cropRect: rect, mode } = init;
-            if (init.notice) {
-                const notice = init.notice;
-                // After the "Loading image… / Ready" updates from loading the image
-                setTimeout(() => {
-                    setStatus(notice);
-                    setTimeout(() => setStatus("Ready"), 8000);
-                }, 1200);
-            }
+            // e.g. "this page could only be captured partially" — shown in a
+            // banner until the user dismisses it.
+            if (init.notice) setNotice(init.notice);
             if (mode === 'crop' && rect && rect.windowWidth) {
                 const img = new Image();
                 img.onload = () => {
@@ -2115,6 +2111,20 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
                     onGoHome={onGoHome}
                     saveStatusLabel={saveStatusLabel}
                 />
+
+                {notice && (
+                    <div className="editor-notice" role="status">
+                        <Info size={16} className="editor-notice-icon" />
+                        <span className="editor-notice-text">{notice}</span>
+                        <button
+                            className="editor-notice-close"
+                            onClick={() => setNotice(null)}
+                            aria-label={getUILanguage().startsWith('ja') ? 'お知らせを閉じる' : 'Dismiss notice'}
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+                )}
 
                 {/* Sub-Header Toolbars */}
                 <SubHeader

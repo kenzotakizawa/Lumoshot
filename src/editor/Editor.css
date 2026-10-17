@@ -499,6 +499,59 @@ body {
     transform: translateY(0);
 }
 
+/* ─── One-off notice banner (e.g. a capture that was only partial) ─── */
+.editor-notice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px 10px 14px;
+    border-radius: 12px;
+    border: 1px solid #fcd34d;
+    background: #fffbeb;
+    color: #92400e;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+    box-shadow: 0 4px 16px rgba(146, 64, 14, 0.08);
+}
+
+.editor-notice-icon {
+    flex-shrink: 0;
+    color: #d97706;
+}
+
+.editor-notice-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.editor-notice-close {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.editor-notice-close:hover {
+    background: rgba(217, 119, 6, 0.12);
+}
+
+.editor-container.dark .editor-notice {
+    border-color: rgba(251, 191, 36, 0.45);
+    background: rgba(251, 191, 36, 0.12);
+    color: #fcd34d;
+}
+
+.editor-container.dark .editor-notice-icon {
+    color: #fbbf24;
+}
+
 /* ─── Save button + export settings (split button) ─── */
 .export-menu {
     position: relative;
