@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import './Popup.css';
 import { assetsForProject, importedProjectName, isLumoshotFileName, lumoshotFileErrorMessage, readLumoshotFile } from '../lib/lumoshotFile';
+import { createProjectFromFile, listProjects, type Project } from '../lib/projectStore';
 
 type CaptureMode = 'visible' | 'selected' | 'fullpage' | 'desktop';
 
@@ -21,6 +22,17 @@ const Popup: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [overrideMessages, setOverrideMessages] = useState<Record<string, { message: string }> | null>(null);
+    // The newest saved edits (the extension has no home screen to list them).
+    const [recent, setRecent] = useState<Project[]>([]);
+
+    useEffect(() => {
+        listProjects().then((all) => setRecent(all.slice(0, 3))).catch(() => {});
+    }, []);
+
+    const openProject = useCallback((id: number) => {
+        chrome.tabs.create({ url: `editor.html?project=${id}` });
+        window.close();
+    }, []);
 
     useEffect(() => {
         // Allow forcing English UI via URL parameter like ?lang=en
@@ -68,23 +80,22 @@ const Popup: React.FC = () => {
         reader.readAsDataURL(blob);
     }, []);
 
-    // A .lumoshot project file opens in the editor as an editable project (the
-    // first one, if the file holds several).
+    // Every project in a .lumoshot file goes into the recent edits; the editor
+    // opens the first one (the others are in its projects panel).
     const openProjectFile = useCallback(async (file: File) => {
         setErrorMsg(null);
         try {
             const data = await readLumoshotFile(file);
-            const project = data.projects[0];
-            await chrome.storage.local.set({
-                restoreProject: { state: project.state, assets: assetsForProject(data, project), name: importedProjectName(data, project, file.name) },
-            });
-            await chrome.runtime.sendMessage({ type: "OPEN_EDITOR", mode: "restore" });
-            window.close();
+            const ids: number[] = [];
+            for (const project of data.projects) {
+                ids.push(await createProjectFromFile(importedProjectName(data, project, file.name), project.state, project.thumbnail, assetsForProject(data, project)));
+            }
+            openProject(ids[0]);
         } catch (err) {
             console.error(err);
             setErrorMsg(lumoshotFileErrorMessage(err, isJa()));
         }
-    }, []);
+    }, [openProject]);
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -207,6 +218,20 @@ const Popup: React.FC = () => {
                     style={{ display: 'none' }}
                 />
             </div>
+
+            {recent.length > 0 && (
+                <>
+                    <div className="popup-section-label">{t('popupSectionRecent')}</div>
+                    <div className="popup-recent">
+                        {recent.map((p) => (
+                            <button key={p.id} className="popup-recent-item" onClick={() => openProject(p.id!)} title={p.name}>
+                                <img src={p.thumbnail} alt="" />
+                                <span>{p.name}</span>
+                            </button>
+                        ))}
+                    </div>
+                </>
+            )}
 
             {errorMsg && <div className="popup-error" role="alert">{errorMsg}</div>}
 

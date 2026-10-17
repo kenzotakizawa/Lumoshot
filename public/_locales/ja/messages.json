@@ -279,5 +279,8 @@
     },
     "popupWebApp": {
         "message": "Web版"
+    },
+    "popupSectionRecent": {
+        "message": "最近の編集"
     }
 }

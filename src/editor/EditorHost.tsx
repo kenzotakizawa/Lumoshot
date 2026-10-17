@@ -4,6 +4,10 @@ import ProjectsPanel from './components/ProjectsPanel';
 import type { InitialImage } from '../platform/types';
 import { getProject, getProjectAssets, listProjects, upsertProject } from '../lib/projectStore';
 import { lastStepInState } from './utils/drawTools/stepNumber';
+import { renderStateToBlob } from './utils/offscreenRender';
+import { downloadBlob, EXPORT_FORMATS, loadExportOptions } from './utils/exportImage';
+import { buildZip, uniqueNames } from '../lib/zip';
+import { buildLumoshotFile, defaultProjectName, LUMOSHOT_FILE_EXTENSION, safeFileBaseName } from '../lib/lumoshotFile';
 import { getUILanguage } from '../lib/i18n';
 
 // Owns "which project is open" for both the web app and the extension:
@@ -185,6 +189,52 @@ export default function EditorHost({ start, onGoHome, onProjectChange }: EditorH
         setSession(s);
     }, [flush, session?.key]);
 
+    // Export several projects at once: images (one file, or a numbered ZIP)
+    // or a single .lumoshot holding all of them. Oldest first, so screenshots
+    // taken in order for a manual come out as 01, 02, …
+    const [exportStatus, setExportStatus] = useState<string | null>(null);
+    const exportProjects = useCallback(async (ids: number[], kind: 'images' | 'project-file') => {
+        try {
+            await flush();
+            const projects = (await Promise.all(ids.map((id) => getProject(id))))
+                .filter((p): p is NonNullable<typeof p> => !!p)
+                .sort((a, b) => a.createdAt - b.createdAt);
+            if (projects.length === 0) return;
+
+            if (kind === 'project-file') {
+                const assets: Record<string, string> = {};
+                for (const p of projects) Object.assign(assets, await getProjectAssets(p));
+                const content = buildLumoshotFile(projects.map((p) => ({ name: p.name, state: p.state, thumbnail: p.thumbnail })), assets);
+                const base = projects.length === 1 ? safeFileBaseName(projects[0].name) : defaultProjectName();
+                downloadBlob(new Blob([content], { type: 'application/json' }), base + LUMOSHOT_FILE_EXTENSION);
+                setExportStatus(null);
+                return;
+            }
+
+            const options = loadExportOptions();
+            const ext = EXPORT_FORMATS[options.format].ext;
+            const pad = String(projects.length).length < 2 ? 2 : String(projects.length).length;
+            const files: Array<{ name: string; blob: Blob; date: Date }> = [];
+            for (const [i, p] of projects.entries()) {
+                setExportStatus(tt(`書き出し中… ${i + 1}/${projects.length}`, `Exporting… ${i + 1}/${projects.length}`));
+                const blob = await renderStateToBlob(p.state, await getProjectAssets(p), options);
+                const prefix = String(i + 1).padStart(pad, '0');
+                files.push({ name: `${prefix}_${safeFileBaseName(p.name)}.${ext}`, blob, date: new Date(p.updatedAt) });
+            }
+            if (files.length === 1) {
+                downloadBlob(files[0].blob, `${safeFileBaseName(projects[0].name)}.${ext}`);
+            } else {
+                const names = uniqueNames(files.map((f) => f.name));
+                const entries = await Promise.all(files.map(async (f, i) => ({ name: names[i], data: new Uint8Array(await f.blob.arrayBuffer()), date: f.date })));
+                downloadBlob(new Blob([buildZip(entries)], { type: 'application/zip' }), `${defaultProjectName()}.zip`);
+            }
+            setExportStatus(null);
+        } catch (err) {
+            console.error('Batch export failed', err);
+            setExportStatus(tt('書き出しに失敗しました。サイズを小さくして試してください。', 'Export failed. Try a smaller size.'));
+        }
+    }, [flush]);
+
     const goHome = useCallback(async () => {
         await flush();
         onGoHome?.();
@@ -236,6 +286,8 @@ export default function EditorHost({ start, onGoHome, onProjectChange }: EditorH
                     onClose={() => setPanelOpen(false)}
                     onOpenProject={openProject}
                     refreshToken={savedCount}
+                    onExport={exportProjects}
+                    exportStatus={exportStatus}
                 />
             }
         />

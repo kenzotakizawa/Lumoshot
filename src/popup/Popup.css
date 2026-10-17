@@ -240,6 +240,47 @@ body {
   box-shadow: 0 4px 12px rgba(17, 27, 77, 0.06);
 }
 
+/* ─── Recent edits ─── */
+.popup-recent {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.popup-recent-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid var(--pp-border);
+  border-radius: 10px;
+  background: var(--pp-surface);
+  color: var(--pp-text);
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.popup-recent-item:hover {
+  border-color: var(--pp-accent);
+  box-shadow: 0 4px 12px rgba(17, 27, 77, 0.06);
+}
+
+.popup-recent-item img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #f1f5f9;
+}
+
+.popup-recent-item span {
+  font-size: 10.5px;
+  color: var(--pp-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ─── Messages & footer ─── */
 .popup-error {
   padding: 9px 11px;

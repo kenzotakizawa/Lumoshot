@@ -279,5 +279,8 @@
     },
     "popupWebApp": {
         "message": "Web app"
+    },
+    "popupSectionRecent": {
+        "message": "Recent edits"
     }
 }

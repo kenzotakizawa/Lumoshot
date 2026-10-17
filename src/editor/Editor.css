@@ -665,6 +665,106 @@ body {
     color: #dc2626;
 }
 
+.projects-panel-select {
+    padding: 4px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.projects-panel-select.active {
+    border-color: #4f46e5;
+    color: #4f46e5;
+}
+
+.projects-panel-item.selected {
+    border-color: #4f46e5;
+    background: var(--tool-active-bg);
+}
+
+.projects-panel-check {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 5px;
+    background: var(--bg-surface);
+    color: #ffffff;
+}
+
+.projects-panel-check.on {
+    border-color: #4f46e5;
+    background: #4f46e5;
+}
+
+.projects-panel-foot {
+    padding: 10px 12px 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.projects-panel-foot-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.projects-panel-link {
+    border: none;
+    background: transparent;
+    color: #4f46e5;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.projects-panel-foot-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.projects-panel-export {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 8px 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.projects-panel-export.primary {
+    border-color: #4338ca;
+    background: #4f46e5;
+    color: #ffffff;
+}
+
+.projects-panel-export:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.projects-panel-hint {
+    margin: 8px 0 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
 /* ─── One-off notice banner (e.g. a capture that was only partial) ─── */
 .editor-notice {
     display: flex;
