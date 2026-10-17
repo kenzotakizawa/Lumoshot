@@ -11,6 +11,7 @@ import { getUILanguage } from '../lib/i18n';
 import {
     listProjects,
     upsertProject,
+    getProjectAssets,
     renameProject,
     deleteProject,
     clearAll,
@@ -175,12 +176,13 @@ export default function WebApp() {
         enterEditor();
     }, [enterEditor, cancelPendingSave]);
 
-    const reopen = useCallback((p: Project) => {
+    const reopen = useCallback(async (p: Project) => {
         cancelPendingSave();
         currentProjectId.current = p.id ?? null;
         currentProjectName.current = p.name;
         setSaveStatus(tt('保存済み', 'Saved'));
-        setWebInitialState(p.state);
+        // Format-2 projects keep big images in the assets table.
+        setWebInitialState(p.state, await getProjectAssets(p));
         enterEditor();
     }, [enterEditor, cancelPendingSave]);
 
@@ -230,12 +232,12 @@ export default function WebApp() {
     }, [begin]);
 
     // Debounced autosave of the editor snapshot
-    const handleSnapshot = useCallback((state: string, thumbnail: string) => {
+    const handleSnapshot = useCallback((state: string, thumbnail: string, assets: Record<string, string>) => {
         if (saveTimer.current !== null) window.clearTimeout(saveTimer.current);
         setSaveStatus(tt('保存中...', 'Saving...'));
         saveTimer.current = window.setTimeout(async () => {
             try {
-                const id = await upsertProject(currentProjectId.current, state, thumbnail);
+                const id = await upsertProject(currentProjectId.current, state, thumbnail, assets);
                 currentProjectId.current = id;
                 setSaveStatus(tt('保存済み', 'Saved'));
             } catch (err) {

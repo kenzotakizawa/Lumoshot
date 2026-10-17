@@ -26,6 +26,14 @@ import {
     type RedactMode,
 } from './utils/redaction';
 import {
+    SNAPSHOT_FORMAT_VERSION,
+    assetRefsInState,
+    resolveAssetRefs,
+    seedImageHashes,
+    withAssetRefs,
+    type AssetMap,
+} from './utils/snapshotAssets';
+import {
     EXPORT_FORMATS,
     buildExportFileName,
     downloadBlob,
@@ -38,7 +46,9 @@ import {
 
 interface EditorProps {
     // Called (debounced) whenever the editor state changes, for web-side autosave.
-    onSnapshot?: (state: string, thumbnail: string) => void;
+    // `state` references big images as "asset:<hash>"; `assets` carries the
+    // data for every asset that state references.
+    onSnapshot?: (state: string, thumbnail: string, assets: Record<string, string>) => void;
     onGoHome?: () => void;
     saveStatusLabel?: string | null;
 }
@@ -109,6 +119,9 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
 
     // History states for Undo/Redo
     const history = useRef<string[]>([]);
+    // Image data referenced by snapshots ("asset:<hash>" → data URL), held once
+    // instead of being embedded in every undo entry.
+    const assetsRef = useRef<AssetMap>(new Map());
     const redoStack = useRef<string[]>([]);
     const isHistoryProcessing = useRef<boolean>(false);
     const saveTimeout = useRef<number | null>(null);
@@ -184,9 +197,10 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         if (!canvas) return null;
 
         // Include custom properties in JSON serialization
-        const obj = withoutRedactionPatterns(canvas, () => canvas.toObject(['isBackground', 'isFrame', 'isOutline', 'outlineColor', 'outlineWidth', 'outlineEdge', 'isSpotlight', 'isBlur', 'redactMode', 'redactStrength', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel', 'isZoomPanel', 'isZoomSource', 'zoomId', 'zoomColor', 'zoomIsEllipse', 'isArrow', 'arrowStyle']));
+        const obj = withoutRedactionPatterns(canvas, () => withAssetRefs(canvas, assetsRef.current, () => canvas.toObject(['isBackground', 'isFrame', 'isOutline', 'outlineColor', 'outlineWidth', 'outlineEdge', 'isSpotlight', 'isBlur', 'redactMode', 'redactStrength', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel', 'isZoomPanel', 'isZoomSource', 'zoomId', 'zoomColor', 'zoomIsEllipse', 'isArrow', 'arrowStyle'])));
 
         const stateEntry = JSON.stringify({
+            formatVersion: SNAPSHOT_FORMAT_VERSION,
             canvasData: obj,
             dimensions: { ...originalSize.current }
         });
@@ -200,6 +214,36 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         tc.getContext('2d')?.drawImage(lower, 0, 0, tw, th);
 
         return { stateEntry, thumbnail: tc.toDataURL('image/jpeg', 0.6) };
+    };
+
+    // Data for every asset a serialized state references.
+    const assetsFor = (state: string): Record<string, string> => {
+        const out: Record<string, string> = {};
+        for (const hash of assetRefsInState(state)) {
+            const data = assetsRef.current.get(hash);
+            if (data) out[hash] = data;
+        }
+        return out;
+    };
+
+    // Drop image data no undo/redo entry refers to anymore (e.g. the pre-crop
+    // background once it falls off the end of the history).
+    const pruneAssets = () => {
+        const live = new Set<string>();
+        for (const entry of [...history.current, ...redoStack.current]) {
+            for (const hash of assetRefsInState(entry)) live.add(hash);
+        }
+        for (const hash of [...assetsRef.current.keys()]) {
+            if (!live.has(hash)) assetsRef.current.delete(hash);
+        }
+    };
+
+    // Inlines asset refs (format 2) so fabric can load the JSON; returns the
+    // per-image hashes for seedImageHashes once loading is done.
+    const resolveForLoad = (canvasData: any) => {
+        const { hashes, missing } = resolveAssetRefs(canvasData, (h) => assetsRef.current.get(h));
+        if (missing.length) console.warn('Snapshot references missing images', missing);
+        return hashes;
     };
 
     const saveState = () => {
@@ -219,18 +263,18 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
             }
 
             history.current.push(stateEntry);
-            // Cap undo history: each entry embeds the full canvas JSON (including
-            // the background image's data URL), so unbounded growth during a long
-            // editing session can add up to hundreds of MB of retained memory.
+            // Cap undo history. Entries are small now (images live in
+            // assetsRef), but the canvas JSON still grows with annotations.
             if (history.current.length > MAX_HISTORY_ENTRIES) {
                 history.current.shift();
             }
             redoStack.current = [];
+            pruneAssets();
 
             // Notify the host (web autosave) with a small thumbnail of the canvas.
             if (onSnapshot) {
                 try {
-                    onSnapshot(stateEntry, thumbnail);
+                    onSnapshot(stateEntry, thumbnail, assetsFor(stateEntry));
                 } catch (err) {
                     console.warn('snapshot thumbnail failed', err);
                 }
@@ -255,10 +299,12 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         }
 
         const canvasData = parsed.canvasData || parsed;
+        const imageHashes = resolveForLoad(canvasData);
         // fabric v7's 2nd arg to loadFromJSON is a per-object reviver, not a
         // completion callback — using it as one let isHistoryProcessing drop
         // before restoration (and the UI-state sync below) actually finished.
         canvas.loadFromJSON(canvasData).then(() => {
+            seedImageHashes(canvas, imageHashes);
             syncStateFromCanvas(canvas);
             canvas.requestRenderAll();
             isHistoryProcessing.current = false;
@@ -524,7 +570,10 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         fabricCanvas.current = canvas;
         // Dev-only handle for inspecting canvas state from the browser console
         // (stripped from production builds).
-        if (import.meta.env.DEV) (window as any).__lumoshotCanvas = canvas;
+        if (import.meta.env.DEV) {
+            (window as any).__lumoshotCanvas = canvas;
+            (window as any).__lumoshotDebug = { history, redoStack, assets: assetsRef };
+        }
 
         // Initialize smart guides for better UX
         initSmartGuides(canvas);
@@ -676,7 +725,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
             }
             // Reopen a saved project: restore the full snapshot instead of an image.
             if (init.restoreState) {
-                restoreSnapshotOnLoad(init.restoreState);
+                restoreSnapshotOnLoad(init.restoreState, init.restoreAssets);
                 return;
             }
             const { dataUrl, cropRect: rect, mode } = init;
@@ -998,10 +1047,11 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
 
 
     // Restore a previously saved project snapshot (web "recent edits" feature).
-    const restoreSnapshotOnLoad = (stateStr: string) => {
+    const restoreSnapshotOnLoad = (stateStr: string, assets?: Record<string, string>) => {
         const canvas = fabricCanvas.current;
         if (!canvas || !wrapperRef.current) return;
 
+        if (assets) for (const [hash, data] of Object.entries(assets)) assetsRef.current.set(hash, data);
         const parsed = JSON.parse(stateStr);
         const dims = parsed.dimensions ?? { width: 800, height: 600 };
         originalSize.current = { width: dims.width, height: dims.height };
@@ -1011,15 +1061,19 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         const wrapperH = wrapperRef.current.clientHeight - 80;
         const fitScale = Math.min(wrapperW / dims.width, wrapperH / dims.height, 1);
 
-        canvas.loadFromJSON(parsed.canvasData ?? parsed).then(() => {
+        const canvasData = parsed.canvasData ?? parsed;
+        const imageHashes = resolveForLoad(canvasData);
+        canvas.loadFromJSON(canvasData).then(() => {
+            seedImageHashes(canvas, imageHashes);
             syncStateFromCanvas(canvas);
 
             canvas.setDimensions({ width: dims.width * fitScale, height: dims.height * fitScale });
             canvas.setZoom(fitScale);
             canvas.requestRenderAll();
 
-            // Seed history with the restored state (no extra snapshot on open)
-            history.current = [stateStr];
+            // Seed history with the restored state (no extra autosave on open).
+            // Re-serialize so a format-1 project's history starts out light too.
+            history.current = [createSnapshot()?.stateEntry ?? stateStr];
             redoStack.current = [];
             setZoomLevel(fitScale);
             setStatus("Ready");

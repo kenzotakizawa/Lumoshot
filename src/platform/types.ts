@@ -15,6 +15,8 @@ export interface InitialImage {
     // When set (web only), the editor restores this saved snapshot instead of
     // loading a fresh background image.
     restoreState?: string;
+    // Image data for the "asset:<hash>" refs in restoreState (format 2).
+    restoreAssets?: Record<string, string>;
 }
 
 // Things the editor needs from its host environment (extension vs web).
