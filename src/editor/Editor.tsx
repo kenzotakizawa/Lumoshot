@@ -69,7 +69,29 @@ interface EditorProps {
     // The screenshot edited just before this one, offered as "continue step
     // numbers from it" in the step-number tool.
     stepContinuation?: { name: string; lastStep: number } | null;
+    // GIF editing (extension): the canvas shows one frame of a recording.
+    gif?: EditorGifMode;
 }
+
+export interface EditorGifMode {
+    // Called whenever the document was (re)built — first load, undo/redo —
+    // so the host can put the current frame back and show or hide each
+    // annotation for it.
+    onCanvasChange: (canvas: Canvas) => void;
+    // Replaces the image export menu (e.g. "Save GIF").
+    exportControls: React.ReactNode;
+    // ⌘S
+    onSave: () => void;
+    // Shown under the canvas.
+    timeline: React.ReactNode;
+}
+
+// Annotation props saved with the document: GIF annotations remember which
+// frames they appear on.
+const GIF_PROPS = ['gifFrom', 'gifTo'];
+const CLONE_PROPS = [...REDACT_PROPS, ...GIF_PROPS];
+// Tools that change the image itself don't apply to a recording.
+const GIF_HIDDEN_TOOLS = ['resize', 'crop', 'before-after'];
 
 export interface EditorController {
     // Serialize the current canvas right now (no debounce), e.g. to save it
@@ -81,7 +103,10 @@ export interface EditorController {
 // included), so history is capped to bound memory during long sessions.
 const MAX_HISTORY_ENTRIES = 30;
 
-const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, projectName, initial, controllerRef, onOpenProjects, overlay, stepContinuation }) => {
+const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, projectName, initial, controllerRef, onOpenProjects, overlay, stepContinuation, gif }) => {
+    // Read from long-lived listeners (keydown, undo), so keep the latest.
+    const gifRef = useRef(gif);
+    gifRef.current = gif;
     const canvasEl = useRef<HTMLCanvasElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const fabricCanvas = useRef<Canvas | null>(null);
@@ -227,7 +252,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
         if (!canvas) return null;
 
         // Include custom properties in JSON serialization
-        const obj = withoutRedactionPatterns(canvas, () => withAssetRefs(canvas, assetsRef.current, () => canvas.toObject(['isBackground', 'isFrame', 'isOutline', 'outlineColor', 'outlineWidth', 'outlineEdge', 'isSpotlight', 'isBlur', 'redactMode', 'redactStrength', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel', 'isZoomPanel', 'isZoomSource', 'zoomId', 'zoomColor', 'zoomIsEllipse', 'isArrow', 'arrowStyle'])));
+        const obj = withoutRedactionPatterns(canvas, () => withAssetRefs(canvas, assetsRef.current, () => canvas.toObject(['isBackground', 'isFrame', 'isOutline', 'outlineColor', 'outlineWidth', 'outlineEdge', 'isSpotlight', 'isBlur', 'redactMode', 'redactStrength', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel', 'isZoomPanel', 'isZoomSource', 'zoomId', 'zoomColor', 'zoomIsEllipse', 'isArrow', 'arrowStyle', ...GIF_PROPS])));
 
         const stateEntry = JSON.stringify({
             formatVersion: SNAPSHOT_FORMAT_VERSION,
@@ -352,6 +377,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
         canvas.loadFromJSON(canvasData).then(() => {
             seedImageHashes(canvas, imageHashes);
             syncStateFromCanvas(canvas);
+            gifRef.current?.onCanvasChange(canvas);
             canvas.requestRenderAll();
             isHistoryProcessing.current = false;
         });
@@ -753,7 +779,11 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
         //   - extension: chrome.storage.local (set by capture/background scripts)
         //   - web: provided by the web shell before the editor mounts
         setStatus("Loading image...");
+        // In development, StrictMode mounts, disposes and remounts the canvas;
+        // the first (disposed) run must not load into the second canvas.
+        let disposed = false;
         (initial !== undefined ? Promise.resolve(initial) : platform.getInitialImage()).then((init) => {
+            if (disposed) return;
             if (!init) {
                 setStatus("Ready");
                 return;
@@ -795,6 +825,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
         });
 
         return () => {
+            disposed = true;
             if (wrapper) wrapper.removeEventListener('wheel', handleWheel);
             canvas.dispose();
         };
@@ -858,7 +889,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
     // mosaic stays a mosaic) and don't serialize pattern sources while cloning.
     const cloneObject = (obj: any): Promise<any> => {
         const canvas = fabricCanvas.current;
-        return canvas ? withoutRedactionPatterns(canvas, () => obj.clone(REDACT_PROPS)) : obj.clone(REDACT_PROPS);
+        return canvas ? withoutRedactionPatterns(canvas, () => obj.clone(CLONE_PROPS)) : obj.clone(CLONE_PROPS);
     };
     const reapplyRedactions = (cloned: any) => {
         const canvas = fabricCanvas.current;
@@ -959,7 +990,8 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
                 } else if (e.key.toLowerCase() === 's') {
                     // Save with the current export settings (instead of the browser's "Save page")
                     e.preventDefault();
-                    handleDownloadRef.current();
+                    if (gifRef.current) gifRef.current.onSave();
+                    else handleDownloadRef.current();
                     return;
                 } else if (e.key.toLowerCase() === 'c') {
                     // Copy selected object(s)
@@ -1058,7 +1090,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
                     case 'b': setCurrentTool('speech-bubble'); setStrokeWidth(2); break;
                     case 's': setCurrentTool('spotlight-rect'); break;
                     case 'u': setCurrentTool('blur-rect'); setStrokeColor('#000000'); break;
-                    case 'c': setIsCropping(true); setCropReady(false); break;
+                    case 'c': if (!gifRef.current) { setIsCropping(true); setCropReady(false); } break;
                     case 'h': setCurrentTool('highlighter'); setStrokeWidth(12); break;
                     case 'p': setCurrentTool('pen'); setStrokeWidth(2); break;
                     case 'm': setCurrentTool('click-icon'); break;
@@ -1109,6 +1141,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
 
             canvas.setDimensions({ width: dims.width * fitScale, height: dims.height * fitScale });
             canvas.setZoom(fitScale);
+            gifRef.current?.onCanvasChange(canvas);
             canvas.requestRenderAll();
 
             // Seed history with the restored state (no extra autosave on open).
@@ -1174,6 +1207,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
 
             // Re-apply the outline if it was on (e.g. after deleting the Before image)
             if (outlineEnabled) applyOutline(true, outlineColor, outlineWidth);
+            gifRef.current?.onCanvasChange(canvas);
 
             // Store initial history state
             saveState();
@@ -1721,7 +1755,8 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
         setStatus("Copying...");
         let blob: Blob;
         try {
-            const rendered = renderForExport(opts.scale);
+            // GIF mode has no image export settings: copy the frame as is.
+            const rendered = renderForExport(gifRef.current ? 1 : opts.scale);
             if (!rendered) return;
             blob = await encodeCanvas(rendered, 'png', 1);
         } catch (err) {
@@ -2097,7 +2132,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
     };
 
     return (
-        <div className={`editor-container ${isDarkMode ? 'dark' : ''}`}>
+        <div className={`editor-container ${isDarkMode ? 'dark' : ''} ${gif ? 'gif-mode' : ''}`}>
             {overlay}
             {/* Sidebar Tools */}
             <Sidebar
@@ -2112,6 +2147,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
                 isCropping={isCropping}
                 onStartBA={startBAMode}
                 isBAMode={isBAMode}
+                hiddenTools={gif ? GIF_HIDDEN_TOOLS : undefined}
             />
 
             {/* Main Area */}
@@ -2155,6 +2191,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
                     onOpenResize={() => setShowResizeModal(true)}
                     onGoHome={onGoHome}
                     saveStatusLabel={saveStatusLabel}
+                    exportControls={gif?.exportControls}
                 />
 
                 {notice && (
@@ -2327,7 +2364,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
                     </div>
                 </div>
 
-
+                {gif?.timeline}
             </div>
 
             {/* Resize Modal */}

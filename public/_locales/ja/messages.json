@@ -282,5 +282,14 @@
     },
     "popupSectionRecent": {
         "message": "最近の編集"
+    },
+    "popupRecordGif": {
+        "message": "GIF を録画"
+    },
+    "popupRecordGifDesc": {
+        "message": "このタブの操作を録画（最長5分）。もう一度アイコンを押すと止まります"
+    },
+    "gifRecordingTitle": {
+        "message": "録画中 — クリックで停止して GIF エディタを開く"
     }
 }

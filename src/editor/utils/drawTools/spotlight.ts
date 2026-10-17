@@ -100,7 +100,7 @@ export function spotlightMouseUp(canvas: Canvas, ctx: DrawToolContext, isEllipse
  * an offscreen canvas during export (toCanvasElement).
  */
 export function spotlightAfterRender(canvas: Canvas, ctx: CanvasRenderingContext2D = canvas.getContext()) {
-    const spotlights = canvas.getObjects().filter(o => o.get('isSpotlight'));
+    const spotlights = canvas.getObjects().filter(o => o.get('isSpotlight') && o.visible !== false);
     if (spotlights.length === 0) return;
 
     ctx.save();

@@ -184,7 +184,7 @@ function facingSide(
 // `ctx` is the context fabric just rendered into (live canvas, or an offscreen
 // export canvas).
 export function zoomAfterRender(canvas: Canvas, ctx2d: CanvasRenderingContext2D = canvas.getContext()) {
-    const panels = canvas.getObjects().filter((o: any) => o.get('isZoomPanel'));
+    const panels = canvas.getObjects().filter((o: any) => o.get('isZoomPanel') && o.visible !== false);
     if (panels.length === 0) return;
 
     const bgImg: any = canvas.getObjects().find((o: any) => o.get('isBackground'));

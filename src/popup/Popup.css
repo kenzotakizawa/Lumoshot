@@ -194,6 +194,64 @@ body {
   right: 6px;
 }
 
+/* ─── Record a GIF ─── */
+.popup-gif {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--pp-border);
+  border-radius: 12px;
+  background: var(--pp-surface);
+  color: var(--pp-text);
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.popup-gif:hover {
+  border-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(17, 27, 77, 0.08);
+}
+
+.popup-gif-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #fef2f2;
+}
+
+.popup-gif-icon span {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #dc2626;
+  box-shadow: 0 0 0 3px #fecaca;
+}
+
+.popup-gif-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.popup-gif-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.popup-gif-desc {
+  font-size: 10.5px;
+  color: var(--pp-muted);
+  line-height: 1.35;
+}
+
 /* ─── Open an image ─── */
 .popup-section-label {
   margin: 4px 2px -2px;
@@ -265,7 +323,27 @@ body {
   box-shadow: 0 4px 12px rgba(17, 27, 77, 0.06);
 }
 
+.popup-recent-thumb {
+  position: relative;
+  display: block;
+}
+
+.popup-recent-badge {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(17, 24, 39, 0.78);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 15px;
+}
+
 .popup-recent-item img {
+  display: block;
   width: 100%;
   aspect-ratio: 16 / 10;
   object-fit: cover;
@@ -273,7 +351,7 @@ body {
   background: #f1f5f9;
 }
 
-.popup-recent-item span {
+.popup-recent-name {
   font-size: 10.5px;
   color: var(--pp-muted);
   white-space: nowrap;

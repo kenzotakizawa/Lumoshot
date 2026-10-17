@@ -1,6 +1,9 @@
 import { captureFullPage } from "./fullPage";
+import { registerGifRecording } from "./gifRecording";
 
 console.log("Lumoshot background script loaded");
+
+registerGifRecording();
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {

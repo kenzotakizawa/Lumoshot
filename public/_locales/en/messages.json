@@ -282,5 +282,14 @@
     },
     "popupSectionRecent": {
         "message": "Recent edits"
+    },
+    "popupRecordGif": {
+        "message": "Record a GIF"
+    },
+    "popupRecordGifDesc": {
+        "message": "Record this tab (up to 5 min). Click the icon again to stop"
+    },
+    "gifRecordingTitle": {
+        "message": "Recording — click to stop and open the GIF editor"
     }
 }

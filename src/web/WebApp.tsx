@@ -317,8 +317,8 @@ export default function WebApp() {
 
                 <a className="web-landing-fullpage" href={CHROME_EXT_URL} target="_blank" rel="noreferrer">
                     <ScrollText size={14} />
-                    {tt('縦に長いページを丸ごと撮るなら、Chrome 拡張機能版の「ページ全体（スクロール）」を使えます →',
-                        'Need a whole long page in one shot? The Chrome extension can capture an entire scrolling page →')}
+                    {tt('縦に長いページを丸ごと撮る・操作を GIF で録画するなら、Chrome 拡張機能版を使えます →',
+                        'Need a whole long page in one shot, or a GIF of your steps? Use the Chrome extension →')}
                 </a>
 
                 <p className="web-landing-hint">

@@ -11,27 +11,69 @@ import {
 } from 'lucide-react';
 import './Popup.css';
 import { assetsForProject, importedProjectName, isLumoshotFileName, lumoshotFileErrorMessage, readLumoshotFile } from '../lib/lumoshotFile';
-import { createProjectFromFile, listProjects, type Project } from '../lib/projectStore';
+import { createProjectFromFile, listProjects } from '../lib/projectStore';
+import { listRecordings, recordingName } from '../gif/gifStore';
 
 type CaptureMode = 'visible' | 'selected' | 'fullpage' | 'desktop';
 
 const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
+
+interface RecentItem {
+    key: string;
+    url: string;
+    name: string;
+    thumbnail: string;
+    updatedAt: number;
+    isGif: boolean;
+}
 const isJa = () => chrome.i18n.getUILanguage().toLowerCase().startsWith('ja');
 
 const Popup: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [overrideMessages, setOverrideMessages] = useState<Record<string, { message: string }> | null>(null);
-    // The newest saved edits (the extension has no home screen to list them).
-    const [recent, setRecent] = useState<Project[]>([]);
+    // The newest saved edits and GIF recordings (the extension has no home
+    // screen to list them).
+    const [recent, setRecent] = useState<RecentItem[]>([]);
 
     useEffect(() => {
-        listProjects().then((all) => setRecent(all.slice(0, 3))).catch(() => {});
+        Promise.all([listProjects().catch(() => []), listRecordings().catch(() => [])]).then(([projects, recordings]) => {
+            const items: RecentItem[] = [
+                ...projects.map((p) => ({ key: `p${p.id}`, url: `editor.html?project=${p.id}`, name: p.name, thumbnail: p.thumbnail, updatedAt: p.updatedAt, isGif: false })),
+                ...recordings.map((r) => ({ key: `g${r.id}`, url: `gif.html?recording=${r.id}`, name: recordingName(r), thumbnail: r.thumbnail, updatedAt: r.updatedAt, isGif: true })),
+            ];
+            setRecent(items.sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 3));
+        });
     }, []);
 
-    const openProject = useCallback((id: number) => {
-        chrome.tabs.create({ url: `editor.html?project=${id}` });
+    const openUrl = useCallback((url: string) => {
+        chrome.tabs.create({ url });
         window.close();
+    }, []);
+    const openProject = useCallback((id: number) => openUrl(`editor.html?project=${id}`), [openUrl]);
+
+    // GIF: the stream id must be requested here, while the popup (the user's
+    // click on the extension) is still open; the background does the rest.
+    const startGif = useCallback(async () => {
+        setErrorMsg(null);
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (!tab?.id) throw new Error('No active tab');
+            const streamId = await new Promise<string>((resolve, reject) => {
+                chrome.tabCapture.getMediaStreamId({ targetTabId: tab.id }, (id) => {
+                    if (chrome.runtime.lastError || !id) reject(new Error(chrome.runtime.lastError?.message || 'No stream id'));
+                    else resolve(id);
+                });
+            });
+            const res = await chrome.runtime.sendMessage({ type: 'GIF_START', streamId, tabId: tab.id });
+            if (!res?.ok) throw new Error(res?.error || 'Could not start');
+            window.close();
+        } catch (err) {
+            console.error('GIF recording failed to start', err);
+            setErrorMsg(isJa()
+                ? 'このページは録画できません（Chrome の設定ページやウェブストアなど）。別のページで試してください。'
+                : "This page can't be recorded (e.g. Chrome settings or the Web Store). Try another page.");
+        }
     }, []);
 
     useEffect(() => {
@@ -141,6 +183,9 @@ const Popup: React.FC = () => {
             if (map[key]) {
                 e.preventDefault();
                 handleAction(map[key]);
+            } else if (key === 'g') {
+                e.preventDefault();
+                startGif();
             } else if (key === 'o') {
                 e.preventDefault();
                 fileInputRef.current?.click();
@@ -160,7 +205,7 @@ const Popup: React.FC = () => {
             window.removeEventListener('keydown', onKeyDown);
             window.removeEventListener('paste', onPaste);
         };
-    }, [handleAction, openImage]);
+    }, [handleAction, openImage, startGif]);
 
     const tiles: Array<{ mode: CaptureMode; icon: React.ReactNode; label: string; desc: string; key: string }> = [
         { mode: 'selected', icon: <Crop size={20} />, label: t('popupSelectedArea'), desc: t('popupSelectedAreaDesc'), key: 'S' },
@@ -198,6 +243,15 @@ const Popup: React.FC = () => {
                 ))}
             </div>
 
+            <button className="popup-gif" onClick={startGif} title={t('popupRecordGifDesc')}>
+                <span className="popup-gif-icon" aria-hidden="true"><span /></span>
+                <span className="popup-gif-text">
+                    <span className="popup-gif-title">{t('popupRecordGif')}</span>
+                    <span className="popup-gif-desc">{t('popupRecordGifDesc')}</span>
+                </span>
+                <kbd>G</kbd>
+            </button>
+
             <div className="popup-section-label">{t('popupSectionLocalImage')}</div>
             <div className="popup-open-row">
                 <button className="popup-open-btn" onClick={() => fileInputRef.current?.click()} title={t('popupUploadFileDesc')}>
@@ -223,10 +277,13 @@ const Popup: React.FC = () => {
                 <>
                     <div className="popup-section-label">{t('popupSectionRecent')}</div>
                     <div className="popup-recent">
-                        {recent.map((p) => (
-                            <button key={p.id} className="popup-recent-item" onClick={() => openProject(p.id!)} title={p.name}>
-                                <img src={p.thumbnail} alt="" />
-                                <span>{p.name}</span>
+                        {recent.map((item) => (
+                            <button key={item.key} className="popup-recent-item" onClick={() => openUrl(item.url)} title={item.name}>
+                                <span className="popup-recent-thumb">
+                                    <img src={item.thumbnail} alt="" />
+                                    {item.isGif && <span className="popup-recent-badge">GIF</span>}
+                                </span>
+                                <span className="popup-recent-name">{item.name}</span>
                             </button>
                         ))}
                     </div>

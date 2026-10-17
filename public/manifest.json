@@ -10,7 +10,9 @@
         "scripting",
         "storage",
         "unlimitedStorage",
-        "clipboardRead"
+        "clipboardRead",
+        "tabCapture",
+        "offscreen"
     ],
     "background": {
         "service_worker": "background.js",

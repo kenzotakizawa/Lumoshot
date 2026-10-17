@@ -147,6 +147,7 @@ const Guide: React.FC = () => {
                         <div className="tool-chip-row">
                             <a href="#cap-visible">{t('画面キャプチャ', 'Capture Screen')}</a>
                             <a href="#cap-fullpage">{t('ページ全体（拡張版）', 'Entire page (extension)')}</a>
+                            <a href="#cap-gif">{t('GIF 録画（拡張版）', 'GIF recording (extension)')}</a>
                             <a href="#cap-upload">{t('アップロード', 'Upload')}</a>
                             <a href="#cap-sample">{t('サンプルで試す', 'Try the Sample')}</a>
                         </div>
@@ -182,6 +183,36 @@ const Guide: React.FC = () => {
                                 'To keep fixed headers and chat buttons from repeating, elements pinned to the top appear only in the first piece and those pinned to the bottom only in the last. Long pages are captured in full at a reduced resolution. Apps that scroll an inner panel (like Gmail or Notion) are captured as the visible area only, and extremely long pages are cut off partway (the editor tells you when any of this happens). The web app can’t do this because of browser restrictions.'
                             )}
                         </p>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section" id="cap-gif">
+                        <h3>{t('操作を GIF で録画（Chrome拡張版）', 'Record a GIF (Chrome extension)')}</h3>
+                        <p>
+                            {t(
+                                'ポップアップの「GIF を録画」を押すと、今開いているタブの録画が始まります。録画中は拡張機能アイコンが赤い REC マークになり、「0:12」のように経過時間が表示されます。止めるときはもう一度アイコンを押してください。最長5分で自動的に止まり、録画中のタブを閉じたときも止まります。ページを移動しても録画は続くので、複数ページにまたがる手順も1本で撮れます。',
+                                'Click Record a GIF in the popup to start recording the current tab. While recording, the extension icon turns into a red REC mark with the elapsed time (like “0:12”). Click the icon again to stop. Recording stops by itself after 5 minutes, or when the tab is closed. It keeps going when you move to another page, so a flow across several pages fits in one recording.'
+                            )}
+                        </p>
+                        <p>
+                            {t(
+                                '止めると GIF エディタが開きます。下のタイムラインで再生・コマ送り（← →）ができ、「ここから使う／ここまで使う」で前後をカット、「このフレームを外す」で不要なコマを抜けます。矢印や塗りつぶしなどの注釈は画像と同じ道具で描けて、注釈を選んで「このフレームから表示／このフレームまで表示」を押すと、出てくる範囲を決められます（新しい注釈はすべてのフレームに表示）。',
+                                'When you stop, the GIF editor opens. Use the timeline below to play and step through frames (← →), “Start here / End here” to cut the beginning and end, and “Leave frame out” to drop single frames. Draw arrows, redactions and other annotations with the same tools as for images; select one and use “Show from / until this frame” to choose when it appears (new annotations show on all frames).'
+                            )}
+                        </p>
+                        <p>
+                            {t(
+                                '保存ボタン横の ▾ で、なめらかさ（5／10fps）・サイズ・色数・ディザリング・くり返し再生・止まっている時間の短縮を選べます。仕上がりのサイズの目安が常に表示され、10MB を超えそうなときはカットやサイズの調整をおすすめします。保存は GIF ファイルのダウンロードです。保存後の表示からドラッグしてチャットやフォルダに持っていくこともできます。コピーボタンは今のフレームを静止画（PNG）でコピーします。',
+                                'The ▾ next to Save sets the frame rate (5 / 10 fps), size, number of colors, dithering, looping, and shortening still moments. An estimate of the file size is always shown, with tips when it is likely to exceed 10 MB. Saving downloads a GIF file; you can also drag it from the notice that appears into a chat or folder. The Copy button copies the current frame as a still PNG.'
+                            )}
+                        </p>
+                        <div className="guide-note">
+                            {t(
+                                '録画はこのパソコンの中（ブラウザの保存領域）にだけ保存され、新しい順に3件まで残ります。ブラウザの制約で、GIF そのものをクリップボードにコピーすることはできません。',
+                                'Recordings are stored only on this computer (in the browser’s storage); the 3 newest are kept. Browsers can’t put a GIF itself on the clipboard.'
+                            )}
+                        </div>
                     </article>
 
                     <div className="feature-divider" />

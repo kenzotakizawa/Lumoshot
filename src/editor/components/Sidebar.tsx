@@ -19,6 +19,8 @@ interface SidebarProps {
     isCropping: boolean;
     onStartBA: () => void;
     isBAMode: boolean;
+    // Tool ids to leave out (e.g. image-changing tools while editing a GIF).
+    hiddenTools?: string[];
 }
 
 // lucide has no ellipse glyph; draw one in the same style (24 viewBox, 2px
@@ -78,8 +80,11 @@ const TOOL_GROUPS: ToolDef[][] = [
 
 const Sidebar: React.FC<SidebarProps> = ({
     currentTool, setCurrentTool, strokeWidth, setStrokeWidth, setStrokeColor,
-    fileInputRef, onOpenResize, onStartCrop, isCropping, onStartBA, isBAMode
+    fileInputRef, onOpenResize, onStartCrop, isCropping, onStartBA, isBAMode, hiddenTools
 }) => {
+    const groups = hiddenTools?.length
+        ? TOOL_GROUPS.map((g) => g.filter((def) => !hiddenTools.includes(def.id))).filter((g) => g.length > 0)
+        : TOOL_GROUPS;
     const handleClick = (def: ToolDef) => {
         switch (def.action) {
             case 'resize': onOpenResize(); return;
@@ -108,7 +113,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     return (
         <div className="sidebar">
             <div className="sidebar-inner">
-                {TOOL_GROUPS.map((group, gi) => (
+                {groups.map((group, gi) => (
                     <React.Fragment key={gi}>
                         {gi > 0 && <div className="sidebar-divider" />}
                         {group.map(def => (
