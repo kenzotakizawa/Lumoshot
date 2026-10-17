@@ -12,6 +12,10 @@ export interface CapturePlan {
     captureHeight: number;
     // Whether the page was taller than what we can capture.
     truncated: boolean;
+    // Output resolution relative to the captured strips (1 = full device
+    // resolution). Long pages are scaled down — never below 1 image px per CSS
+    // px — so they fit in full instead of being cut off.
+    outputScale: number;
     // Scroll positions to visit, top to bottom.
     scrollPositions: number[];
 }
@@ -20,10 +24,28 @@ export interface CapturePlan {
 // `deviceWidth` = width of one captured strip in device px.
 export function planCapture(pageHeight: number, viewportHeight: number, scale: number, deviceWidth: number): CapturePlan {
     const vh = Math.max(1, Math.floor(viewportHeight));
-    const maxByHeight = Math.floor(MAX_DEVICE_HEIGHT / scale);
-    const maxByArea = Math.floor(MAX_DEVICE_PIXELS / Math.max(1, deviceWidth) / scale);
-    const limit = Math.max(vh, Math.min(maxByHeight, maxByArea));
-    const captureHeight = Math.max(vh, Math.min(Math.ceil(pageHeight), limit));
+    const fullHeight = Math.max(vh, Math.ceil(pageHeight));
+    const width = Math.max(1, deviceWidth);
+
+    // Largest output scale at which the whole page fits both limits.
+    const fitByHeight = MAX_DEVICE_HEIGHT / (fullHeight * scale);
+    const fitByArea = Math.sqrt(MAX_DEVICE_PIXELS / (width * fullHeight * scale));
+    const fit = Math.floor(Math.min(1, fitByHeight, fitByArea) * 1000) / 1000;
+    // Don't go below 1 output px per CSS px; past that, truncate instead.
+    const minScale = Math.min(1, 1 / scale);
+
+    let outputScale: number;
+    let captureHeight: number;
+    if (fit >= minScale) {
+        outputScale = fit;
+        captureHeight = fullHeight;
+    } else {
+        outputScale = minScale;
+        const s = scale * minScale;
+        const maxByHeight = Math.floor(MAX_DEVICE_HEIGHT / s);
+        const maxByArea = Math.floor(MAX_DEVICE_PIXELS / (width * minScale) / s);
+        captureHeight = Math.max(vh, Math.min(fullHeight, maxByHeight, maxByArea));
+    }
     const truncated = Math.ceil(pageHeight) > captureHeight;
 
     const scrollPositions: number[] = [];
@@ -32,7 +54,7 @@ export function planCapture(pageHeight: number, viewportHeight: number, scale: n
         // is a full viewport; the overlap is trimmed when stitching.
         scrollPositions.push(Math.min(y, captureHeight - vh));
     }
-    return { captureHeight, truncated, scrollPositions: [...new Set(scrollPositions)] };
+    return { captureHeight, truncated, outputScale, scrollPositions: [...new Set(scrollPositions)] };
 }
 
 export interface DrawOp {

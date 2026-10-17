@@ -19,17 +19,35 @@ describe('planCapture', () => {
         expect(p.captureHeight).toBe(800);
     });
 
-    it('truncates very long pages to the device-height limit', () => {
+    it('keeps full resolution when the page fits', () => {
+        expect(planCapture(2500, 800, 2, 2880).outputScale).toBe(1);
+    });
+
+    it('scales long pages down to fit in full instead of cutting them off', () => {
+        // Retina, 1440px-wide window, 20,000px page: too big at 2x, fits at a lower scale
+        const p = planCapture(20000, 900, 2, 2880);
+        expect(p.truncated).toBe(false);
+        expect(p.captureHeight).toBe(20000);
+        expect(p.outputScale).toBeLessThan(1);
+        expect(p.outputScale).toBeGreaterThanOrEqual(0.5);
+        const outW = 2880 * p.outputScale, outH = 20000 * 2 * p.outputScale;
+        expect(outH).toBeLessThanOrEqual(MAX_DEVICE_HEIGHT);
+        expect(outW * outH).toBeLessThanOrEqual(64 * 1024 * 1024);
+    });
+
+    it('truncates only when even 1px-per-CSS-px is too big', () => {
         const p = planCapture(100000, 800, 2, 1000);
         expect(p.truncated).toBe(true);
-        expect(p.captureHeight * 2).toBeLessThanOrEqual(MAX_DEVICE_HEIGHT);
+        expect(p.outputScale).toBe(0.5);
+        expect(p.captureHeight * 2 * p.outputScale).toBeLessThanOrEqual(MAX_DEVICE_HEIGHT);
         expect(p.scrollPositions.at(-1)! + 800).toBe(p.captureHeight);
     });
 
-    it('also truncates wide captures by total pixel count', () => {
-        const p = planCapture(30000, 900, 2, 5120);
+    it('never upscales and never drops below 1x on non-retina screens', () => {
+        const p = planCapture(50000, 800, 1, 1440);
+        expect(p.outputScale).toBe(1);
         expect(p.truncated).toBe(true);
-        expect(p.captureHeight * 2 * 5120).toBeLessThanOrEqual(64 * 1024 * 1024);
+        expect(p.captureHeight).toBeLessThanOrEqual(MAX_DEVICE_HEIGHT);
     });
 });
 

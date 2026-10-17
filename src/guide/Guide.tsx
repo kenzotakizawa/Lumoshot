@@ -178,8 +178,8 @@ const Guide: React.FC = () => {
                         </p>
                         <p>
                             {t(
-                                '画面に固定されたヘッダーやチャットボタンが何度も写り込まないよう、上部に固定された要素は最初の1枚だけ、下部の要素は最後の1枚だけに写します。Gmail や Notion のようにページの内側の枠がスクロールするアプリでは表示範囲のみを撮影し、極端に長いページは途中までの撮影になります（どちらもエディタ上部にお知らせが出ます）。Web版ではブラウザの制約上この撮影はできません。',
-                                'To keep fixed headers and chat buttons from repeating, elements pinned to the top appear only in the first piece and those pinned to the bottom only in the last. Apps that scroll an inner panel (like Gmail or Notion) are captured as the visible area only, and extremely long pages are cut off partway (the editor tells you when either happens). The web app can’t do this because of browser restrictions.'
+                                '画面に固定されたヘッダーやチャットボタンが何度も写り込まないよう、上部に固定された要素は最初の1枚だけ、下部の要素は最後の1枚だけに写します。長いページは画像の解像度を下げてページ全体を1枚に収めます。Gmail や Notion のようにページの内側の枠がスクロールするアプリでは表示範囲のみを撮影し、極端に長いページは途中までの撮影になります（いずれもエディタ上部にお知らせが出ます）。Web版ではブラウザの制約上この撮影はできません。',
+                                'To keep fixed headers and chat buttons from repeating, elements pinned to the top appear only in the first piece and those pinned to the bottom only in the last. Long pages are captured in full at a reduced resolution. Apps that scroll an inner panel (like Gmail or Notion) are captured as the visible area only, and extremely long pages are cut off partway (the editor tells you when any of this happens). The web app can’t do this because of browser restrictions.'
                             )}
                         </p>
                     </article>

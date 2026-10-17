@@ -1,4 +1,4 @@
-import { planCapture, planStitch, stripPhase, type StripPhase } from './fullPagePlan';
+import { MAX_DEVICE_HEIGHT, MAX_DEVICE_PIXELS, planCapture, planStitch, stripPhase, type StripPhase } from './fullPagePlan';
 
 // Full-page (scrolling) screenshot: scroll the page one viewport at a time,
 // capture each with captureVisibleTab, and stitch the strips into one image
@@ -207,20 +207,34 @@ export async function captureFullPage(tab: chrome.tabs.Tab): Promise<FullPageRes
 
         await runInPage(tabId, pageRestore).catch(() => {});
 
-        // Stitch
+        // Stitch. `scale` = strip px per CSS px (measured), `outScale` = output
+        // px per CSS px (lower than `scale` when a long page is scaled down).
         const bitmaps = await Promise.all(strips.map(async (d) => createImageBitmap(await (await fetch(d)).blob())));
         const scale = bitmaps[0].height / m.viewportHeight;
-        const width = bitmaps[0].width;
-        const height = Math.round(plan.captureHeight * scale);
+        const stripWidth = bitmaps[0].width;
+        // The plan assumed devicePixelRatio; if the strips came out at another
+        // scale, still keep the output within the size limits.
+        const cssWidth = stripWidth / scale;
+        const outScale = Math.min(
+            scale * plan.outputScale,
+            MAX_DEVICE_HEIGHT / plan.captureHeight,
+            Math.sqrt(MAX_DEVICE_PIXELS / (cssWidth * plan.captureHeight)),
+        );
+        const width = Math.round(cssWidth * outScale);
+        const height = Math.round(plan.captureHeight * outScale);
         const canvas = new OffscreenCanvas(width, height);
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('No 2D context');
+        ctx.imageSmoothingQuality = 'high';
         for (const op of planStitch(actualYs, m.viewportHeight, plan.captureHeight)) {
-            const dstStart = Math.round(op.dstY * scale);
-            const dstEnd = Math.round((op.dstY + op.height) * scale);
+            const bmp = bitmaps[op.strip];
             const srcStart = Math.round(op.srcY * scale);
-            const h = Math.min(dstEnd - dstStart, bitmaps[op.strip].height - srcStart);
-            if (h > 0) ctx.drawImage(bitmaps[op.strip], 0, srcStart, width, h, 0, dstStart, width, h);
+            const srcEnd = Math.min(bmp.height, Math.round((op.srcY + op.height) * scale));
+            const dstStart = Math.round(op.dstY * outScale);
+            const dstEnd = Math.round((op.dstY + op.height) * outScale);
+            if (srcEnd > srcStart && dstEnd > dstStart) {
+                ctx.drawImage(bmp, 0, srcStart, stripWidth, srcEnd - srcStart, 0, dstStart, width, dstEnd - dstStart);
+            }
         }
         bitmaps.forEach((b) => b.close());
         const dataUrl = await blobToDataUrl(await canvas.convertToBlob({ type: 'image/png' }));
@@ -229,7 +243,9 @@ export async function captureFullPage(tab: chrome.tabs.Tab): Promise<FullPageRes
         if (count === 1 && m.innerScroller) {
             notice = msg('このページは内側の枠がスクロールするため、表示範囲のみ撮影しました。', 'This page scrolls inside a panel, so only the visible area was captured.');
         } else if (plan.truncated) {
-            notice = msg(`ページが長いため、上から約${plan.captureHeight}pxまでを撮影しました。`, `The page is very long, so the top ${plan.captureHeight}px were captured.`);
+            notice = msg(`ページが非常に長いため、上から約${plan.captureHeight.toLocaleString()}pxまでを撮影しました。`, `The page is extremely long, so the top ${plan.captureHeight.toLocaleString()}px were captured.`);
+        } else if (outScale < scale - 0.01) {
+            notice = msg('ページが長いため、画像の解像度を下げてページ全体を撮影しました。', 'The page is long, so it was captured in full at a reduced resolution.');
         }
         await setBadge(tabId, '');
         return { dataUrl, notice };
