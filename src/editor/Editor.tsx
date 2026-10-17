@@ -12,6 +12,7 @@ import Ruler from './components/Ruler';
 import { Check, X, Trash2, Info } from 'lucide-react';
 import { initSmartGuides } from './utils/smartGuides';
 import { platform } from '@platform';
+import type { InitialImage } from '../platform/types';
 import { t, getUILanguage } from '../lib/i18n';
 import {
     REDACT_PROPS,
@@ -54,13 +55,29 @@ interface EditorProps {
     saveStatusLabel?: string | null;
     // Name used for the .lumoshot file (web: the saved project's name).
     projectName?: string | null;
+    // What to open. Leave undefined to ask the platform layer (extension:
+    // chrome.storage; web: the landing screen's pending image).
+    initial?: InitialImage | null;
+    // Filled with imperative helpers for the host (e.g. EditorHost).
+    controllerRef?: React.MutableRefObject<EditorController | null>;
+    // Shows a "projects" button in the header when provided.
+    onOpenProjects?: () => void;
+    // Rendered inside the editor container (so theme variables apply), e.g.
+    // the projects panel.
+    overlay?: React.ReactNode;
+}
+
+export interface EditorController {
+    // Serialize the current canvas right now (no debounce), e.g. to save it
+    // before switching to another project.
+    snapshotNow: () => { state: string; thumbnail: string; assets: Record<string, string> } | null;
 }
 
 // Each undo entry embeds the full canvas JSON (background image data URL
 // included), so history is capped to bound memory during long sessions.
 const MAX_HISTORY_ENTRIES = 30;
 
-const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, projectName }) => {
+const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, projectName, initial, controllerRef, onOpenProjects, overlay }) => {
     const canvasEl = useRef<HTMLCanvasElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const fabricCanvas = useRef<Canvas | null>(null);
@@ -724,7 +741,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
         //   - extension: chrome.storage.local (set by capture/background scripts)
         //   - web: provided by the web shell before the editor mounts
         setStatus("Loading image...");
-        platform.getInitialImage().then((init) => {
+        (initial !== undefined ? Promise.resolve(initial) : platform.getInitialImage()).then((init) => {
             if (!init) {
                 setStatus("Ready");
                 return;
@@ -1722,6 +1739,19 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
         saveExportOptions(next);
     };
 
+    useEffect(() => {
+        if (!controllerRef) return;
+        controllerRef.current = {
+            snapshotNow: () => {
+                const snap = createSnapshot();
+                return snap ? { state: snap.stateEntry, thumbnail: snap.thumbnail, assets: assetsFor(snap.stateEntry) } : null;
+            },
+        };
+    });
+    useEffect(() => () => {
+        if (controllerRef) controllerRef.current = null;
+    }, [controllerRef]);
+
     // Saves an editable .lumoshot file (annotations stay editable; the image is
     // embedded unredacted — see the note next to the button).
     const handleSaveProjectFile = () => {
@@ -2055,6 +2085,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
 
     return (
         <div className={`editor-container ${isDarkMode ? 'dark' : ''}`}>
+            {overlay}
             {/* Sidebar Tools */}
             <Sidebar
                 currentTool={currentTool}
@@ -2104,6 +2135,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, 
                     onChangeExportOptions={updateExportOptions}
                     getExportBaseSize={() => ({ ...originalSize.current })}
                     onSaveProjectFile={handleSaveProjectFile}
+                    onOpenProjects={onOpenProjects}
                     isDarkMode={isDarkMode}
                     toggleDarkMode={toggleDarkMode}
                     onOpenHelp={() => window.open('guide.html', '_blank')}

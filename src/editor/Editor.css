@@ -499,6 +499,172 @@ body {
     transform: translateY(0);
 }
 
+/* ─── Projects panel (recent edits drawer) ─── */
+.projects-panel-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: rgba(15, 23, 42, 0.18);
+}
+
+.projects-panel {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    box-shadow: 0 18px 48px var(--shadow-glass);
+    overflow: hidden;
+}
+
+.projects-panel-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 12px 10px 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.projects-panel-title {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.projects-panel-count {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.projects-panel-close {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.projects-panel-close:hover {
+    background: var(--action-hover);
+}
+
+.projects-panel-empty {
+    padding: 24px 16px;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.projects-panel-list {
+    list-style: none;
+    margin: 0;
+    padding: 8px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.projects-panel-list li {
+    position: relative;
+    margin-bottom: 6px;
+}
+
+.projects-panel-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.projects-panel-item:hover {
+    background: var(--action-hover);
+    border-color: var(--border-color);
+}
+
+.projects-panel-item.current {
+    background: var(--tool-active-bg);
+    border-color: #a5b4fc;
+}
+
+.projects-panel-item img {
+    flex-shrink: 0;
+    width: 88px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-canvas);
+}
+
+.projects-panel-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding-right: 24px;
+}
+
+.projects-panel-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.projects-panel-time {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.projects-panel-item.current .projects-panel-time {
+    color: #4f46e5;
+    font-weight: 700;
+}
+
+.projects-panel-delete {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    opacity: 0;
+}
+
+.projects-panel-list li:hover .projects-panel-delete,
+.projects-panel-delete:focus-visible {
+    opacity: 1;
+}
+
+.projects-panel-delete:hover {
+    background: rgba(220, 38, 38, 0.1);
+    color: #dc2626;
+}
+
 /* ─── One-off notice banner (e.g. a capture that was only partial) ─── */
 .editor-notice {
     display: flex;

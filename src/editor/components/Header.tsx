@@ -1,5 +1,5 @@
 import React from 'react';
-import { Monitor, Undo, Redo, Copy, ZoomIn, ZoomOut, Moon, Sun, HelpCircle, Scaling, Home } from 'lucide-react';
+import { Monitor, Undo, Redo, Copy, ZoomIn, ZoomOut, Moon, Sun, HelpCircle, Scaling, Home, GalleryVerticalEnd } from 'lucide-react';
 import { t as msg, getUILanguage } from '../../lib/i18n';
 import ExportMenu from './ExportMenu';
 import type { ExportOptions } from '../utils/exportImage';
@@ -25,6 +25,7 @@ interface HeaderProps {
     onChangeExportOptions: (next: ExportOptions) => void;
     getExportBaseSize: () => { width: number; height: number };
     onSaveProjectFile: () => void;
+    onOpenProjects?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -48,6 +49,7 @@ const Header: React.FC<HeaderProps> = ({
     onChangeExportOptions,
     getExportBaseSize,
     onSaveProjectFile,
+    onOpenProjects,
 }) => {
     const isJapanese = getUILanguage().startsWith('ja');
     const t = (ja: string, en: string) => isJapanese ? ja : en;
@@ -73,6 +75,11 @@ const Header: React.FC<HeaderProps> = ({
                 {onGoHome && (
                     <button className="action-btn" onClick={onGoHome} data-tooltip={t('ホームへ戻る', 'Back to home')} aria-label={t('ホームへ戻る', 'Back to home')}>
                         <Home size={16} />
+                    </button>
+                )}
+                {onOpenProjects && (
+                    <button className="action-btn" onClick={onOpenProjects} data-tooltip={t('最近の編集', 'Recent edits')} aria-label={t('最近の編集', 'Recent edits')}>
+                        <GalleryVerticalEnd size={16} />
                     </button>
                 )}
                 <button

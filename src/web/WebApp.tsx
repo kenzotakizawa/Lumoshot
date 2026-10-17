@@ -5,14 +5,12 @@ import './web.css';
 
 // Loaded on demand: the editor pulls in fabric.js (~200KB gz), which the
 // landing screen never needs. Deferring it keeps the initial page light.
-const Editor = lazy(() => import('../editor/Editor'));
-import { setWebInitialImage, setWebInitialState } from '../platform/platform.web';
+const EditorHost = lazy(() => import('../editor/EditorHost'));
+import type { EditorStart } from '../editor/EditorHost';
 import { getUILanguage } from '../lib/i18n';
 import { assetsForProject, importedProjectName, isLumoshotFileName, lumoshotFileErrorMessage, readLumoshotFile } from '../lib/lumoshotFile';
 import {
     listProjects,
-    upsertProject,
-    getProjectAssets,
     getProject,
     createProjectFromFile,
     renameProject,
@@ -21,7 +19,7 @@ import {
     storageUsage,
     MAX_ITEMS,
     type Project,
-} from './projectStore';
+} from '../lib/projectStore';
 
 const isJa = getUILanguage().toLowerCase().startsWith('ja');
 const tt = (ja: string, en: string) => (isJa ? ja : en);
@@ -33,8 +31,6 @@ const fmtBytes = (bytes: number) => {
     if (gb >= 1) return `${gb.toFixed(1)}GB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 };
-
-const SAVED_LABEL = tt('保存済み', 'Saved');
 
 function makeSampleImage(): string {
     const canvas = document.createElement('canvas');
@@ -92,20 +88,13 @@ export default function WebApp() {
     const [error, setError] = useState<string | null>(null);
     const [projects, setProjects] = useState<Project[]>([]);
     const [usage, setUsage] = useState<{ usage: number; quota: number }>({ usage: 0, quota: 0 });
-    const [saveStatus, setSaveStatus] = useState<string | null>(null);
+    // What the editor opens; the key remounts the host for each new start.
+    const [editorStart, setEditorStart] = useState<{ key: number; start: EditorStart } | null>(null);
     const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
     const [editingName, setEditingName] = useState('');
     const [isUnsupportedDevice, setIsUnsupportedDevice] = useState(false);
 
-    const currentProjectId = useRef<number | null>(null);
-    const currentProjectName = useRef<string | null>(null);
-    const saveTimer = useRef<number | null>(null);
-    // Mirrors `saveStatus` for the beforeunload handler, which is registered
-    // once per `started` change and would otherwise close over a stale value.
-    const saveStatusRef = useRef<string | null>(null);
-    useEffect(() => {
-        saveStatusRef.current = saveStatus;
-    }, [saveStatus]);
+    const startKey = useRef(0);
 
     const refreshGallery = useCallback(async () => {
         setProjects(await listProjects());
@@ -129,65 +118,36 @@ export default function WebApp() {
         return () => media.removeEventListener?.('change', update);
     }, []);
 
+    // Back button / goHome: leave the editor (EditorHost saves what's pending
+    // and warns before closing the tab with unsaved changes).
     useEffect(() => {
         if (!started) return;
-        const onBeforeUnload = (e: BeforeUnloadEvent) => {
-            // Only warn when there's something that could actually be lost —
-            // once the current edit is fully saved, let the tab close quietly.
-            if (saveStatusRef.current === SAVED_LABEL) return;
-            e.preventDefault();
-            e.returnValue = '';
-        };
         const onPopState = () => {
             setStarted(false);
             refreshGallery();
         };
-        window.addEventListener('beforeunload', onBeforeUnload);
         window.addEventListener('popstate', onPopState);
-        return () => {
-            window.removeEventListener('beforeunload', onBeforeUnload);
-            window.removeEventListener('popstate', onPopState);
-        };
+        return () => window.removeEventListener('popstate', onPopState);
     }, [started, refreshGallery]);
-
-    useEffect(() => {
-        return () => {
-            if (saveTimer.current !== null) window.clearTimeout(saveTimer.current);
-        };
-    }, []);
 
     const enterEditor = useCallback(() => {
         window.history.pushState({ lumoshot: 'editor' }, '', window.location.href);
         setStarted(true);
     }, []);
 
-    // Cancel any pending autosave so a stale debounced write can't clobber the
-    // next project we open.
-    const cancelPendingSave = useCallback(() => {
-        if (saveTimer.current !== null) {
-            window.clearTimeout(saveTimer.current);
-            saveTimer.current = null;
-        }
-    }, []);
+    const openEditor = useCallback((start: EditorStart) => {
+        startKey.current += 1;
+        setEditorStart({ key: startKey.current, start });
+        enterEditor();
+    }, [enterEditor]);
 
     const begin = useCallback((dataUrl: string) => {
-        cancelPendingSave();
-        currentProjectId.current = null; // new edit
-        currentProjectName.current = null;
-        setSaveStatus(null);
-        setWebInitialImage(dataUrl);
-        enterEditor();
-    }, [enterEditor, cancelPendingSave]);
+        openEditor({ kind: 'image', init: { dataUrl, cropRect: null, mode: 'web' } });
+    }, [openEditor]);
 
     const reopen = useCallback(async (p: Project) => {
-        cancelPendingSave();
-        currentProjectId.current = p.id ?? null;
-        currentProjectName.current = p.name;
-        setSaveStatus(tt('保存済み', 'Saved'));
-        // Format-2 projects keep big images in the assets table.
-        setWebInitialState(p.state, await getProjectAssets(p));
-        enterEditor();
-    }, [enterEditor, cancelPendingSave]);
+        if (p.id != null) openEditor({ kind: 'project', id: p.id });
+    }, [openEditor]);
 
     // Imports every project in a .lumoshot file into the gallery; a file with a
     // single project opens straight away.
@@ -260,22 +220,6 @@ export default function WebApp() {
         begin(makeSampleImage());
     }, [begin]);
 
-    // Debounced autosave of the editor snapshot
-    const handleSnapshot = useCallback((state: string, thumbnail: string, assets: Record<string, string>) => {
-        if (saveTimer.current !== null) window.clearTimeout(saveTimer.current);
-        setSaveStatus(tt('保存中...', 'Saving...'));
-        saveTimer.current = window.setTimeout(async () => {
-            try {
-                const id = await upsertProject(currentProjectId.current, state, thumbnail, assets);
-                currentProjectId.current = id;
-                setSaveStatus(tt('保存済み', 'Saved'));
-            } catch (err) {
-                console.warn('autosave failed', err);
-                setSaveStatus(tt('自動保存に失敗しました', 'Autosave failed'));
-            }
-        }, 800);
-    }, []);
-
     const goHome = useCallback(() => {
         // Route through the same path as the browser Back button so the
         // history entry pushed by enterEditor() is consumed either way,
@@ -308,7 +252,6 @@ export default function WebApp() {
         const name = editingName.trim();
         if (!name) return;
         await renameProject(editingProjectId, name);
-        if (currentProjectId.current === editingProjectId) currentProjectName.current = name;
         setEditingProjectId(null);
         setEditingName('');
         refreshGallery();
@@ -320,15 +263,10 @@ export default function WebApp() {
         refreshGallery();
     }, [refreshGallery]);
 
-    if (started) {
+    if (started && editorStart) {
         return (
             <Suspense fallback={<div className="web-editor-loading">{tt('読み込み中…', 'Loading…')}</div>}>
-                <Editor
-                    onSnapshot={handleSnapshot}
-                    onGoHome={goHome}
-                    saveStatusLabel={saveStatus}
-                    projectName={currentProjectName.current}
-                />
+                <EditorHost key={editorStart.key} start={editorStart.start} onGoHome={goHome} />
             </Suspense>
         );
     }
