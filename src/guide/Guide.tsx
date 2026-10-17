@@ -257,6 +257,7 @@ const Guide: React.FC = () => {
                         <div className="tool-chip-row">
                             <a href="#top-zoom">{t('ズーム', 'Zoom')}</a>
                             <a href="#top-home">{t('ホーム', 'Home')}</a>
+                            <a href="#top-projects">{t('最近の編集', 'Recent edits')}</a>
                             <a href="#top-frame">{t('フレーム追加', 'Add Frame')}</a>
                             <a href="#top-resize">{t('リサイズ', 'Resize')}</a>
                             <a href="#top-dark">{t('ダークモード', 'Dark Mode')}</a>
@@ -289,11 +290,35 @@ const Guide: React.FC = () => {
                         <h3>{t('ホームへ戻る', 'Go Home')}</h3>
                         <p>
                             {t(
-                                'ホームアイコンを押すと、編集画面を離れてホーム画面へ戻ります。Web版では編集中の内容が自動保存されるため、あとから最近の編集として開き直せます。',
-                                'Click the home icon to leave the editor and return to the home screen. On the web app, the current edit is autosaved so you can reopen it later from recent edits.'
+                                'ホームアイコン（Web版）を押すと、編集画面を離れてホーム画面へ戻ります。編集中の内容は自動保存されるため、あとから最近の編集として開き直せます。',
+                                'Click the home icon (web app) to leave the editor and return to the home screen. The current edit is autosaved so you can reopen it later from recent edits.'
                             )}
                         </p>
                         <FeatureMedia src="/guide/header-home.gif" altJa="ホームへ戻るGIF" altEn="Go home GIF" t={t} lang={lang} />
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section" id="top-projects">
+                        <h3>{t('最近の編集とまとめて保存', 'Recent Edits and Saving Several at Once')}</h3>
+                        <p>
+                            {t(
+                                '上部バーの「最近の編集」ボタン（カードが重なったアイコン）を押すと、右側に最近編集したスクリーンショットの一覧が開きます。押した編集にホームへ戻らずに切り替えられます。編集中の内容は自動で保存されるので、切り替えても消えません（最大15件まで。古いものから整理されます）。Chrome拡張版でも撮影するたびに1件として保存され、タブを閉じても残ります。ポップアップの「最近の編集」からも開けます。',
+                                'Click Recent edits in the top bar (the stacked-cards icon) to open a list of your recent screenshots on the right. Click one to switch to it without going back home. Your work is saved automatically, so nothing is lost when you switch (up to 15 edits; the oldest are cleared first). In the Chrome extension every capture is saved too and stays after you close the tab; you can also open them from Recent edits in the popup.'
+                            )}
+                        </p>
+                        <p>
+                            {t(
+                                '一覧の「選択」を押すと、複数の編集を選んでまとめて保存できます。「画像で保存」は作った順に 01_、02_… と番号を付けて保存し、2件以上なら ZIP にまとめます。形式とサイズは保存ボタン横の ▾ の設定に従います。「編集データで保存」は選んだ編集を1つの .lumoshot ファイルにまとめます。',
+                                'Click Select in the list to pick several edits and save them together. Save images numbers them 01_, 02_… in the order they were made, in a ZIP when there are two or more; format and size follow the ▾ settings next to Save. Save project file puts the selected edits into one .lumoshot file.'
+                            )}
+                        </p>
+                        <div className="guide-note">
+                            {t(
+                                '要らなくなった編集は、一覧のゴミ箱アイコンで削除できます（今開いている編集は削除できません）。',
+                                'Delete edits you no longer need with the trash icon in the list (the one you have open can’t be deleted).'
+                            )}
+                        </div>
                     </article>
 
                     <div className="feature-divider" />
@@ -586,6 +611,12 @@ const Guide: React.FC = () => {
                                 'Drops a numbered badge that counts up (1, 2, 3...) with each click. Indispensable for step-by-step bug reports and onboarding docs. You can rearrange numbers by dragging them afterwards.'
                             )}
                         </p>
+                        <p>
+                            {t(
+                                '手順を何枚かのスクリーンショットに分けて作るときは、このツールを選んだときに出る「前の画像の続きから（4〜）」にチェックを入れると、直前に編集した画像の最後の番号の続きから振れます。チェックを外すと 1 からに戻ります。',
+                                'When a how-to spans several screenshots, select this tool and check “Continue from previous (4–)” to keep counting from the last number in the image you edited just before. Uncheck it to start from 1 again.'
+                            )}
+                        </p>
                         <FeatureMedia src="/guide/tool-step-number.gif" altJa="ステップ番号のGIF" altEn="Step Number GIF" t={t} lang={lang} />
                     </article>
 
@@ -840,6 +871,17 @@ const Guide: React.FC = () => {
                                 <tr><td colSpan={2} style={{ fontWeight: 600, color: '#94a3b8' }}>{t('— 出力 —', '— Export —')}</td></tr>
                                 <tr><td><code>⌘C</code> / <code>Ctrl+C</code></td><td>{t('画像をクリップボードへコピー（図形を選択していないとき。選択中はその図形をコピー）', 'Copy the image to the clipboard (with nothing selected; with a selection, copies that shape)')}</td></tr>
                                 <tr><td><code>⌘S</code> / <code>Ctrl+S</code></td><td>{t('画像を保存（書き出し設定の形式・サイズ）', 'Save the image (using your export settings)')}</td></tr>
+
+                                <tr><td colSpan={2} style={{ fontWeight: 600, color: '#94a3b8' }}>{t('— GIF エディタ（拡張版） —', '— GIF editor (extension) —')}</td></tr>
+                                <tr><td><code>←</code> / <code>→</code></td><td>{t('前 / 次のフレーム（Shift で10フレームずつ）', 'Previous / next frame (Shift: 10 frames)')}</td></tr>
+                                <tr><td><code>⌘S</code> / <code>Ctrl+S</code></td><td>{t('GIF を保存', 'Save the GIF')}</td></tr>
+                                <tr><td><code>⌘C</code> / <code>Ctrl+C</code></td><td>{t('今のフレームを画像（PNG）でコピー（何も選択していないとき）', 'Copy the current frame as a PNG (with nothing selected)')}</td></tr>
+
+                                <tr><td colSpan={2} style={{ fontWeight: 600, color: '#94a3b8' }}>{t('— ポップアップ（拡張版） —', '— Popup (extension) —')}</td></tr>
+                                <tr><td><code>V</code></td><td>{t('見えている範囲を撮る', 'Capture the visible area')}</td></tr>
+                                <tr><td><code>S</code> / <code>P</code> / <code>D</code></td><td>{t('範囲を選ぶ / ページ全体 / デスクトップ', 'Select an area / Entire page / Desktop')}</td></tr>
+                                <tr><td><code>G</code></td><td>{t('GIF を録画', 'Record a GIF')}</td></tr>
+                                <tr><td><code>O</code></td><td>{t('ファイルを開く', 'Open a file')}</td></tr>
                             </tbody>
                         </table>
                     </div>
