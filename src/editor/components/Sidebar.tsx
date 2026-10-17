@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     MousePointer2, Square, ArrowUpRight, Type,
-    Focus, Circle, Droplet, ListOrdered, PenTool, Highlighter, MessageSquare, Mouse,
+    Focus, Circle, PaintBucket, ListOrdered, PenTool, Highlighter, MessageSquare, Mouse,
     Image as ImageIcon, Scaling, Crop, Columns2, ZoomIn, ScanSearch
 } from 'lucide-react';
 import type { ToolType } from '../hooks/useCanvasTools';
@@ -19,7 +19,18 @@ interface SidebarProps {
     isCropping: boolean;
     onStartBA: () => void;
     isBAMode: boolean;
+    // Tool ids to leave out (e.g. image-changing tools while editing a GIF).
+    hiddenTools?: string[];
 }
+
+// lucide has no ellipse glyph; draw one in the same style (24 viewBox, 2px
+// stroke) so it reads as a shape and isn't confused with Spotlight's circle.
+const EllipseIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <ellipse cx="12" cy="12" rx="10" ry="7" />
+    </svg>
+);
 
 /* ─── Tool definitions grouped by functional similarity ─── */
 interface ToolDef {
@@ -39,6 +50,7 @@ const TOOL_GROUPS: ToolDef[][] = [
     [
         { id: 'rect', icon: <Square size={20} />, i18nKey: 'toolRect', resetStrokeIfThick: true },
         { id: 'rounded-rect', icon: <Square size={20} style={{ rx: 4, ry: 4 }} />, i18nKey: 'toolRoundedRect', resetStrokeIfThick: true },
+        { id: 'ellipse', icon: <EllipseIcon size={20} />, i18nKey: 'toolEllipse', resetStrokeIfThick: true },
         { id: 'arrow', icon: <ArrowUpRight size={20} />, i18nKey: 'toolArrow', resetStrokeIfThick: true },
         { id: 'speech-bubble', icon: <MessageSquare size={20} />, i18nKey: 'toolSpeechBubble', resetStrokeIfThick: true },
     ],
@@ -54,7 +66,7 @@ const TOOL_GROUPS: ToolDef[][] = [
     [
         { id: 'spotlight-rect', icon: <Focus size={20} />, i18nKey: 'toolSpotlightRect' },
         { id: 'spotlight-ellipse', icon: <Circle size={20} />, i18nKey: 'toolSpotlightEllipse' },
-        { id: 'blur-rect', icon: <Droplet size={20} />, i18nKey: 'toolBlurRect', setStrokeColor: '#000000' },
+        { id: 'blur-rect', icon: <PaintBucket size={20} />, i18nKey: 'toolBlurRect', setStrokeColor: '#000000' },
         { id: 'zoom-rect', icon: <ZoomIn size={20} />, i18nKey: 'toolZoomRect' },
         { id: 'zoom-ellipse', icon: <ScanSearch size={20} />, i18nKey: 'toolZoomEllipse' },
     ],
@@ -68,8 +80,11 @@ const TOOL_GROUPS: ToolDef[][] = [
 
 const Sidebar: React.FC<SidebarProps> = ({
     currentTool, setCurrentTool, strokeWidth, setStrokeWidth, setStrokeColor,
-    fileInputRef, onOpenResize, onStartCrop, isCropping, onStartBA, isBAMode
+    fileInputRef, onOpenResize, onStartCrop, isCropping, onStartBA, isBAMode, hiddenTools
 }) => {
+    const groups = hiddenTools?.length
+        ? TOOL_GROUPS.map((g) => g.filter((def) => !hiddenTools.includes(def.id))).filter((g) => g.length > 0)
+        : TOOL_GROUPS;
     const handleClick = (def: ToolDef) => {
         switch (def.action) {
             case 'resize': onOpenResize(); return;
@@ -98,7 +113,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     return (
         <div className="sidebar">
             <div className="sidebar-inner">
-                {TOOL_GROUPS.map((group, gi) => (
+                {groups.map((group, gi) => (
                     <React.Fragment key={gi}>
                         {gi > 0 && <div className="sidebar-divider" />}
                         {group.map(def => (

@@ -9,23 +9,104 @@ import SubHeader from './components/SubHeader';
 import ResizeModal from './components/ResizeModal';
 import BeforeAfterModal from './components/BeforeAfterModal';
 import Ruler from './components/Ruler';
-import { Check, X, Trash2 } from 'lucide-react';
+import { Check, X, Trash2, Info } from 'lucide-react';
 import { initSmartGuides } from './utils/smartGuides';
+import { renumberStepBadges } from './utils/drawTools/stepNumber';
 import { platform } from '@platform';
-import { t } from '../lib/i18n';
+import type { InitialImage } from '../platform/types';
+import { t, getUILanguage } from '../lib/i18n';
+import {
+    REDACT_PROPS,
+    DEFAULT_REDACT_STRENGTH,
+    applyRedaction,
+    getRedactMode,
+    getRedactStrength,
+    isRedaction,
+    normalizeRedactionGeometry,
+    refreshRedactions,
+    withoutRedactionPatterns,
+    type RedactMode,
+} from './utils/redaction';
+import {
+    SNAPSHOT_FORMAT_VERSION,
+    assetRefsInState,
+    resolveAssetRefs,
+    seedImageHashes,
+    withAssetRefs,
+    type AssetMap,
+} from './utils/snapshotAssets';
+import { buildLumoshotFile, defaultProjectName, LUMOSHOT_FILE_EXTENSION, safeFileBaseName } from '../lib/lumoshotFile';
+import {
+    EXPORT_FORMATS,
+    buildExportFileName,
+    downloadBlob,
+    encodeCanvas,
+    loadExportOptions,
+    renderDocumentToCanvas,
+    saveExportOptions,
+    type ExportOptions,
+} from './utils/exportImage';
 
 interface EditorProps {
     // Called (debounced) whenever the editor state changes, for web-side autosave.
-    onSnapshot?: (state: string, thumbnail: string) => void;
+    // `state` references big images as "asset:<hash>"; `assets` carries the
+    // data for every asset that state references.
+    onSnapshot?: (state: string, thumbnail: string, assets: Record<string, string>) => void;
     onGoHome?: () => void;
     saveStatusLabel?: string | null;
+    // Name used for the .lumoshot file (web: the saved project's name).
+    projectName?: string | null;
+    // What to open. Leave undefined to ask the platform layer (extension:
+    // chrome.storage; web: the landing screen's pending image).
+    initial?: InitialImage | null;
+    // Filled with imperative helpers for the host (e.g. EditorHost).
+    controllerRef?: React.MutableRefObject<EditorController | null>;
+    // Shows a "projects" button in the header when provided.
+    onOpenProjects?: () => void;
+    // Rendered inside the editor container (so theme variables apply), e.g.
+    // the projects panel.
+    overlay?: React.ReactNode;
+    // The screenshot edited just before this one, offered as "continue step
+    // numbers from it" in the step-number tool.
+    stepContinuation?: { name: string; lastStep: number } | null;
+    // GIF editing (extension): the canvas shows one frame of a recording.
+    gif?: EditorGifMode;
+}
+
+export interface EditorGifMode {
+    // Called whenever the document was (re)built — first load, undo/redo —
+    // so the host can put the current frame back and show or hide each
+    // annotation for it.
+    onCanvasChange: (canvas: Canvas) => void;
+    // Replaces the image export menu (e.g. "Save GIF").
+    exportControls: React.ReactNode;
+    // ⌘S
+    onSave: () => void;
+    // Shown under the canvas.
+    timeline: React.ReactNode;
+}
+
+// Annotation props saved with the document: GIF annotations remember which
+// frames they appear on.
+const GIF_PROPS = ['gifFrom', 'gifTo'];
+const CLONE_PROPS = [...REDACT_PROPS, ...GIF_PROPS];
+// Tools that change the image itself don't apply to a recording.
+const GIF_HIDDEN_TOOLS = ['resize', 'crop', 'before-after'];
+
+export interface EditorController {
+    // Serialize the current canvas right now (no debounce), e.g. to save it
+    // before switching to another project.
+    snapshotNow: () => { state: string; thumbnail: string; assets: Record<string, string> } | null;
 }
 
 // Each undo entry embeds the full canvas JSON (background image data URL
 // included), so history is capped to bound memory during long sessions.
 const MAX_HISTORY_ENTRIES = 30;
 
-const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }) => {
+const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel, projectName, initial, controllerRef, onOpenProjects, overlay, stepContinuation, gif }) => {
+    // Read from long-lived listeners (keydown, undo), so keep the latest.
+    const gifRef = useRef(gif);
+    gifRef.current = gif;
     const canvasEl = useRef<HTMLCanvasElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const fabricCanvas = useRef<Canvas | null>(null);
@@ -43,6 +124,18 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
     const [isItalic, setIsItalic] = useState<boolean>(false);
     const [bubbleFillColor, setBubbleFillColor] = useState<string>('#ffffff');
     const [zoomLevel, setZoomLevel] = useState<number>(1);
+    // Mirror of zoomLevel for code reached from long-lived listeners (the
+    // keydown handler is registered once, so its handleUndo/handleRedo would
+    // otherwise restore at the mount-time zoom of 1 instead of the current one).
+    const zoomLevelRef = useRef<number>(1);
+    const [exportOptions, setExportOptions] = useState<ExportOptions>(loadExportOptions);
+    const exportOptionsRef = useRef<ExportOptions>(exportOptions);
+    const [redactMode, setRedactMode] = useState<RedactMode>('fill');
+    const [notice, setNotice] = useState<string | null>(null);
+    // Step numbers start after this (0 = from 1). Saved with the project.
+    const [stepOffset, setStepOffset] = useState(0);
+    const stepOffsetRef = useRef(0);
+    const [redactStrength, setRedactStrength] = useState<number>(DEFAULT_REDACT_STRENGTH);
     const [hasFrame, setHasFrame] = useState<boolean>(false);
     const [outlineEnabled, setOutlineEnabled] = useState<boolean>(false);
     const [outlineColor, setOutlineColor] = useState<string>('#1f2937');
@@ -75,11 +168,15 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
     const cropStartX = useRef<number>(0);
     const cropStartY = useRef<number>(0);
 
-    const blurCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const backgroundDataUrl = useRef<string | null>(null);
 
     // History states for Undo/Redo
     const history = useRef<string[]>([]);
+    // Image data referenced by snapshots ("asset:<hash>" → data URL), held once
+    // instead of being embedded in every undo entry.
+    const assetsRef = useRef<AssetMap>(new Map());
+    // Name of a project opened from a .lumoshot file (extension), reused when saving again.
+    const openedProjectName = useRef<string | null>(null);
     const redoStack = useRef<string[]>([]);
     const isHistoryProcessing = useRef<boolean>(false);
     const saveTimeout = useRef<number | null>(null);
@@ -93,22 +190,15 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
     // sync with what's actually rendered (e.g. re-adding a frame stacking a
     // second one because the button still read "off" after an Undo).
     const syncStateFromCanvas = (canvas: Canvas) => {
-        // Rebuild the offscreen blur source from the (possibly new) background image
         const bg = canvas.getObjects().find((o: any) => o.get('isBackground')) as any;
         const imgEl = bg?.getElement?.() as HTMLImageElement | undefined;
         if (imgEl) {
             baseImageSize.current = { width: bg.width, height: bg.height };
-            const blurTarget = document.createElement('canvas');
-            blurTarget.width = imgEl.naturalWidth || bg.width;
-            blurTarget.height = imgEl.naturalHeight || bg.height;
-            const bCtx = blurTarget.getContext('2d');
-            if (bCtx) {
-                bCtx.filter = 'blur(15px)';
-                bCtx.drawImage(imgEl, 0, 0);
-            }
-            blurCanvasRef.current = blurTarget;
             backgroundDataUrl.current = bg.toDataURL?.() ?? null;
         }
+        // Snapshots store mosaic/blur redactions as mode + geometry only;
+        // rebuild their imagery for the (possibly new) image layers.
+        refreshRedactions(canvas);
 
         const objs = canvas.getObjects() as any[];
 
@@ -162,11 +252,13 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         if (!canvas) return null;
 
         // Include custom properties in JSON serialization
-        const obj = canvas.toObject(['isBackground', 'isFrame', 'isOutline', 'outlineColor', 'outlineWidth', 'outlineEdge', 'isSpotlight', 'isBlur', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel', 'isZoomPanel', 'isZoomSource', 'zoomId', 'zoomColor', 'zoomIsEllipse', 'isArrow', 'arrowStyle']);
+        const obj = withoutRedactionPatterns(canvas, () => withAssetRefs(canvas, assetsRef.current, () => canvas.toObject(['isBackground', 'isFrame', 'isOutline', 'outlineColor', 'outlineWidth', 'outlineEdge', 'isSpotlight', 'isBlur', 'redactMode', 'redactStrength', 'isStepNumber', 'stepValue', 'hoverCursor', 'selectable', 'evented', 'bubbleId', 'bubbleWidth', 'bubbleHeight', 'tipGlobalX', 'tipGlobalY', 'isAfterImage', 'isBALabel', 'isZoomPanel', 'isZoomSource', 'zoomId', 'zoomColor', 'zoomIsEllipse', 'isArrow', 'arrowStyle', ...GIF_PROPS])));
 
         const stateEntry = JSON.stringify({
+            formatVersion: SNAPSHOT_FORMAT_VERSION,
             canvasData: obj,
-            dimensions: { ...originalSize.current }
+            dimensions: { ...originalSize.current },
+            ...(stepOffsetRef.current ? { stepOffset: stepOffsetRef.current } : {}),
         });
 
         const lower = canvas.lowerCanvasEl;
@@ -178,6 +270,50 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         tc.getContext('2d')?.drawImage(lower, 0, 0, tw, th);
 
         return { stateEntry, thumbnail: tc.toDataURL('image/jpeg', 0.6) };
+    };
+
+    const applyStepOffset = (offset: number) => {
+        stepOffsetRef.current = offset;
+        setStepOffset(offset);
+    };
+
+    // "Continue step numbers from the previous screenshot" toggled.
+    const changeStepOffset = (offset: number) => {
+        const canvas = fabricCanvas.current;
+        applyStepOffset(offset);
+        if (!canvas) return;
+        renumberStepBadges(canvas, offset);
+        saveState();
+    };
+
+    // Data for every asset a serialized state references.
+    const assetsFor = (state: string): Record<string, string> => {
+        const out: Record<string, string> = {};
+        for (const hash of assetRefsInState(state)) {
+            const data = assetsRef.current.get(hash);
+            if (data) out[hash] = data;
+        }
+        return out;
+    };
+
+    // Drop image data no undo/redo entry refers to anymore (e.g. the pre-crop
+    // background once it falls off the end of the history).
+    const pruneAssets = () => {
+        const live = new Set<string>();
+        for (const entry of [...history.current, ...redoStack.current]) {
+            for (const hash of assetRefsInState(entry)) live.add(hash);
+        }
+        for (const hash of [...assetsRef.current.keys()]) {
+            if (!live.has(hash)) assetsRef.current.delete(hash);
+        }
+    };
+
+    // Inlines asset refs (format 2) so fabric can load the JSON; returns the
+    // per-image hashes for seedImageHashes once loading is done.
+    const resolveForLoad = (canvasData: any) => {
+        const { hashes, missing } = resolveAssetRefs(canvasData, (h) => assetsRef.current.get(h));
+        if (missing.length) console.warn('Snapshot references missing images', missing);
+        return hashes;
     };
 
     const saveState = () => {
@@ -197,18 +333,18 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
             }
 
             history.current.push(stateEntry);
-            // Cap undo history: each entry embeds the full canvas JSON (including
-            // the background image's data URL), so unbounded growth during a long
-            // editing session can add up to hundreds of MB of retained memory.
+            // Cap undo history. Entries are small now (images live in
+            // assetsRef), but the canvas JSON still grows with annotations.
             if (history.current.length > MAX_HISTORY_ENTRIES) {
                 history.current.shift();
             }
             redoStack.current = [];
+            pruneAssets();
 
             // Notify the host (web autosave) with a small thumbnail of the canvas.
             if (onSnapshot) {
                 try {
-                    onSnapshot(stateEntry, thumbnail);
+                    onSnapshot(stateEntry, thumbnail, assetsFor(stateEntry));
                 } catch (err) {
                     console.warn('snapshot thumbnail failed', err);
                 }
@@ -221,22 +357,27 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         if (!canvas) return;
 
         const parsed = JSON.parse(stateStr);
+        applyStepOffset(Number(parsed.stepOffset) || 0);
 
         // Restore dimensions if present (new format), fall back to current for old entries
         if (parsed.dimensions) {
             originalSize.current = { width: parsed.dimensions.width, height: parsed.dimensions.height };
-            const scaledW = originalSize.current.width * zoomLevel;
-            const scaledH = originalSize.current.height * zoomLevel;
+            const zoom = zoomLevelRef.current;
+            const scaledW = originalSize.current.width * zoom;
+            const scaledH = originalSize.current.height * zoom;
             canvas.setDimensions({ width: scaledW, height: scaledH });
-            canvas.setZoom(zoomLevel);
+            canvas.setZoom(zoom);
         }
 
         const canvasData = parsed.canvasData || parsed;
+        const imageHashes = resolveForLoad(canvasData);
         // fabric v7's 2nd arg to loadFromJSON is a per-object reviver, not a
         // completion callback — using it as one let isHistoryProcessing drop
         // before restoration (and the UI-state sync below) actually finished.
         canvas.loadFromJSON(canvasData).then(() => {
+            seedImageHashes(canvas, imageHashes);
             syncStateFromCanvas(canvas);
+            gifRef.current?.onCanvasChange(canvas);
             canvas.requestRenderAll();
             isHistoryProcessing.current = false;
         });
@@ -366,7 +507,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
     };
 
     // Initialize custom canvas drawing tools hook
-    useCanvasTools(fabricCanvas.current, currentTool, strokeColor, strokeWidth, fontColor, fontSize, arrowStyle, bubbleFillColor, blurCanvasRef.current, () => setCurrentTool('select'), clickIconScheme);
+    useCanvasTools(fabricCanvas.current, currentTool, strokeColor, strokeWidth, fontColor, fontSize, arrowStyle, bubbleFillColor, () => setCurrentTool('select'), clickIconScheme, redactMode, redactStrength, stepOffset);
 
     useEffect(() => {
         if (!canvasEl.current) return;
@@ -436,6 +577,8 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                     setIsBold(obj.fontWeight === 'bold');
                     setIsItalic(obj.fontStyle === 'italic');
                 } else if (obj.get?.('isBlur')) {
+                    setRedactMode(getRedactMode(obj));
+                    setRedactStrength(getRedactStrength(obj));
                     if (typeof obj.fill === 'string') setStrokeColor(obj.fill);
                     setIsBold(false);
                     setIsItalic(false);
@@ -497,6 +640,12 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         });
 
         fabricCanvas.current = canvas;
+        // Dev-only handle for inspecting canvas state from the browser console
+        // (stripped from production builds).
+        if (import.meta.env.DEV) {
+            (window as any).__lumoshotCanvas = canvas;
+            (window as any).__lumoshotDebug = { history, redoStack, assets: assetsRef };
+        }
 
         // Initialize smart guides for better UX
         initSmartGuides(canvas);
@@ -550,27 +699,20 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
 
             // Check if the removed object was a step number
             if (e.target && e.target.get('isStepNumber')) {
-                const stepObjects = canvas.getObjects().filter((o: any) => o.get('isStepNumber'));
-                stepObjects.sort((a: any, b: any) => a.get('stepValue') - b.get('stepValue'));
-
-                stepObjects.forEach((obj: any, index) => {
-                    const newValue = index + 1;
-                    obj.set('stepValue', newValue);
-                    const textObj = obj.getObjects().find((o: any) => o.type === 'i-text' || o.type === 'text');
-                    if (textObj) {
-                        textObj.set('text', newValue.toString());
-                    }
-                });
-                canvas.requestRenderAll();
+                renumberStepBadges(canvas, stepOffsetRef.current);
             }
-            // Always save state after any removal
-            saveState();
+            // Always save state after any removal (except mid-drag churn while
+            // a shape is being drawn; the finished shape is committed later)
+            if (!(canvas as any).__lumoshotDrawing) saveState();
         });
 
         // Trigger save state after modify and add
         canvas.on('object:modified', () => saveState());
         canvas.on('object:added', (e) => {
             if (isHistoryProcessing.current) return;
+            // A shape being dragged out is committed when the drag ends
+            // (useCanvasTools fires object:modified), not half-drawn here.
+            if ((canvas as any).__lumoshotDrawing) return;
             // Ignore system additions
             if (e.target && (e.target.get('isBackground') || e.target.get('isFrame') || e.target.get('isOutline'))) return;
 
@@ -637,17 +779,25 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         //   - extension: chrome.storage.local (set by capture/background scripts)
         //   - web: provided by the web shell before the editor mounts
         setStatus("Loading image...");
-        platform.getInitialImage().then((init) => {
+        // In development, StrictMode mounts, disposes and remounts the canvas;
+        // the first (disposed) run must not load into the second canvas.
+        let disposed = false;
+        (initial !== undefined ? Promise.resolve(initial) : platform.getInitialImage()).then((init) => {
+            if (disposed) return;
             if (!init) {
                 setStatus("Ready");
                 return;
             }
             // Reopen a saved project: restore the full snapshot instead of an image.
             if (init.restoreState) {
-                restoreSnapshotOnLoad(init.restoreState);
+                openedProjectName.current = init.projectName ?? null;
+                restoreSnapshotOnLoad(init.restoreState, init.restoreAssets);
                 return;
             }
             const { dataUrl, cropRect: rect, mode } = init;
+            // e.g. "this page could only be captured partially" — shown in a
+            // banner until the user dismisses it.
+            if (init.notice) setNotice(init.notice);
             if (mode === 'crop' && rect && rect.windowWidth) {
                 const img = new Image();
                 img.onload = () => {
@@ -675,6 +825,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         });
 
         return () => {
+            disposed = true;
             if (wrapper) wrapper.removeEventListener('wheel', handleWheel);
             canvas.dispose();
         };
@@ -682,6 +833,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
 
     // Effect to apply zoom changes
     useEffect(() => {
+        zoomLevelRef.current = zoomLevel;
         const canvas = fabricCanvas.current;
         if (!canvas) return;
 
@@ -733,12 +885,25 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         }
     }, [saveState]);
 
+    // fabric's clone() drops custom props; keep the redaction ones (so a copied
+    // mosaic stays a mosaic) and don't serialize pattern sources while cloning.
+    const cloneObject = (obj: any): Promise<any> => {
+        const canvas = fabricCanvas.current;
+        return canvas ? withoutRedactionPatterns(canvas, () => obj.clone(CLONE_PROPS)) : obj.clone(CLONE_PROPS);
+    };
+    const reapplyRedactions = (cloned: any) => {
+        const canvas = fabricCanvas.current;
+        if (!canvas) return;
+        const objs = cloned.type === 'activeSelection' ? cloned.getObjects() : [cloned];
+        objs.forEach((o: any) => isRedaction(o) && applyRedaction(canvas, o));
+    };
+
     const handleDuplicate = useCallback(() => {
         const canvas = fabricCanvas.current;
         if (!canvas) return;
         const active = canvas.getActiveObject();
         if (active && !active.get('isBackground') && !active.get('isFrame')) {
-            active.clone().then((cloned: any) => {
+            cloneObject(active).then((cloned: any) => {
                 canvas.discardActiveObject();
                 cloned.set({
                     left: (cloned.left || 0) + 20,
@@ -754,6 +919,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                 } else {
                     canvas.add(cloned);
                 }
+                reapplyRedactions(cloned);
                 canvas.setActiveObject(cloned);
                 canvas.requestRenderAll();
                 saveState();
@@ -821,20 +987,35 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                     e.preventDefault();
                     handleRedo();
                     return;
+                } else if (e.key.toLowerCase() === 's') {
+                    // Save with the current export settings (instead of the browser's "Save page")
+                    e.preventDefault();
+                    if (gifRef.current) gifRef.current.onSave();
+                    else handleDownloadRef.current();
+                    return;
                 } else if (e.key.toLowerCase() === 'c') {
                     // Copy selected object(s)
                     const active = canvas.getActiveObject();
                     if (active && !active.get('isBackground') && !active.get('isFrame')) {
-                        active.clone().then((cloned: any) => {
+                        cloneObject(active).then((cloned: any) => {
                             clipboardRef.current = cloned;
                         });
+                        return;
+                    }
+                    // Nothing selected: copy the whole image — unless the user is
+                    // copying text from a field or a text selection on the page.
+                    const target = e.target as HTMLElement | null;
+                    const inField = !!target?.closest?.('input, textarea, select, [contenteditable="true"]');
+                    if (!inField && !window.getSelection()?.toString()) {
+                        e.preventDefault();
+                        handleCopyRef.current();
                     }
                     return;
                 } else if (e.key.toLowerCase() === 'v') {
                     // Paste cloned object(s)
                     if (!clipboardRef.current) return;
                     e.preventDefault();
-                    clipboardRef.current.clone().then((cloned: any) => {
+                    cloneObject(clipboardRef.current).then((cloned: any) => {
                         canvas.discardActiveObject();
                         cloned.set({
                             left: (cloned.left || 0) + 20,
@@ -855,6 +1036,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                             left: (clipboardRef.current.left || 0) + 20,
                             top: (clipboardRef.current.top || 0) + 20,
                         });
+                        reapplyRedactions(cloned);
                         canvas.setActiveObject(cloned);
                         canvas.requestRenderAll();
                         saveState();
@@ -865,7 +1047,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                     const active = canvas.getActiveObject();
                     if (active && !active.get('isBackground') && !active.get('isFrame')) {
                         e.preventDefault();
-                        active.clone().then((cloned: any) => {
+                        cloneObject(active).then((cloned: any) => {
                             canvas.discardActiveObject();
                             cloned.set({
                                 left: (cloned.left || 0) + 20,
@@ -881,6 +1063,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                             } else {
                                 canvas.add(cloned);
                             }
+                            reapplyRedactions(cloned);
                             canvas.setActiveObject(cloned);
                             canvas.requestRenderAll();
                             saveState();
@@ -900,13 +1083,14 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                 switch (e.key.toLowerCase()) {
                     case 'v': setCurrentTool('select'); break;
                     case 'r': setCurrentTool('rect'); setStrokeWidth(2); break;
+                    case 'o': setCurrentTool('ellipse'); setStrokeWidth(2); break;
                     case 'a': setCurrentTool('arrow'); setStrokeWidth(2); break;
                     case 't': setCurrentTool('text'); break;
                     case 'n': setCurrentTool('step-number'); setStrokeWidth(8); break;
                     case 'b': setCurrentTool('speech-bubble'); setStrokeWidth(2); break;
                     case 's': setCurrentTool('spotlight-rect'); break;
                     case 'u': setCurrentTool('blur-rect'); setStrokeColor('#000000'); break;
-                    case 'c': setIsCropping(true); setCropReady(false); break;
+                    case 'c': if (!gifRef.current) { setIsCropping(true); setCropReady(false); } break;
                     case 'h': setCurrentTool('highlighter'); setStrokeWidth(12); break;
                     case 'p': setCurrentTool('pen'); setStrokeWidth(2); break;
                     case 'm': setCurrentTool('click-icon'); break;
@@ -934,11 +1118,13 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
 
 
     // Restore a previously saved project snapshot (web "recent edits" feature).
-    const restoreSnapshotOnLoad = (stateStr: string) => {
+    const restoreSnapshotOnLoad = (stateStr: string, assets?: Record<string, string>) => {
         const canvas = fabricCanvas.current;
         if (!canvas || !wrapperRef.current) return;
 
+        if (assets) for (const [hash, data] of Object.entries(assets)) assetsRef.current.set(hash, data);
         const parsed = JSON.parse(stateStr);
+        applyStepOffset(Number(parsed.stepOffset) || 0);
         const dims = parsed.dimensions ?? { width: 800, height: 600 };
         originalSize.current = { width: dims.width, height: dims.height };
         baseImageSize.current = { width: dims.width, height: dims.height };
@@ -947,15 +1133,20 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         const wrapperH = wrapperRef.current.clientHeight - 80;
         const fitScale = Math.min(wrapperW / dims.width, wrapperH / dims.height, 1);
 
-        canvas.loadFromJSON(parsed.canvasData ?? parsed).then(() => {
+        const canvasData = parsed.canvasData ?? parsed;
+        const imageHashes = resolveForLoad(canvasData);
+        canvas.loadFromJSON(canvasData).then(() => {
+            seedImageHashes(canvas, imageHashes);
             syncStateFromCanvas(canvas);
 
             canvas.setDimensions({ width: dims.width * fitScale, height: dims.height * fitScale });
             canvas.setZoom(fitScale);
+            gifRef.current?.onCanvasChange(canvas);
             canvas.requestRenderAll();
 
-            // Seed history with the restored state (no extra snapshot on open)
-            history.current = [stateStr];
+            // Seed history with the restored state (no extra autosave on open).
+            // Re-serialize so a format-1 project's history starts out light too.
+            history.current = [createSnapshot()?.stateEntry ?? stateStr];
             redoStack.current = [];
             setZoomLevel(fitScale);
             setStatus("Ready");
@@ -970,19 +1161,6 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         FabricImage.fromURL(dataUrl).then((img: FabricImage) => {
             const canvas = fabricCanvas.current;
             if (!canvas || !wrapperRef.current) return;
-
-            // Generate blurred offscreen canvas for the Blur tool
-            const imgEl = img.getElement() as HTMLImageElement;
-            const blurTarget = document.createElement('canvas');
-            // use intrinsic dimensions
-            blurTarget.width = imgEl.naturalWidth || img.width;
-            blurTarget.height = imgEl.naturalHeight || img.height;
-            const bCtx = blurTarget.getContext('2d');
-            if (bCtx) {
-                bCtx.filter = 'blur(15px)';
-                bCtx.drawImage(imgEl, 0, 0);
-            }
-            blurCanvasRef.current = blurTarget;
 
             // Store original physical size
             originalSize.current = { width: img.width, height: img.height };
@@ -1029,6 +1207,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
 
             // Re-apply the outline if it was on (e.g. after deleting the Before image)
             if (outlineEnabled) applyOutline(true, outlineColor, outlineWidth);
+            gifRef.current?.onCanvasChange(canvas);
 
             // Store initial history state
             saveState();
@@ -1419,8 +1598,8 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                 obj.setCoords();
             });
 
-            // Re-align blur patterns
-            canvas.getObjects().forEach((o: any) => o.get('isBlur') && o.fire('moving'));
+            // Re-align mosaic/blur redactions to the moved image layers
+            refreshRedactions(canvas);
 
             // 1. Create Frame Background
             const frameWidth = baseW + PADDING_X * 2;
@@ -1507,8 +1686,8 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                 obj.setCoords();
             });
 
-            // Re-align blur patterns
-            canvas.getObjects().forEach((o: any) => o.get('isBlur') && o.fire('moving'));
+            // Re-align mosaic/blur redactions to the moved image layers
+            refreshRedactions(canvas);
 
             // Restore canvas size to original base image size
             originalSize.current = {
@@ -1538,107 +1717,104 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         saveState(); // Save state after framing changes
     };
 
-    const handleDownload = () => {
+    // Renders the document at the chosen size without touching the live view
+    // (see renderDocumentToCanvas). Selection is cleared like before so the
+    // user sees exactly what was exported.
+    const renderForExport = (scale: number): HTMLCanvasElement | null => {
         const canvas = fabricCanvas.current;
-        if (!canvas) return;
-
-        // Deselect everything so selection boxes aren't in the screenshot
+        if (!canvas) return null;
         canvas.discardActiveObject();
+        canvas.requestRenderAll();
+        return renderDocumentToCanvas(canvas, originalSize.current, scale);
+    };
 
-        // 1. Save current viewport and dimensions
-        const currentZoom = canvas.getZoom();
-        const currentWidth = canvas.getWidth();
-        const currentHeight = canvas.getHeight();
-        const currentVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : null;
-
-        // 2. Temporarily set canvas to original unscaled resolution for perfect export
-        // This guarantees `after:render` hooks like Spotlight are executed accurately on the exported image
-        canvas.setZoom(1);
-        canvas.setDimensions({
-            width: originalSize.current.width,
-            height: originalSize.current.height
-        });
-        if (canvas.viewportTransform) {
-            canvas.viewportTransform = [1, 0, 0, 1, 0, 0] as any;
-        }
-
-        // 3. Force synchronous render to apply changes
-        canvas.renderAll();
-
-        // 4. Capture native data URL from the lower canvas (excluding upper UI layer)
-        const dataURL = canvas.lowerCanvasEl.toDataURL('image/png', 1.0);
-
-        // 5. Restore original UI viewport silently
-        if (currentVpt) {
-            canvas.viewportTransform = currentVpt as any;
-        }
-        canvas.setZoom(currentZoom);
-        canvas.setDimensions({
-            width: currentWidth,
-            height: currentHeight
-        });
-        canvas.renderAll();
-
-        // 6. Trigger download
-        const link = document.createElement('a');
-        link.download = `lumoshot_${new Date().getTime()}.png`;
-        link.href = dataURL;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        setStatus("PNG saved!");
-        // Revert status message after 2s
+    const flashStatus = (message: string) => {
+        setStatus(message);
         setTimeout(() => setStatus("Ready"), 2000);
     };
 
-    const handleCopy = () => {
+    const handleDownload = async () => {
+        const opts = exportOptionsRef.current;
+        try {
+            const rendered = renderForExport(opts.scale);
+            if (!rendered) return;
+            const blob = await encodeCanvas(rendered, opts.format, opts.quality);
+            downloadBlob(blob, buildExportFileName(opts.format));
+            flashStatus(`${EXPORT_FORMATS[opts.format].label} saved!`);
+        } catch (err) {
+            // Most likely the output exceeds the browser's canvas size limit.
+            console.error('Export failed', err);
+            flashStatus('Save failed. Try a smaller size.');
+        }
+    };
+
+    // Copy is always PNG (the only image type browsers reliably accept on the
+    // clipboard) but honors the chosen size, e.g. 50% for chat paste.
+    const handleCopy = async () => {
+        const opts = exportOptionsRef.current;
+        setStatus("Copying...");
+        let blob: Blob;
+        try {
+            // GIF mode has no image export settings: copy the frame as is.
+            const rendered = renderForExport(gifRef.current ? 1 : opts.scale);
+            if (!rendered) return;
+            blob = await encodeCanvas(rendered, 'png', 1);
+        } catch (err) {
+            console.error('Export failed', err);
+            flashStatus('Copy failed. Try a smaller size.');
+            return;
+        }
+        try {
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            flashStatus("Copied to clipboard!");
+        } catch (err) {
+            console.error("Clipboard API failed", err);
+            downloadBlob(blob, buildExportFileName('png'));
+            flashStatus("Copy failed. Downloaded PNG instead.");
+        }
+    };
+
+    // The keydown listener is registered once; route ⌘S / ⌘C through refs so
+    // it always calls the current handlers.
+    const handleDownloadRef = useRef(handleDownload);
+    handleDownloadRef.current = handleDownload;
+    const handleCopyRef = useRef(handleCopy);
+    handleCopyRef.current = handleCopy;
+
+    const updateExportOptions = (next: ExportOptions) => {
+        exportOptionsRef.current = next;
+        setExportOptions(next);
+        saveExportOptions(next);
+    };
+
+    useEffect(() => {
+        if (!controllerRef) return;
+        controllerRef.current = {
+            snapshotNow: () => {
+                const snap = createSnapshot();
+                return snap ? { state: snap.stateEntry, thumbnail: snap.thumbnail, assets: assetsFor(snap.stateEntry) } : null;
+            },
+        };
+    });
+    useEffect(() => () => {
+        if (controllerRef) controllerRef.current = null;
+    }, [controllerRef]);
+
+    // Saves an editable .lumoshot file (annotations stay editable; the image is
+    // embedded unredacted — see the note next to the button).
+    const handleSaveProjectFile = () => {
         const canvas = fabricCanvas.current;
         if (!canvas) return;
-
-        setStatus("Copying...");
         canvas.discardActiveObject();
-
-        const currentZoom = canvas.getZoom();
-        const currentWidth = canvas.getWidth();
-        const currentHeight = canvas.getHeight();
-        const currentVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : null;
-
-        canvas.setZoom(1);
-        canvas.setDimensions({
-            width: originalSize.current.width,
-            height: originalSize.current.height
-        });
-        if (canvas.viewportTransform) {
-            canvas.viewportTransform = [1, 0, 0, 1, 0, 0] as any;
-        }
-
-        canvas.renderAll();
-
-        // Capture synchronously so canvas can be restored before any async work
-        const dataURL = canvas.lowerCanvasEl.toDataURL('image/png', 1.0);
-
-        if (currentVpt) {
-            canvas.viewportTransform = currentVpt as any;
-        }
-        canvas.setZoom(currentZoom);
-        canvas.setDimensions({ width: currentWidth, height: currentHeight });
-        canvas.renderAll();
-
-        // Convert dataURL to Blob and write to clipboard asynchronously
-        fetch(dataURL)
-            .then(res => res.blob())
-            .then(blob => navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]))
-            .then(() => {
-                setStatus("Copied to clipboard!");
-                setTimeout(() => setStatus("Ready"), 2000);
-            })
-            .catch(err => {
-                console.error("Clipboard API failed", err);
-                handleDownload();
-                setStatus("Copy failed. Downloaded PNG instead.");
-                setTimeout(() => setStatus("Ready"), 2000);
-            });
+        const snapshot = createSnapshot();
+        if (!snapshot) return;
+        const name = (projectName || openedProjectName.current || '').trim() || defaultProjectName();
+        const content = buildLumoshotFile(
+            [{ name, state: snapshot.stateEntry, thumbnail: snapshot.thumbnail }],
+            assetsFor(snapshot.stateEntry),
+        );
+        downloadBlob(new Blob([content], { type: 'application/json' }), safeFileBaseName(name) + LUMOSHOT_FILE_EXTENSION);
+        flashStatus('Project file saved!');
     };
 
     const addImageToCanvas = (dataUrl: string) => {
@@ -1737,6 +1913,11 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
 
         // Re-derive the outline so its stroke width stays uniform after scaling
         if (outlineEnabled) applyOutline(true, outlineColor, outlineWidth);
+
+        // Image layers were rescaled: bake the scale into redactions and
+        // rebuild their mosaic/blur imagery.
+        canvas.getObjects().filter(isRedaction).forEach(normalizeRedactionGeometry);
+        refreshRedactions(canvas);
 
         canvas.requestRenderAll();
 
@@ -1901,6 +2082,10 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
         // pre-crop dimensions, so it must be redrawn or it will no longer match)
         if (outlineEnabled) applyOutline(true, outlineColor, outlineWidth);
 
+        // Image layers moved: re-snap redactions and rebuild their imagery.
+        canvas.getObjects().filter(isRedaction).forEach(normalizeRedactionGeometry);
+        refreshRedactions(canvas);
+
         // Re-enable all objects
         canvas.forEachObject(obj => {
             if (obj.get('isBackground') || obj.get('isFrame')) return;
@@ -1947,7 +2132,8 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
     };
 
     return (
-        <div className={`editor-container ${isDarkMode ? 'dark' : ''}`}>
+        <div className={`editor-container ${isDarkMode ? 'dark' : ''} ${gif ? 'gif-mode' : ''}`}>
+            {overlay}
             {/* Sidebar Tools */}
             <Sidebar
                 currentTool={currentTool}
@@ -1961,6 +2147,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                 isCropping={isCropping}
                 onStartBA={startBAMode}
                 isBAMode={isBAMode}
+                hiddenTools={gif ? GIF_HIDDEN_TOOLS : undefined}
             />
 
             {/* Main Area */}
@@ -1993,13 +2180,33 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                     handleRedo={handleRedo}
                     handleCopy={handleCopy}
                     handleDownload={handleDownload}
+                    exportOptions={exportOptions}
+                    onChangeExportOptions={updateExportOptions}
+                    getExportBaseSize={() => ({ ...originalSize.current })}
+                    onSaveProjectFile={handleSaveProjectFile}
+                    onOpenProjects={onOpenProjects}
                     isDarkMode={isDarkMode}
                     toggleDarkMode={toggleDarkMode}
                     onOpenHelp={() => window.open('guide.html', '_blank')}
                     onOpenResize={() => setShowResizeModal(true)}
                     onGoHome={onGoHome}
                     saveStatusLabel={saveStatusLabel}
+                    exportControls={gif?.exportControls}
                 />
+
+                {notice && (
+                    <div className="editor-notice" role="status">
+                        <Info size={16} className="editor-notice-icon" />
+                        <span className="editor-notice-text">{notice}</span>
+                        <button
+                            className="editor-notice-close"
+                            onClick={() => setNotice(null)}
+                            aria-label={getUILanguage().startsWith('ja') ? 'お知らせを閉じる' : 'Dismiss notice'}
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+                )}
 
                 {/* Sub-Header Toolbars */}
                 <SubHeader
@@ -2039,6 +2246,13 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                     outlineWidth={outlineWidth}
                     setOutlineWidth={handleOutlineWidth}
                     commitOutline={commitOutline}
+                    stepOffset={stepOffset}
+                    stepContinuation={stepContinuation ?? null}
+                    onChangeStepOffset={changeStepOffset}
+                    redactMode={redactMode}
+                    setRedactMode={setRedactMode}
+                    redactStrength={redactStrength}
+                    setRedactStrength={setRedactStrength}
                 />
                 </div>
 
@@ -2150,7 +2364,7 @@ const Editor: React.FC<EditorProps> = ({ onSnapshot, onGoHome, saveStatusLabel }
                     </div>
                 </div>
 
-
+                {gif?.timeline}
             </div>
 
             {/* Resize Modal */}

@@ -7,13 +7,16 @@ export const platform: Platform = {
         return new Promise((resolve) => {
             const params = new URLSearchParams(window.location.search);
             const mode = (params.get('mode') || 'capture') as 'capture' | 'crop';
-            chrome.storage.local.get(['capturedImage', 'cropRect'], (result) => {
+            chrome.storage.local.get(['capturedImage', 'cropRect', 'captureNotice'], (result) => {
                 const dataUrl = result.capturedImage as string;
                 if (!dataUrl) {
                     resolve(null);
                     return;
                 }
-                resolve({ dataUrl, cropRect: (result.cropRect as CropRectLike | undefined) ?? null, mode });
+                // A one-off message from the capture (e.g. a long page was truncated)
+                const notice = (result.captureNotice as string | null | undefined) ?? undefined;
+                if (notice) chrome.storage.local.remove('captureNotice');
+                resolve({ dataUrl, cropRect: (result.cropRect as CropRectLike | undefined) ?? null, mode, notice });
             });
         });
     },

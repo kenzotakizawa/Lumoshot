@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "__MSG_appName__",
     "description": "__MSG_appDesc__",
-    "version": "1.7.0",
+    "version": "2.0.0",
     "default_locale": "en",
     "permissions": [
         "desktopCapture",
@@ -10,7 +10,9 @@
         "scripting",
         "storage",
         "unlimitedStorage",
-        "clipboardRead"
+        "clipboardRead",
+        "tabCapture",
+        "offscreen"
     ],
     "background": {
         "service_worker": "background.js",

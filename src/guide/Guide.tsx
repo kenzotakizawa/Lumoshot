@@ -146,6 +146,8 @@ const Guide: React.FC = () => {
                         </p>
                         <div className="tool-chip-row">
                             <a href="#cap-visible">{t('画面キャプチャ', 'Capture Screen')}</a>
+                            <a href="#cap-fullpage">{t('ページ全体（拡張版）', 'Entire page (extension)')}</a>
+                            <a href="#cap-gif">{t('GIF 録画（拡張版）', 'GIF recording (extension)')}</a>
                             <a href="#cap-upload">{t('アップロード', 'Upload')}</a>
                             <a href="#cap-sample">{t('サンプルで試す', 'Try the Sample')}</a>
                         </div>
@@ -163,6 +165,54 @@ const Guide: React.FC = () => {
                             )}
                         </p>
                         <FeatureMedia src="/guide/capture-visible.gif" altJa="表示中の画面キャプチャのGIF" altEn="Capture visible GIF" t={t} lang={lang} />
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section" id="cap-fullpage">
+                        <h3>{t('ページ全体をキャプチャ（Chrome拡張版）', 'Capture an Entire Page (Chrome extension)')}</h3>
+                        <p>
+                            {t(
+                                'Chrome拡張機能のポップアップで「ページ全体（スクロール）」を選ぶと、縦に長いページを自動でスクロールしながら撮影し、1枚の画像につなげてエディタで開きます。撮影中は拡張機能アイコンに「3/12」のように進み具合が表示されるので、終わるまでタブを切り替えずにお待ちください。',
+                                'In the Chrome extension popup, choose Entire Page (Scroll). Lumoshot scrolls through the page, captures it piece by piece, stitches it into one image, and opens it in the editor. Progress such as “3/12” appears on the extension icon — please stay on the tab until it finishes.'
+                            )}
+                        </p>
+                        <p>
+                            {t(
+                                '画面に固定されたヘッダーやチャットボタンが何度も写り込まないよう、上部に固定された要素は最初の1枚だけ、下部の要素は最後の1枚だけに写します。長いページは画像の解像度を下げてページ全体を1枚に収めます。Gmail や Notion のようにページの内側の枠がスクロールするアプリでは表示範囲のみを撮影し、極端に長いページは途中までの撮影になります（いずれもエディタ上部にお知らせが出ます）。Web版ではブラウザの制約上この撮影はできません。',
+                                'To keep fixed headers and chat buttons from repeating, elements pinned to the top appear only in the first piece and those pinned to the bottom only in the last. Long pages are captured in full at a reduced resolution. Apps that scroll an inner panel (like Gmail or Notion) are captured as the visible area only, and extremely long pages are cut off partway (the editor tells you when any of this happens). The web app can’t do this because of browser restrictions.'
+                            )}
+                        </p>
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section" id="cap-gif">
+                        <h3>{t('操作を GIF で録画（Chrome拡張版）', 'Record a GIF (Chrome extension)')}</h3>
+                        <p>
+                            {t(
+                                'ポップアップの「GIF を録画」を押すと、今開いているタブの録画が始まります。録画中は拡張機能アイコンが赤い REC マークになり、「0:12」のように経過時間が表示されます。止めるときはもう一度アイコンを押してください。最長5分で自動的に止まり、録画中のタブを閉じたときも止まります。ページを移動しても録画は続くので、複数ページにまたがる手順も1本で撮れます。',
+                                'Click Record a GIF in the popup to start recording the current tab. While recording, the extension icon turns into a red REC mark with the elapsed time (like “0:12”). Click the icon again to stop. Recording stops by itself after 5 minutes, or when the tab is closed. It keeps going when you move to another page, so a flow across several pages fits in one recording.'
+                            )}
+                        </p>
+                        <p>
+                            {t(
+                                '止めると GIF エディタが開きます。下のタイムラインで再生・コマ送り（← →）ができ、「ここから使う／ここまで使う」で前後をカット、「このフレームを外す」で不要なコマを抜けます。矢印や塗りつぶしなどの注釈は画像と同じ道具で描けて、注釈を選んで「このフレームから表示／このフレームまで表示」を押すと、出てくる範囲を決められます（新しい注釈はすべてのフレームに表示）。',
+                                'When you stop, the GIF editor opens. Use the timeline below to play and step through frames (← →), “Start here / End here” to cut the beginning and end, and “Leave frame out” to drop single frames. Draw arrows, redactions and other annotations with the same tools as for images; select one and use “Show from / until this frame” to choose when it appears (new annotations show on all frames).'
+                            )}
+                        </p>
+                        <p>
+                            {t(
+                                '保存ボタン横の ▾ で、なめらかさ（5／10fps）・サイズ・色数・ディザリング・くり返し再生・止まっている時間の短縮を選べます。仕上がりのサイズの目安が常に表示され、10MB を超えそうなときはカットやサイズの調整をおすすめします。保存は GIF ファイルのダウンロードです。保存後の表示からドラッグしてチャットやフォルダに持っていくこともできます。コピーボタンは今のフレームを静止画（PNG）でコピーします。',
+                                'The ▾ next to Save sets the frame rate (5 / 10 fps), size, number of colors, dithering, looping, and shortening still moments. An estimate of the file size is always shown, with tips when it is likely to exceed 10 MB. Saving downloads a GIF file; you can also drag it from the notice that appears into a chat or folder. The Copy button copies the current frame as a still PNG.'
+                            )}
+                        </p>
+                        <div className="guide-note">
+                            {t(
+                                '録画はこのパソコンの中（ブラウザの保存領域）にだけ保存され、新しい順に3件まで残ります。ブラウザの制約で、GIF そのものをクリップボードにコピーすることはできません。',
+                                'Recordings are stored only on this computer (in the browser’s storage); the 3 newest are kept. Browsers can’t put a GIF itself on the clipboard.'
+                            )}
+                        </div>
                     </article>
 
                     <div className="feature-divider" />
@@ -207,13 +257,15 @@ const Guide: React.FC = () => {
                         <div className="tool-chip-row">
                             <a href="#top-zoom">{t('ズーム', 'Zoom')}</a>
                             <a href="#top-home">{t('ホーム', 'Home')}</a>
+                            <a href="#top-projects">{t('最近の編集', 'Recent edits')}</a>
                             <a href="#top-frame">{t('フレーム追加', 'Add Frame')}</a>
                             <a href="#top-resize">{t('リサイズ', 'Resize')}</a>
                             <a href="#top-dark">{t('ダークモード', 'Dark Mode')}</a>
                             <a href="#top-help">{t('ヘルプ', 'Help')}</a>
                             <a href="#top-undo">Undo / Redo</a>
                             <a href="#top-copy">{t('コピー', 'Copy')}</a>
-                            <a href="#top-save">{t('PNG保存', 'Save PNG')}</a>
+                            <a href="#top-save">{t('保存', 'Save')}</a>
+                            <a href="#top-project-file">{t('編集データ', 'Project file')}</a>
                             <a href="#top-outline">{t('縁取り', 'Outline')}</a>
                         </div>
                         <FeatureMedia src="/guide/header-overview.png" altJa="上部バー全体のスクリーンショット" altEn="Top bar overview screenshot" t={t} lang={lang} />
@@ -238,11 +290,35 @@ const Guide: React.FC = () => {
                         <h3>{t('ホームへ戻る', 'Go Home')}</h3>
                         <p>
                             {t(
-                                'ホームアイコンを押すと、編集画面を離れてホーム画面へ戻ります。Web版では編集中の内容が自動保存されるため、あとから最近の編集として開き直せます。',
-                                'Click the home icon to leave the editor and return to the home screen. On the web app, the current edit is autosaved so you can reopen it later from recent edits.'
+                                'ホームアイコン（Web版）を押すと、編集画面を離れてホーム画面へ戻ります。編集中の内容は自動保存されるため、あとから最近の編集として開き直せます。',
+                                'Click the home icon (web app) to leave the editor and return to the home screen. The current edit is autosaved so you can reopen it later from recent edits.'
                             )}
                         </p>
                         <FeatureMedia src="/guide/header-home.gif" altJa="ホームへ戻るGIF" altEn="Go home GIF" t={t} lang={lang} />
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section" id="top-projects">
+                        <h3>{t('最近の編集とまとめて保存', 'Recent Edits and Saving Several at Once')}</h3>
+                        <p>
+                            {t(
+                                '上部バーの「最近の編集」ボタン（カードが重なったアイコン）を押すと、右側に最近編集したスクリーンショットの一覧が開きます。押した編集にホームへ戻らずに切り替えられます。編集中の内容は自動で保存されるので、切り替えても消えません（最大15件まで。古いものから整理されます）。Chrome拡張版でも撮影するたびに1件として保存され、タブを閉じても残ります。ポップアップの「最近の編集」からも開けます。',
+                                'Click Recent edits in the top bar (the stacked-cards icon) to open a list of your recent screenshots on the right. Click one to switch to it without going back home. Your work is saved automatically, so nothing is lost when you switch (up to 15 edits; the oldest are cleared first). In the Chrome extension every capture is saved too and stays after you close the tab; you can also open them from Recent edits in the popup.'
+                            )}
+                        </p>
+                        <p>
+                            {t(
+                                '一覧の「選択」を押すと、複数の編集を選んでまとめて保存できます。「画像で保存」は作った順に 01_、02_… と番号を付けて保存し、2件以上なら ZIP にまとめます。形式とサイズは保存ボタン横の ▾ の設定に従います。「編集データで保存」は選んだ編集を1つの .lumoshot ファイルにまとめます。',
+                                'Click Select in the list to pick several edits and save them together. Save images numbers them 01_, 02_… in the order they were made, in a ZIP when there are two or more; format and size follow the ▾ settings next to Save. Save project file puts the selected edits into one .lumoshot file.'
+                            )}
+                        </p>
+                        <div className="guide-note">
+                            {t(
+                                '要らなくなった編集は、一覧のゴミ箱アイコンで削除できます（今開いている編集は削除できません）。',
+                                'Delete edits you no longer need with the trash icon in the list (the one you have open can’t be deleted).'
+                            )}
+                        </div>
                     </article>
 
                     <div className="feature-divider" />
@@ -315,8 +391,8 @@ const Guide: React.FC = () => {
                         <h3>{t('コピー', 'Copy')}</h3>
                         <p>
                             {t(
-                                'コピーを押すと、現在の編集結果をPNG画像としてクリップボードへ送ります。Slack、GitHub、Notion、チャットツールなどへそのまま貼り付けられます。',
-                                'Copy sends the current edited result to your clipboard as a PNG image. Paste it directly into Slack, GitHub, Notion, chat tools, and more.'
+                                'コピーを押すと、現在の編集結果をPNG画像としてクリップボードへ送ります。Slack、GitHub、Notion、チャットツールなどへそのまま貼り付けられます。図形を何も選択していないときは ⌘C（Windows は Ctrl+C）でも同じようにコピーできます。',
+                                'Copy sends the current edited result to your clipboard as a PNG image. Paste it directly into Slack, GitHub, Notion, chat tools, and more. With nothing selected, ⌘C (Ctrl+C on Windows) does the same.'
                             )}
                         </p>
                         <FeatureMedia src="/guide/header-copy.gif" altJa="コピー操作のGIF" altEn="Copy action GIF" t={t} lang={lang} />
@@ -325,14 +401,44 @@ const Guide: React.FC = () => {
                     <div className="feature-divider" />
 
                     <article className="feature-section" id="top-save">
-                        <h3>{t('PNG保存', 'Save PNG')}</h3>
+                        <h3>{t('保存（PNG / JPEG / WebP）', 'Save (PNG / JPEG / WebP)')} <span className="shortcut-badge">⌘S</span></h3>
                         <p>
                             {t(
-                                'PNG保存を押すと、現在の編集結果をPNGファイルとしてダウンロードします。共有前にファイルとして残したい場合や、資料へ添付したい場合に使います。',
-                                'Save PNG downloads the current edited result as a PNG file. Use it when you want to keep a file or attach the image to a document.'
+                                '保存ボタンを押すと、現在の編集結果を画像ファイルとしてダウンロードします。共有前にファイルとして残したい場合や、資料へ添付したい場合に使います。',
+                                'The Save button downloads the current edited result as an image file. Use it when you want to keep a file or attach the image to a document.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/header-save.gif" altJa="PNG保存操作のGIF" altEn="Save PNG action GIF" t={t} lang={lang} />
+                        <p>
+                            {t(
+                                '保存ボタン横の ▾ から、形式（PNG / JPEG / WebP）、品質（JPEG・WebP）、サイズ（50% / 等倍 / 200%）を選べます。等倍は元の画像と同じ画素数です。チャットに貼る画像を軽くしたいときは JPEG や 50% が便利です。選んだ設定は次回も使われ、コピーにもサイズが反映されます（コピーの形式は常に PNG）。',
+                                'Use the ▾ next to Save to choose the format (PNG / JPEG / WebP), quality (JPEG and WebP), and size (50% / 100% / 200%). 100% keeps the original pixel size. JPEG or 50% is handy for lighter images in chat. Your choice is remembered and the size also applies to Copy (Copy always uses PNG).'
+                            )}
+                        </p>
+                        <FeatureMedia src="/guide/header-save.gif" altJa="保存操作のGIF" altEn="Save action GIF" t={t} lang={lang} />
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section" id="top-project-file">
+                        <h3>{t('編集データの保存と読み込み（.lumoshot）', 'Project Files (.lumoshot)')}</h3>
+                        <p>
+                            {t(
+                                '保存ボタン横の ▾ にある「編集データを保存」で、図形や文字を後から編集できる状態のまま .lumoshot ファイルとして保存できます。別のPCで続きを作業したいときや、バックアップに使えます。',
+                                'Use “Save project file” in the ▾ menu next to Save to keep your work as a .lumoshot file, with every shape and text still editable. Handy for continuing on another computer or as a backup.'
+                            )}
+                        </p>
+                        <p>
+                            {t(
+                                '開くときは、Web版ならホーム画面の「画像をアップロード」で選ぶかドラッグ&ドロップ、Chrome拡張版ならポップアップの「ファイルを開く」から選びます。Web版で保存したファイルを拡張版で開くこともできます（その逆も可能です）。',
+                                'To open one, use Upload image or drag & drop on the web app home screen, or Open File in the Chrome extension popup. Files work across the web app and the extension.'
+                            )}
+                        </p>
+                        <div className="guide-note">
+                            {t(
+                                '注意：編集データには元の画像がそのまま入っています。塗りつぶしやモザイクは上に重ねた図形として保存されるため、ファイルを受け取った人は隠した部分を元に戻せます。人に渡すときは、編集データではなく画像（PNGなど）で保存してください。',
+                                'Note: a project file contains the original image. Redactions are stored as shapes on top, so anyone with the file can remove them. To share your work, save an image (PNG etc.) instead of a project file.'
+                            )}
+                        </div>
                     </article>
 
                     <div className="feature-divider" />
@@ -371,6 +477,7 @@ const Guide: React.FC = () => {
                             <a href="#tool-select">{t('選択', 'Select')}<kbd>V</kbd></a>
                             <a href="#tool-rect">{t('四角形', 'Rectangle')}<kbd>R</kbd></a>
                             <a href="#tool-rounded-rect">{t('角丸四角形', 'Rounded Rect')}</a>
+                            <a href="#tool-ellipse">{t('楕円', 'Ellipse')}<kbd>O</kbd></a>
                             <a href="#tool-arrow">{t('矢印', 'Arrow')}<kbd>A</kbd></a>
                             <a href="#tool-bubble">{t('吹き出し', 'Speech Bubble')}<kbd>B</kbd></a>
                             <a href="#tool-text">{t('テキスト', 'Text')}<kbd>T</kbd></a>
@@ -380,7 +487,7 @@ const Guide: React.FC = () => {
                             <a href="#tool-highlighter">{t('マーカー', 'Highlighter')}<kbd>H</kbd></a>
                             <a href="#tool-spot-rect">{t('スポットライト（四角）', 'Spotlight (Rect)')}<kbd>S</kbd></a>
                             <a href="#tool-spot-ellipse">{t('スポットライト（円）', 'Spotlight (Ellipse)')}</a>
-                            <a href="#tool-blur">{t('ぼかし', 'Blur')}<kbd>U</kbd></a>
+                            <a href="#tool-blur">{t('塗りつぶし', 'Redact')}<kbd>U</kbd></a>
                             <a href="#tool-zoom-rect">{t('部分ズーム（四角）', 'Zoom (Rect)')}</a>
                             <a href="#tool-zoom-ellipse">{t('部分ズーム（楕円）', 'Zoom (Ellipse)')}</a>
                         </div>
@@ -423,6 +530,18 @@ const Guide: React.FC = () => {
                             )}
                         </p>
                         <FeatureMedia src="/guide/tool-rounded-rect.gif" altJa="角丸四角形のGIF" altEn="Rounded Rectangle GIF" t={t} lang={lang} />
+                    </article>
+
+                    <div className="feature-divider" />
+
+                    <article className="feature-section" id="tool-ellipse">
+                        <h3>{t('楕円', 'Ellipse')} <span className="shortcut-badge">O</span></h3>
+                        <p>
+                            {t(
+                                'ドラッグした範囲に収まる楕円の枠を描画します。ボタンやアイコンなど、丸みのある要素を「ここ」と囲むのに向いています。線の太さや色は四角形と同じく上部のサブツールバーから変更できます。',
+                                'Draws an ellipse outline that fits the area you drag. Great for circling buttons, icons, and other rounded elements. Change stroke width and color from the sub-toolbar, just like Rectangle.'
+                            )}
+                        </p>
                     </article>
 
                     <div className="feature-divider" />
@@ -490,6 +609,12 @@ const Guide: React.FC = () => {
                             {t(
                                 'クリックするたびに「1, 2, 3...」とカウントアップする番号バッジを置きます。操作手順を伝えるバグ報告やオンボーディング資料で必須の機能です。番号は後からドラッグで並べ替えも可能。',
                                 'Drops a numbered badge that counts up (1, 2, 3...) with each click. Indispensable for step-by-step bug reports and onboarding docs. You can rearrange numbers by dragging them afterwards.'
+                            )}
+                        </p>
+                        <p>
+                            {t(
+                                '手順を何枚かのスクリーンショットに分けて作るときは、このツールを選んだときに出る「前の画像の続きから（4〜）」にチェックを入れると、直前に編集した画像の最後の番号の続きから振れます。チェックを外すと 1 からに戻ります。',
+                                'When a how-to spans several screenshots, select this tool and check “Continue from previous (4–)” to keep counting from the last number in the image you edited just before. Uncheck it to start from 1 again.'
                             )}
                         </p>
                         <FeatureMedia src="/guide/tool-step-number.gif" altJa="ステップ番号のGIF" altEn="Step Number GIF" t={t} lang={lang} />
@@ -563,14 +688,28 @@ const Guide: React.FC = () => {
                     <div className="feature-divider" />
 
                     <article className="feature-section" id="tool-blur">
-                        <h3>{t('ぼかし（モザイク）', 'Blur')} <span className="shortcut-badge">U</span></h3>
+                        <h3>{t('塗りつぶし（単色・モザイク・ぼかし）', 'Redact (Solid / Pixelate / Blur)')} <span className="shortcut-badge">U</span></h3>
                         <p>
                             {t(
-                                '指定領域に強いガウスぼかしを掛けます。個人情報・パスワード・社内情報を安全に隠すために必須の機能。ぼかし強度はサブツールバーで調整できます。',
-                                'Applies a heavy Gaussian blur to the area you drag. Essential for hiding personal data, passwords, or internal information. Blur strength is adjustable from the sub-toolbar.'
+                                'ドラッグした範囲を覆って、個人情報・パスワード・社内情報などを隠します。上部のサブツールバーで隠し方を選べます。',
+                                'Covers the area you drag to hide personal data, passwords, or internal information. Choose how it hides from the sub-toolbar.'
                             )}
                         </p>
-                        <FeatureMedia src="/guide/tool-blur.gif" altJa="ぼかしのGIF" altEn="Blur GIF" t={t} lang={lang} />
+                        <div className="behavior-grid">
+                            <div>
+                                <strong>{t('単色（既定）', 'Solid (default)')}</strong>
+                                <span>{t('指定した色で完全に覆います。元の文字は残らないので、確実に隠したい情報向け', 'Covers completely with a color. Nothing underneath remains — use this for anything that must stay hidden')}</span>
+                            </div>
+                            <div>
+                                <strong>{t('モザイク', 'Pixelate')}</strong>
+                                <span>{t('下の画像を粗いブロックにします。「粗さ」で大きさを調整', 'Turns the image underneath into coarse blocks. Adjust the block size')}</span>
+                            </div>
+                            <div>
+                                <strong>{t('ぼかし', 'Blur')}</strong>
+                                <span>{t('柔らかくぼかします。大きな文字は読めることがあるので、見た目を整える用途向け', 'Softly blurs. Large text may stay readable, so use it for looks rather than secrecy')}</span>
+                            </div>
+                        </div>
+                        <FeatureMedia src="/guide/tool-blur.gif" altJa="塗りつぶしのGIF" altEn="Redact GIF" t={t} lang={lang} />
                     </article>
 
                     <div className="feature-divider" />
@@ -708,6 +847,7 @@ const Guide: React.FC = () => {
                                 <tr><td colSpan={2} style={{ fontWeight: 600, color: '#94a3b8' }}>{t('— ツール切替 —', '— Tool Switch —')}</td></tr>
                                 <tr><td><code>V</code></td><td>{t('選択ツール（移動/リサイズ）', 'Select tool (move/resize)')}</td></tr>
                                 <tr><td><code>R</code></td><td>{t('四角形を描画', 'Rectangle')}</td></tr>
+                                <tr><td><code>O</code></td><td>{t('楕円を描画', 'Ellipse')}</td></tr>
                                 <tr><td><code>A</code></td><td>{t('矢印を描画', 'Arrow')}</td></tr>
                                 <tr><td><code>B</code></td><td>{t('吹き出しを描画', 'Speech Bubble')}</td></tr>
                                 <tr><td><code>T</code></td><td>{t('テキストを入力', 'Add Text')}</td></tr>
@@ -716,7 +856,7 @@ const Guide: React.FC = () => {
                                 <tr><td><code>P</code></td><td>{t('ペン（フリーハンド）', 'Pen (freehand)')}</td></tr>
                                 <tr><td><code>H</code></td><td>{t('蛍光ペン（マーカー）', 'Highlighter')}</td></tr>
                                 <tr><td><code>S</code></td><td>{t('スポットライト（矩形）', 'Spotlight (rectangle)')}</td></tr>
-                                <tr><td><code>U</code></td><td>{t('ぼかし（モザイク）', 'Blur')}</td></tr>
+                                <tr><td><code>U</code></td><td>{t('塗りつぶし（単色・モザイク・ぼかし）', 'Redact (Solid / Pixelate / Blur)')}</td></tr>
                                 <tr><td><code>C</code></td><td>{t('切り抜き（クロップ）', 'Crop')}</td></tr>
 
                                 <tr><td colSpan={2} style={{ fontWeight: 600, color: '#94a3b8' }}>{t('— 編集 —', '— Editing —')}</td></tr>
@@ -729,8 +869,19 @@ const Guide: React.FC = () => {
                                 <tr><td><code>[</code> / <code>]</code></td><td>{t('重ね順を最背面 / 最前面へ', 'Send to back / Bring to front')}</td></tr>
 
                                 <tr><td colSpan={2} style={{ fontWeight: 600, color: '#94a3b8' }}>{t('— 出力 —', '— Export —')}</td></tr>
-                                <tr><td><code>⌘C</code> / <code>Ctrl+C</code></td><td>{t('画像をクリップボードへコピー', 'Copy image to clipboard')}</td></tr>
-                                <tr><td><code>⌘S</code> / <code>Ctrl+S</code></td><td>{t('画像をダウンロード（PNG）', 'Download image (PNG)')}</td></tr>
+                                <tr><td><code>⌘C</code> / <code>Ctrl+C</code></td><td>{t('画像をクリップボードへコピー（図形を選択していないとき。選択中はその図形をコピー）', 'Copy the image to the clipboard (with nothing selected; with a selection, copies that shape)')}</td></tr>
+                                <tr><td><code>⌘S</code> / <code>Ctrl+S</code></td><td>{t('画像を保存（書き出し設定の形式・サイズ）', 'Save the image (using your export settings)')}</td></tr>
+
+                                <tr><td colSpan={2} style={{ fontWeight: 600, color: '#94a3b8' }}>{t('— GIF エディタ（拡張版） —', '— GIF editor (extension) —')}</td></tr>
+                                <tr><td><code>←</code> / <code>→</code></td><td>{t('前 / 次のフレーム（Shift で10フレームずつ）', 'Previous / next frame (Shift: 10 frames)')}</td></tr>
+                                <tr><td><code>⌘S</code> / <code>Ctrl+S</code></td><td>{t('GIF を保存', 'Save the GIF')}</td></tr>
+                                <tr><td><code>⌘C</code> / <code>Ctrl+C</code></td><td>{t('今のフレームを画像（PNG）でコピー（何も選択していないとき）', 'Copy the current frame as a PNG (with nothing selected)')}</td></tr>
+
+                                <tr><td colSpan={2} style={{ fontWeight: 600, color: '#94a3b8' }}>{t('— ポップアップ（拡張版） —', '— Popup (extension) —')}</td></tr>
+                                <tr><td><code>V</code></td><td>{t('見えている範囲を撮る', 'Capture the visible area')}</td></tr>
+                                <tr><td><code>S</code> / <code>P</code> / <code>D</code></td><td>{t('範囲を選ぶ / ページ全体 / デスクトップ', 'Select an area / Entire page / Desktop')}</td></tr>
+                                <tr><td><code>G</code></td><td>{t('GIF を録画', 'Record a GIF')}</td></tr>
+                                <tr><td><code>O</code></td><td>{t('ファイルを開く', 'Open a file')}</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -772,10 +923,10 @@ const Guide: React.FC = () => {
                                 </tr>
                                 <tr>
                                     <td>
-                                        <strong>{t('④ 個人情報は必ず「ぼかし（U）」で隠す', '④ Always hide personal info with Blur (U)')}</strong><br />
+                                        <strong>{t('④ 個人情報は「塗りつぶし（U）」の単色で隠す', '④ Hide personal info with Redact (U) set to Solid')}</strong><br />
                                         {t(
-                                            '黒い四角を上から被せるだけでは、元データを抜かれる事故があり得ます。U キーの「ぼかし」を使えば、元画像のピクセルが破壊されるので安全です。',
-                                            'Covering with a black rectangle isn’t enough — the underlying pixels can sometimes be recovered. Press U for the proper Blur, which destroys the underlying pixels.'
+                                            '書き出した画像は1枚の平らな画像になるので、単色で覆った部分の元の画素は残りません。モザイクやぼかしは見た目が柔らかい反面、大きな文字だと読めてしまうことがあります。パスワードや個人情報は単色を選びましょう。',
+                                            'Exported images are flattened, so nothing under a solid cover survives. Pixelate and Blur look softer, but large text can stay readable — choose Solid for passwords and personal data.'
                                         )}
                                     </td>
                                 </tr>

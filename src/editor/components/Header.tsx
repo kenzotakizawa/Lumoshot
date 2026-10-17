@@ -1,6 +1,8 @@
 import React from 'react';
-import { Monitor, Undo, Redo, Copy, Download, ZoomIn, ZoomOut, Moon, Sun, HelpCircle, Scaling, Home } from 'lucide-react';
+import { Monitor, Undo, Redo, Copy, ZoomIn, ZoomOut, Moon, Sun, HelpCircle, Scaling, Home, GalleryVerticalEnd } from 'lucide-react';
 import { t as msg, getUILanguage } from '../../lib/i18n';
+import ExportMenu from './ExportMenu';
+import type { ExportOptions } from '../utils/exportImage';
 
 interface HeaderProps {
     status: string;
@@ -19,6 +21,14 @@ interface HeaderProps {
     onOpenResize: () => void;
     onGoHome?: () => void;
     saveStatusLabel?: string | null;
+    exportOptions: ExportOptions;
+    onChangeExportOptions: (next: ExportOptions) => void;
+    getExportBaseSize: () => { width: number; height: number };
+    onSaveProjectFile: () => void;
+    onOpenProjects?: () => void;
+    // GIF editing: replaces the image export menu, and the frame / resize
+    // actions (which change the image itself) are hidden.
+    exportControls?: React.ReactNode;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -38,16 +48,24 @@ const Header: React.FC<HeaderProps> = ({
     onOpenResize,
     onGoHome,
     saveStatusLabel,
+    exportOptions,
+    onChangeExportOptions,
+    getExportBaseSize,
+    onSaveProjectFile,
+    onOpenProjects,
+    exportControls,
 }) => {
+    const isGif = exportControls !== undefined;
     const isJapanese = getUILanguage().startsWith('ja');
     const t = (ja: string, en: string) => isJapanese ? ja : en;
+    const modKey = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl+';
 
     return (
         <div className="header">
             <span className="header-title">
                 <img className="header-app-icon" src="/icons/icon48.png" alt="" />
                 <span className="header-title-text">Lumoshot</span>
-                <span className="header-status" style={{ color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '8px' }}>{status}</span>
+                <span className="header-status" title={status} style={{ color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '8px' }}>{status}</span>
                 {saveStatusLabel && <span className="header-save-status">{saveStatusLabel}</span>}
             </span>
 
@@ -64,17 +82,26 @@ const Header: React.FC<HeaderProps> = ({
                         <Home size={16} />
                     </button>
                 )}
-                <button
-                    className={`action-btn ${hasFrame ? 'primary' : ''}`}
-                    style={hasFrame ? {} : { border: '1px solid var(--border-color)' }}
-                    onClick={toggleFrame}
-                >
-                    <Monitor size={16} /> <span className="action-label">{msg("actionFrame")}</span>
-                </button>
-                <button className="action-btn" onClick={onOpenResize} data-tooltip={t('リサイズ', 'Resize')}>
-                    <Scaling size={16} /> <span className="action-label">{t('リサイズ', 'Resize')}</span>
-                </button>
-                <div className="header-divider" />
+                {onOpenProjects && (
+                    <button className="action-btn" onClick={onOpenProjects} data-tooltip={t('最近の編集', 'Recent edits')} aria-label={t('最近の編集', 'Recent edits')}>
+                        <GalleryVerticalEnd size={16} />
+                    </button>
+                )}
+                {!isGif && (
+                    <>
+                        <button
+                            className={`action-btn ${hasFrame ? 'primary' : ''}`}
+                            style={hasFrame ? {} : { border: '1px solid var(--border-color)' }}
+                            onClick={toggleFrame}
+                        >
+                            <Monitor size={16} /> <span className="action-label">{msg("actionFrame")}</span>
+                        </button>
+                        <button className="action-btn" onClick={onOpenResize} data-tooltip={t('リサイズ', 'Resize')}>
+                            <Scaling size={16} /> <span className="action-label">{t('リサイズ', 'Resize')}</span>
+                        </button>
+                        <div className="header-divider" />
+                    </>
+                )}
                 <button className="action-btn" onClick={toggleDarkMode} data-tooltip={isDarkMode ? t('ライトモード', 'Light Mode') : t('ダークモード', 'Dark Mode')} aria-label={isDarkMode ? t('ライトモード', 'Light Mode') : t('ダークモード', 'Dark Mode')}>
                     {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
                 </button>
@@ -84,10 +111,26 @@ const Header: React.FC<HeaderProps> = ({
                 <div className="header-divider" />
                 <button className="action-btn" onClick={handleUndo} data-tooltip={msg("actionUndo")}><Undo size={16} /></button>
                 <button className="action-btn" onClick={handleRedo} data-tooltip={msg("actionRedo")}><Redo size={16} /></button>
-                <button className="action-btn" onClick={handleCopy}><Copy size={16} /> <span className="action-label">{msg("actionCopy")}</span></button>
-                <button className="action-btn primary" onClick={handleDownload} data-tooltip={t('PNG画像として保存', 'Save as a PNG image')}>
-                    <Download size={16} /> <span className="action-label">{msg("actionSave")}</span>
+                <button
+                    className="action-btn"
+                    onClick={handleCopy}
+                    data-tooltip={isGif
+                        ? t(`今のフレームを画像（PNG）でコピー（何も選択していないとき ${modKey}C）`, `Copy the current frame as a PNG (${modKey}C with nothing selected)`)
+                        : t(`画像をクリップボードにコピー（何も選択していないとき ${modKey}C）`, `Copy the image to the clipboard (${modKey}C with nothing selected)`)}
+                >
+                    <Copy size={16} /> <span className="action-label">{msg("actionCopy")}</span>
                 </button>
+                {isGif ? exportControls : (
+                    <ExportMenu
+                        options={exportOptions}
+                        onChange={onChangeExportOptions}
+                        onSave={handleDownload}
+                        getBaseSize={getExportBaseSize}
+                        onSaveProjectFile={onSaveProjectFile}
+                        t={t}
+                        isJapanese={isJapanese}
+                    />
+                )}
             </div>
         </div>
     );

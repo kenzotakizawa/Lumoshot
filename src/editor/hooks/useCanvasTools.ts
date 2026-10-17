@@ -4,6 +4,7 @@ import type { TPointerEventInfo } from 'fabric';
 
 import type { DrawToolContext } from '../utils/drawTools/types';
 import { rectMouseDown, rectMouseMove, rectMouseUp } from '../utils/drawTools/rect';
+import { ellipseMouseDown, ellipseMouseMove, ellipseMouseUp } from '../utils/drawTools/ellipse';
 import { arrowMouseDown, arrowMouseMove, arrowMouseUp } from '../utils/drawTools/arrow';
 import { textMouseDown } from '../utils/drawTools/text';
 import { stepNumberMouseDown } from '../utils/drawTools/stepNumber';
@@ -13,11 +14,12 @@ import { speechBubbleMouseDown, speechBubbleMouseMove, speechBubbleMouseUp } fro
 import { clickIconMouseDown, clickIconMouseMove, clickIconMouseUp } from '../utils/drawTools/clickIcon';
 import { zoomMouseDown, zoomMouseMove, zoomMouseUp, zoomAfterRender } from '../utils/drawTools/zoom';
 import type { ArrowStyle } from '../utils/drawTools/arrow';
+import { applyRedaction, isRedaction, normalizeRedactionGeometry, type RedactMode } from '../utils/redaction';
 
 // Re-export for external consumers
 export { updateSpeechBubble, createSpeechBubblePath } from '../utils/drawTools/speechBubble';
 
-export type ToolType = 'select' | 'rect' | 'arrow' | 'text' | 'spotlight-rect' | 'spotlight-ellipse' | 'blur-rect' | 'step-number' | 'pen' | 'highlighter' | 'rounded-rect' | 'speech-bubble' | 'click-icon' | 'zoom-rect' | 'zoom-ellipse';
+export type ToolType = 'select' | 'rect' | 'arrow' | 'text' | 'spotlight-rect' | 'spotlight-ellipse' | 'blur-rect' | 'step-number' | 'pen' | 'highlighter' | 'rounded-rect' | 'ellipse' | 'speech-bubble' | 'click-icon' | 'zoom-rect' | 'zoom-ellipse';
 
 const controlConfig = {
     transparentCorners: false,
@@ -39,9 +41,11 @@ export const useCanvasTools = (
     fontSize: number = 24,
     arrowStyle: ArrowStyle = 'straight',
     bubbleFillColor: string = '#ffffff',
-    blurCanvas: HTMLCanvasElement | null = null,
     onToolComplete?: () => void,
-    clickIconScheme: 'dark' | 'light' = 'dark'
+    clickIconScheme: 'dark' | 'light' = 'dark',
+    redactMode: RedactMode = 'fill',
+    redactStrength: number = 12,
+    stepOffset: number = 0
 ) => {
     const isDrawing = useRef(false);
     const startX = useRef(0);
@@ -56,15 +60,30 @@ export const useCanvasTools = (
             strokeColor, strokeWidth, fontColor, fontSize,
             arrowStyle, bubbleFillColor,
             controlConfig, isDrawing, startX, startY, currentShape,
-            blurCanvas, onToolComplete, clickIconScheme
+            onToolComplete, clickIconScheme, redactMode, redactStrength, stepOffset
+        };
+
+        // While a shape is being dragged out, the Editor must not snapshot it
+        // on 'object:added' (that recorded half-drawn shapes into undo
+        // history). The finished shape is committed once, on completion.
+        const setDrawingInProgress = (on: boolean) => {
+            (canvas as any).__lumoshotDrawing = on;
+        };
+        const commitShape = (shape: any) => {
+            if (!shape) return;
+            // Object-level listeners (e.g. speech bubble layout) + the canvas
+            // event the Editor's undo/autosave listens to.
+            if (shape.fire) shape.fire('modified');
+            canvas.fire('object:modified' as any, { target: shape });
         };
 
         const completeCreatedShape = (emitModified = false) => {
             const shape = currentShape.current;
             if (!shape) return;
+            setDrawingInProgress(false);
 
             if (canvas.contains(shape)) {
-                if (emitModified && shape.fire) shape.fire('modified');
+                if (emitModified) commitShape(shape);
                 canvas.setActiveObject(shape);
             }
             currentShape.current = null;
@@ -146,12 +165,18 @@ export const useCanvasTools = (
             startX.current = pointer.x;
             startY.current = pointer.y;
 
+            // Set before the tool adds its shape, so that 'object:added' is
+            // already suppressed for it.
+            setDrawingInProgress(true);
             switch (currentTool) {
                 case 'rect':
                     rectMouseDown(canvas, pointer, ctx, false);
                     break;
                 case 'rounded-rect':
                     rectMouseDown(canvas, pointer, ctx, true);
+                    break;
+                case 'ellipse':
+                    ellipseMouseDown(canvas, pointer, ctx);
                     break;
                 case 'arrow':
                     arrowMouseDown(canvas, pointer, ctx, (opt.e as MouseEvent).detail || 1);
@@ -184,6 +209,8 @@ export const useCanvasTools = (
                     zoomMouseDown(canvas, pointer, ctx, true);
                     break;
             }
+            // Tools that didn't start a drag (nothing to finish on mouseup)
+            if (!currentShape.current) setDrawingInProgress(false);
         };
 
         // ─── Mouse Move Dispatcher ─────────────────────────────────
@@ -197,6 +224,9 @@ export const useCanvasTools = (
                 case 'rect':
                 case 'rounded-rect':
                     rectMouseMove(canvas, pointer, ctx);
+                    break;
+                case 'ellipse':
+                    ellipseMouseMove(canvas, pointer, ctx);
                     break;
                 case 'arrow':
                     arrowMouseMove(canvas, pointer, ctx);
@@ -234,6 +264,7 @@ export const useCanvasTools = (
                 && (currentShape.current?.kind === 'curved-arrow' || currentShape.current?.kind === 'elbow-arrow')) return;
 
             isDrawing.current = false;
+            setDrawingInProgress(false);
 
             if (currentShape.current) {
                 switch (currentTool) {
@@ -246,6 +277,9 @@ export const useCanvasTools = (
                     case 'rect':
                     case 'rounded-rect':
                         rectMouseUp(canvas, ctx);
+                        break;
+                    case 'ellipse':
+                        ellipseMouseUp(canvas, ctx);
                         break;
                     case 'blur-rect':
                         blurMouseUp(canvas, ctx);
@@ -267,14 +301,10 @@ export const useCanvasTools = (
                         break;
                 }
 
-                // Fire modified event for undo/redo state saving
-                if (currentTool !== 'spotlight-rect' && currentTool !== 'spotlight-ellipse'
-                    && currentTool !== 'zoom-rect' && currentTool !== 'zoom-ellipse'
-                    && currentShape.current) {
+                // Commit the finished shape to undo history / autosave
+                if (currentShape.current) {
                     const shape = currentShape.current;
-                    if (canvas.contains(shape) || canvas.contains(shape.line)) {
-                        if (shape.fire) shape.fire('modified');
-                    }
+                    if (canvas.contains(shape) || canvas.contains(shape.line)) commitShape(shape);
                 }
 
                 // Auto-select the created object; stay in current tool for continuous creation
@@ -287,21 +317,51 @@ export const useCanvasTools = (
 
         // ─── After Render (Spotlight Overlay) ──────────────────────
 
-        const handleAfterRender = () => {
-            spotlightAfterRender(canvas);
-            zoomAfterRender(canvas);
+        const handleAfterRender = ({ ctx }: { ctx: CanvasRenderingContext2D }) => {
+            // fabric also fires after:render for the upper (selection/controls)
+            // layer; the overlays belong to the document layer only.
+            if (ctx === canvas.contextTop) return;
+            spotlightAfterRender(canvas, ctx);
+            zoomAfterRender(canvas, ctx);
+        };
+
+        // Mosaic/blur redactions show the image under them, so re-align their
+        // pattern whenever they're moved/resized/rotated (alone or as part of
+        // a multi-selection). Registered on the canvas rather than per object
+        // so it also covers objects restored from undo history or autosave.
+        const handleTransforming = (opt: { target?: any }) => {
+            const target = opt.target;
+            if (!target) return;
+            const objs = target.type === 'activeSelection' ? target.getObjects() : [target];
+            for (const o of objs) if (isRedaction(o)) applyRedaction(canvas, o);
+        };
+        // Once a move/resize ends, snap redactions to whole pixels so mosaic
+        // blocks stay crisp (see normalizeRedactionGeometry).
+        const handleTransformEnd = (opt: { target?: any }) => {
+            const target = opt.target;
+            if (target && isRedaction(target)) normalizeRedactionGeometry(target);
+            handleTransforming(opt);
         };
 
         canvas.on('mouse:down', handleMouseDown);
         canvas.on('mouse:move', handleMouseMove);
         canvas.on('mouse:up', handleMouseUp);
         canvas.on('after:render', handleAfterRender);
+        canvas.on('object:moving', handleTransforming);
+        canvas.on('object:scaling', handleTransforming);
+        canvas.on('object:rotating', handleTransforming);
+        canvas.on('object:modified', handleTransformEnd);
 
         return () => {
+            setDrawingInProgress(false);
             canvas.off('mouse:down', handleMouseDown);
             canvas.off('mouse:move', handleMouseMove);
             canvas.off('mouse:up', handleMouseUp);
             canvas.off('after:render', handleAfterRender);
+            canvas.off('object:moving', handleTransforming);
+            canvas.off('object:scaling', handleTransforming);
+            canvas.off('object:rotating', handleTransforming);
+            canvas.off('object:modified', handleTransformEnd);
         };
-    }, [canvas, currentTool, strokeColor, strokeWidth, fontColor, fontSize, arrowStyle, bubbleFillColor, clickIconScheme]);
+    }, [canvas, currentTool, strokeColor, strokeWidth, fontColor, fontSize, arrowStyle, bubbleFillColor, clickIconScheme, redactMode, redactStrength, stepOffset]);
 };

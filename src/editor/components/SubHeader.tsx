@@ -5,6 +5,7 @@ import type { ToolType } from '../hooks/useCanvasTools';
 import type { ArrowStyle } from '../utils/drawTools/arrow';
 import { buildClickCursorGroup } from '../utils/drawTools/clickIcon';
 import { t, getUILanguage } from '../../lib/i18n';
+import { REDACT_STRENGTH_RANGE, applyRedaction, getRedactMode, isRedaction, type RedactMode } from '../utils/redaction';
 
 interface SubHeaderProps {
     currentTool: ToolType;
@@ -43,7 +44,21 @@ interface SubHeaderProps {
     outlineWidth?: number;
     setOutlineWidth?: (width: number) => void;
     commitOutline?: () => void;
+    redactMode?: RedactMode;
+    setRedactMode?: (mode: RedactMode) => void;
+    redactStrength?: number;
+    setRedactStrength?: (strength: number) => void;
+    stepOffset?: number;
+    stepContinuation?: { name: string; lastStep: number } | null;
+    onChangeStepOffset?: (offset: number) => void;
 }
+
+
+// Ellipse-tool shapes. Spotlight and zoom-panel ellipses are also fabric
+// Ellipses but deliberately have a transparent stroke, so they must not be
+// recolored/resized like ordinary outlines.
+const isPlainEllipse = (obj: any) =>
+    obj.type === 'ellipse' && !obj.get?.('isSpotlight') && !obj.get?.('isZoomPanel') && !obj.get?.('isZoomSource');
 
 const SubHeader: React.FC<SubHeaderProps> = ({
     currentTool,
@@ -82,11 +97,57 @@ const SubHeader: React.FC<SubHeaderProps> = ({
     outlineWidth = 1,
     setOutlineWidth,
     commitOutline,
+    redactMode = 'fill',
+    setRedactMode,
+    redactStrength = 12,
+    setRedactStrength,
+    stepOffset = 0,
+    stepContinuation = null,
+    onChangeStepOffset,
 }) => {
     const isArrowContext = currentTool === 'arrow';
     const isBubbleContext = currentTool === 'speech-bubble' || isBubbleSelected;
     const isClickIconContext = currentTool === 'click-icon' || !!fabricCanvas.current?.getActiveObject()?.get('isClickIcon');
+    const isRedactContext = currentTool === 'blur-rect' || isRedaction(fabricCanvas.current?.getActiveObject());
+    const showColor = !isClickIconContext && !(isRedactContext && redactMode !== 'fill');
+    const isJa = getUILanguage().startsWith('ja');
+    const isStepContext = currentTool === 'step-number' || !!fabricCanvas.current?.getActiveObject()?.get('isStepNumber');
+    // Offer "continue from the previous screenshot" when it has numbers (or
+    // when this project already continues, so it can be turned off).
+    const continueFrom = stepOffset > 0 ? stepOffset : (stepContinuation?.lastStep ?? 0);
+    const showStepContinue = isStepContext && continueFrom > 0 && !!onChangeStepOffset;
+
+    // Mode/strength changes apply live to the selected redaction(s).
+    const updateSelectedRedactions = (patch: { redactMode?: RedactMode; redactStrength?: number }) => {
+        const canvas = fabricCanvas.current;
+        const active = canvas?.getActiveObject();
+        if (!canvas || !active) return;
+        const objs = active.type === 'activeSelection' ? (active as any).getObjects() : [active];
+        objs.filter(isRedaction).forEach((o: any) => {
+            o.set(patch);
+            applyRedaction(canvas, o, patch.redactMode === 'fill' ? strokeColor : undefined);
+        });
+        canvas.requestRenderAll();
+    };
     const canDistribute = selectionCount >= 3;
+
+    // The controls below restyle the selected object(s) live but only ask for a
+    // re-render, so the change never reached undo history or web autosave
+    // (both are driven by 'object:modified'). Commit once, shortly after the
+    // last input/click in this toolbar; saveState drops no-op duplicates.
+    const commitTimer = React.useRef<number | null>(null);
+    const scheduleCommit = () => {
+        if (commitTimer.current !== null) window.clearTimeout(commitTimer.current);
+        commitTimer.current = window.setTimeout(() => {
+            commitTimer.current = null;
+            const canvas = fabricCanvas.current;
+            const active = canvas?.getActiveObject();
+            if (canvas && active) canvas.fire('object:modified' as any, { target: active });
+        }, 300);
+    };
+    React.useEffect(() => () => {
+        if (commitTimer.current !== null) window.clearTimeout(commitTimer.current);
+    }, []);
     const getReadableTextColor = (color: string) => {
         const hex = color.replace('#', '');
         if (hex.length !== 6) return '#111827';
@@ -99,7 +160,7 @@ const SubHeader: React.FC<SubHeaderProps> = ({
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }} onInputCapture={scheduleCommit} onClickCapture={scheduleCommit}>
             {/* Sub-Header Toolbar (Alignment) */}
             {currentTool === 'select' && isMultiSelection && (
                 <div className="sub-header alignment-toolbar" style={{
@@ -148,7 +209,7 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                     border: '1px solid rgba(255, 255, 255, 0.4)', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
                     display: 'flex', alignItems: 'center', padding: '0 20px', gap: '20px', fontSize: '13px', color: '#555'
                 }}>
-                    {!isClickIconContext && <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {showColor && <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <label>Color:</label>
                         <input
                             type="color"
@@ -164,9 +225,9 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                                     const applyColor = (obj: any) => {
                                         if (obj.type === 'i-text' || obj.type === 'text') {
                                             obj.set('fill', val);
-                                        } else if (obj.type === 'path' || obj.type === 'line' || obj.type === 'rect' || obj.type === 'polygon') {
+                                        } else if (obj.type === 'path' || obj.type === 'line' || obj.type === 'rect' || obj.type === 'polygon' || isPlainEllipse(obj)) {
                                             if (obj.get?.('isBlur')) {
-                                                obj.set({ fill: val, stroke: val });
+                                                if (getRedactMode(obj) === 'fill') obj.set({ fill: val, stroke: val });
                                                 return;
                                             }
                                             // If it's the invisible cover for speech bubble, skip
@@ -232,6 +293,78 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                             style={{ border: 'none', padding: 0, width: '24px', height: '24px', cursor: 'pointer', background: 'transparent' }}
                         />
                     </div>}
+
+                    {/* Redact (塗りつぶし): mode + strength */}
+                    {isRedactContext && (
+                        <>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} role="radiogroup" aria-label={isJa ? '塗りつぶしの方式' : 'Redaction style'}>
+                                {([
+                                    { id: 'fill', ja: '単色', en: 'Solid' },
+                                    { id: 'mosaic', ja: 'モザイク', en: 'Pixelate' },
+                                    { id: 'blur', ja: 'ぼかし', en: 'Blur' },
+                                ] as const).map(option => {
+                                    const isActive = redactMode === option.id;
+                                    return (
+                                        <button
+                                            key={option.id}
+                                            role="radio"
+                                            aria-checked={isActive}
+                                            className={`tool-btn ${isActive ? 'active' : ''}`}
+                                            onClick={() => {
+                                                setRedactMode?.(option.id);
+                                                updateSelectedRedactions({ redactMode: option.id });
+                                            }}
+                                            style={{
+                                                width: 'auto', padding: '0 10px', fontSize: '12px', fontWeight: 600,
+                                                background: isActive ? 'rgba(79, 70, 229, 0.1)' : 'transparent',
+                                                color: isActive ? '#4f46e5' : 'inherit'
+                                            }}
+                                        >
+                                            {isJa ? option.ja : option.en}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            {redactMode !== 'fill' && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <label>{redactMode === 'mosaic' ? (isJa ? '粗さ' : 'Block') : (isJa ? '強さ' : 'Strength')}: {redactStrength}px</label>
+                                    <input
+                                        type="range"
+                                        min={REDACT_STRENGTH_RANGE.min}
+                                        max={REDACT_STRENGTH_RANGE.max}
+                                        value={redactStrength}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            setRedactStrength?.(val);
+                                            updateSelectedRedactions({ redactStrength: val });
+                                        }}
+                                    />
+                                </div>
+                            )}
+                            {redactMode === 'blur' && (
+                                <span style={{ fontSize: '12px', color: '#b45309' }}>
+                                    {isJa ? '大きな文字は読めることがあります。強く隠すなら単色を' : 'Large text may stay readable. Use Solid to fully hide.'}
+                                </span>
+                            )}
+                        </>
+                    )}
+
+                    {/* Step numbers: continue from the previous screenshot */}
+                    {showStepContinue && (
+                        <label
+                            style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none' }}
+                            title={stepContinuation
+                                ? (isJa ? `「${stepContinuation.name}」の ${stepContinuation.lastStep} の次から番号を振ります` : `Number from ${stepContinuation.lastStep + 1}, after "${stepContinuation.name}"`)
+                                : undefined}
+                        >
+                            <input
+                                type="checkbox"
+                                checked={stepOffset > 0}
+                                onChange={(e) => onChangeStepOffset?.(e.target.checked ? continueFrom : 0)}
+                            />
+                            {isJa ? `前の画像の続きから（${continueFrom + 1}〜）` : `Continue from previous (${continueFrom + 1}–)`}
+                        </label>
+                    )}
 
                     {/* Arrow Style */}
                     {isArrowContext && (
@@ -375,7 +508,7 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                         </>
                     )}
 
-                    {!isBubbleContext && !isClickIconContext && (
+                    {!isBubbleContext && !isClickIconContext && !isRedactContext && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <label>Width/Size: {strokeWidth}px</label>
                             <input
@@ -392,7 +525,7 @@ const SubHeader: React.FC<SubHeaderProps> = ({
                                         const applySize = (obj: any) => {
                                             if (obj.type === 'i-text' || obj.type === 'text') {
                                                 obj.set('fontSize', Math.max(16, val * 4));
-                                            } else if (obj.type === 'path' || obj.type === 'line' || obj.type === 'rect') {
+                                            } else if (obj.type === 'path' || obj.type === 'line' || obj.type === 'rect' || isPlainEllipse(obj)) {
                                                 // Don't change cover polygon stroke width
                                                 if (obj.stroke !== 'white' || obj.fill !== 'white') {
                                                     obj.set('strokeWidth', val);

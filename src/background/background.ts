@@ -1,4 +1,9 @@
+import { captureFullPage } from "./fullPage";
+import { registerGifRecording } from "./gifRecording";
+
 console.log("Lumoshot background script loaded");
+
+registerGifRecording();
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
@@ -103,6 +108,14 @@ chrome.runtime.onMessage.addListener((message, sender) => {
             });
           });
         }, 300);
+
+      } else if (mode === 'fullpage') {
+        captureFullPage(activeTab).then((res) => {
+          if (!res) return;
+          chrome.storage.local.set({ "capturedImage": res.dataUrl, "captureNotice": res.notice ?? null }, () => {
+            chrome.tabs.create({ url: 'editor.html?mode=capture', active: true });
+          });
+        });
 
       } else if (mode === 'selected') {
         chrome.scripting.executeScript({

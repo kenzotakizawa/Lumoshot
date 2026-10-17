@@ -9,8 +9,8 @@ export function setWebInitialImage(dataUrl: string): void {
 }
 
 // Reopen a saved project: restore the full editor snapshot instead of a fresh image.
-export function setWebInitialState(state: string): void {
-    pendingImage = { dataUrl: '', cropRect: null, mode: 'web', restoreState: state };
+export function setWebInitialState(state: string, assets?: Record<string, string>): void {
+    pendingImage = { dataUrl: '', cropRect: null, mode: 'web', restoreState: state, restoreAssets: assets };
 }
 
 export const platform: Platform = {

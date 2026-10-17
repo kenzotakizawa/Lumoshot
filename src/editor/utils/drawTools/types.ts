@@ -18,7 +18,10 @@ export interface DrawToolContext {
     startX: React.MutableRefObject<number>;
     startY: React.MutableRefObject<number>;
     currentShape: React.MutableRefObject<any>;
-    blurCanvas?: HTMLCanvasElement | null;
+    redactMode?: 'fill' | 'mosaic' | 'blur';
+    redactStrength?: number;
+    // Step numbers start after this (continuing from a previous screenshot).
+    stepOffset?: number;
     onToolComplete?: () => void;
     clickIconScheme?: 'dark' | 'light';
 }

@@ -1,4 +1,5 @@
 export { rectMouseDown, rectMouseMove, rectMouseUp } from './rect';
+export { ellipseMouseDown, ellipseMouseMove, ellipseMouseUp } from './ellipse';
 export { arrowMouseDown, arrowMouseMove, arrowMouseUp } from './arrow';
 export { textMouseDown } from './text';
 export { stepNumberMouseDown } from './stepNumber';

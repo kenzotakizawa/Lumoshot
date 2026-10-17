@@ -16,6 +16,9 @@
     "toolRoundedRect": {
         "message": "Rounded Rectangle"
     },
+    "toolEllipse": {
+        "message": "Ellipse (O)"
+    },
     "toolArrow": {
         "message": "Arrow (A)"
     },
@@ -50,7 +53,7 @@
         "message": "Zoom In (Ellipse)"
     },
     "toolBlurRect": {
-        "message": "Blur"
+        "message": "Redact (U)"
     },
     "toolInsertImage": {
         "message": "Insert Image"
@@ -106,44 +109,44 @@
     "distributeVertical": {
         "message": "Distribute Vertically"
     },
-    "popupSectionWindowCapture": {
-        "message": "Window Capture"
-    },
     "popupVisiblePart": {
-        "message": "Visible Part"
+        "message": "Capture visible area"
     },
     "popupVisiblePartDesc": {
-        "message": "Capture what you see right now"
+        "message": "What this tab is showing right now"
+    },
+    "popupFullPage": {
+        "message": "Entire page"
+    },
+    "popupFullPageDesc": {
+        "message": "Whole long page"
     },
     "popupSelectedArea": {
-        "message": "Selected Area"
+        "message": "Select area"
     },
     "popupSelectedAreaDesc": {
-        "message": "Drag to select a specific region"
-    },
-    "popupSectionSystemCapture": {
-        "message": "System Capture"
+        "message": "Drag a region"
     },
     "popupEntireScreen": {
-        "message": "Entire Screen"
+        "message": "Desktop"
     },
     "popupEntireScreenDesc": {
-        "message": "Capture the whole desktop (System Dialog)"
+        "message": "Other apps too"
     },
     "popupSectionLocalImage": {
-        "message": "Local Image"
+        "message": "Open an image"
     },
     "popupUploadFile": {
-        "message": "Upload File"
+        "message": "Open file"
     },
     "popupUploadFileDesc": {
-        "message": "Choose an image from your computer"
+        "message": "Choose an image or a project file (.lumoshot)"
     },
     "popupPasteClipboard": {
-        "message": "Paste Clipboard"
+        "message": "Paste"
     },
     "popupPasteClipboardDesc": {
-        "message": "Use image copied to clipboard"
+        "message": "Open a copied image"
     },
     "toolLock": {
         "message": "Lock Object (Ctrl+L)"
@@ -188,7 +191,7 @@
         "message": "Spotlight (S)"
     },
     "tooltipBlur": {
-        "message": "Blur (U)"
+        "message": "Redact (U)"
     },
     "tooltipCrop": {
         "message": "Crop (C)"
@@ -267,5 +270,26 @@
     },
     "helpActionBubble": {
         "message": "Speech Bubble"
+    },
+    "popupSectionMoreCapture": {
+        "message": "More ways to capture"
+    },
+    "popupGuide": {
+        "message": "Guide"
+    },
+    "popupWebApp": {
+        "message": "Web app"
+    },
+    "popupSectionRecent": {
+        "message": "Recent edits"
+    },
+    "popupRecordGif": {
+        "message": "Record a GIF"
+    },
+    "popupRecordGifDesc": {
+        "message": "Record this tab (up to 5 min). Click the icon again to stop"
+    },
+    "gifRecordingTitle": {
+        "message": "Recording — click to stop and open the GIF editor"
     }
 }

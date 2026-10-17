@@ -16,6 +16,9 @@
     "toolRoundedRect": {
         "message": "角丸四角形"
     },
+    "toolEllipse": {
+        "message": "楕円 (O)"
+    },
     "toolArrow": {
         "message": "矢印 (A)"
     },
@@ -50,7 +53,7 @@
         "message": "部分ズーム (楕円)"
     },
     "toolBlurRect": {
-        "message": "ボカシ"
+        "message": "塗りつぶし (U)"
     },
     "toolInsertImage": {
         "message": "画像スタンプ"
@@ -106,44 +109,44 @@
     "distributeVertical": {
         "message": "垂直に整列"
     },
-    "popupSectionWindowCapture": {
-        "message": "ウィンドウキャプチャ"
-    },
     "popupVisiblePart": {
-        "message": "表示中の画面"
+        "message": "見えている範囲を撮る"
     },
     "popupVisiblePartDesc": {
-        "message": "今見えている画面をキャプチャ"
+        "message": "このタブで今表示している部分"
+    },
+    "popupFullPage": {
+        "message": "ページ全体"
+    },
+    "popupFullPageDesc": {
+        "message": "縦長を1枚に"
     },
     "popupSelectedArea": {
-        "message": "範囲を選択"
+        "message": "範囲を選ぶ"
     },
     "popupSelectedAreaDesc": {
-        "message": "ドラッグで範囲を指定してキャプチャ"
-    },
-    "popupSectionSystemCapture": {
-        "message": "システムキャプチャ"
+        "message": "ドラッグで囲む"
     },
     "popupEntireScreen": {
-        "message": "画面全体"
+        "message": "デスクトップ"
     },
     "popupEntireScreenDesc": {
-        "message": "デスクトップ全体をキャプチャ（システムダイアログ）"
+        "message": "他のアプリも"
     },
     "popupSectionLocalImage": {
-        "message": "ローカル画像"
+        "message": "画像を開く"
     },
     "popupUploadFile": {
         "message": "ファイルを開く"
     },
     "popupUploadFileDesc": {
-        "message": "PCから画像を選択"
+        "message": "画像または編集データ（.lumoshot）を選択"
     },
     "popupPasteClipboard": {
-        "message": "クリップボードから貼り付け"
+        "message": "貼り付け"
     },
     "popupPasteClipboardDesc": {
-        "message": "コピーした画像を使用"
+        "message": "コピーした画像を開く"
     },
     "toolLock": {
         "message": "オブジェクトをロック (Ctrl+L)"
@@ -188,7 +191,7 @@
         "message": "スポットライト (S)"
     },
     "tooltipBlur": {
-        "message": "ぼかし (U)"
+        "message": "塗りつぶし (U)"
     },
     "tooltipCrop": {
         "message": "切り抜き (C)"
@@ -267,5 +270,26 @@
     },
     "helpActionBubble": {
         "message": "吹き出し"
+    },
+    "popupSectionMoreCapture": {
+        "message": "そのほかの撮り方"
+    },
+    "popupGuide": {
+        "message": "使い方"
+    },
+    "popupWebApp": {
+        "message": "Web版"
+    },
+    "popupSectionRecent": {
+        "message": "最近の編集"
+    },
+    "popupRecordGif": {
+        "message": "GIF を録画"
+    },
+    "popupRecordGifDesc": {
+        "message": "このタブの操作を録画（最長5分）。もう一度アイコンを押すと止まります"
+    },
+    "gifRecordingTitle": {
+        "message": "録画中 — クリックで停止して GIF エディタを開く"
     }
 }

@@ -406,6 +406,17 @@ body {
     align-items: center;
     gap: 8px;
     letter-spacing: -0.01em;
+    /* Let the title side give way (status text is ellipsized) so the action
+       buttons are never pushed off-screen by a long status message. */
+    min-width: 0;
+    flex: 0 1 auto;
+}
+
+.header-title .header-status {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .header-app-icon {
@@ -486,6 +497,474 @@ body {
 
 .action-btn.primary:active {
     transform: translateY(0);
+}
+
+/* ─── Projects panel (recent edits drawer) ─── */
+.projects-panel-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: rgba(15, 23, 42, 0.18);
+}
+
+.projects-panel {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    box-shadow: 0 18px 48px var(--shadow-glass);
+    overflow: hidden;
+}
+
+.projects-panel-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 12px 10px 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.projects-panel-title {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.projects-panel-count {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.projects-panel-close {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.projects-panel-close:hover {
+    background: var(--action-hover);
+}
+
+.projects-panel-empty {
+    padding: 24px 16px;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.projects-panel-list {
+    list-style: none;
+    margin: 0;
+    padding: 8px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.projects-panel-list li {
+    position: relative;
+    margin-bottom: 6px;
+}
+
+.projects-panel-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.projects-panel-item:hover {
+    background: var(--action-hover);
+    border-color: var(--border-color);
+}
+
+.projects-panel-item.current {
+    background: var(--tool-active-bg);
+    border-color: #a5b4fc;
+}
+
+.projects-panel-item img {
+    flex-shrink: 0;
+    width: 88px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-canvas);
+}
+
+.projects-panel-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding-right: 24px;
+}
+
+.projects-panel-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.projects-panel-time {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.projects-panel-item.current .projects-panel-time {
+    color: #4f46e5;
+    font-weight: 700;
+}
+
+.projects-panel-delete {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    opacity: 0;
+}
+
+.projects-panel-list li:hover .projects-panel-delete,
+.projects-panel-delete:focus-visible {
+    opacity: 1;
+}
+
+.projects-panel-delete:hover {
+    background: rgba(220, 38, 38, 0.1);
+    color: #dc2626;
+}
+
+.projects-panel-select {
+    padding: 4px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.projects-panel-select.active {
+    border-color: #4f46e5;
+    color: #4f46e5;
+}
+
+.projects-panel-item.selected {
+    border-color: #4f46e5;
+    background: var(--tool-active-bg);
+}
+
+.projects-panel-check {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 5px;
+    background: var(--bg-surface);
+    color: #ffffff;
+}
+
+.projects-panel-check.on {
+    border-color: #4f46e5;
+    background: #4f46e5;
+}
+
+.projects-panel-foot {
+    padding: 10px 12px 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.projects-panel-foot-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.projects-panel-link {
+    border: none;
+    background: transparent;
+    color: #4f46e5;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.projects-panel-foot-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.projects-panel-export {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 8px 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.projects-panel-export.primary {
+    border-color: #4338ca;
+    background: #4f46e5;
+    color: #ffffff;
+}
+
+.projects-panel-export:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.projects-panel-hint {
+    margin: 8px 0 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+/* ─── One-off notice banner (e.g. a capture that was only partial) ─── */
+.editor-notice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px 10px 14px;
+    border-radius: 12px;
+    border: 1px solid #fcd34d;
+    background: #fffbeb;
+    color: #92400e;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+    box-shadow: 0 4px 16px rgba(146, 64, 14, 0.08);
+}
+
+.editor-notice-icon {
+    flex-shrink: 0;
+    color: #d97706;
+}
+
+.editor-notice-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.editor-notice-close {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.editor-notice-close:hover {
+    background: rgba(217, 119, 6, 0.12);
+}
+
+.editor-container.dark .editor-notice {
+    border-color: rgba(251, 191, 36, 0.45);
+    background: rgba(251, 191, 36, 0.12);
+    color: #fcd34d;
+}
+
+.editor-container.dark .editor-notice-icon {
+    color: #fbbf24;
+}
+
+/* ─── Save button + export settings (split button) ─── */
+.export-menu {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+}
+
+.export-menu .export-save-btn {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.export-menu .export-toggle-btn {
+    padding: 8px 8px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+/* Keep the two halves visually joined when one is hovered */
+.export-menu .action-btn.primary:hover {
+    transform: none;
+}
+
+.export-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 50;
+    width: 280px;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    box-shadow: 0 12px 32px var(--shadow-glass);
+    font-size: 13px;
+}
+
+.export-panel-title {
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.export-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.export-row-label {
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.export-segment {
+    display: flex;
+    padding: 2px;
+    border-radius: 8px;
+    background: var(--bg-canvas);
+    border: 1px solid var(--border-color);
+}
+
+.export-segment button {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.export-segment button.active {
+    background: var(--bg-surface);
+    color: #4f46e5;
+    box-shadow: 0 1px 3px var(--shadow-soft);
+}
+
+.export-quality {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.export-quality input {
+    width: 120px;
+}
+
+.export-quality span {
+    min-width: 36px;
+    text-align: right;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.export-size-hint {
+    text-align: right;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    margin-top: -2px;
+}
+
+.export-project {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.export-project-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.export-project-btn:hover {
+    border-color: #a5b4fc;
+    color: #4f46e5;
+}
+
+.export-project-note {
+    margin: 8px 0 0;
+    color: #b45309;
+    font-size: 11.5px;
+    line-height: 1.5;
+}
+
+.export-note {
+    margin: 10px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 11.5px;
+    line-height: 1.5;
 }
 
 .canvas-wrapper {
@@ -1171,7 +1650,9 @@ body {
 /* ─── Responsive: Header toolbar ─── */
 
 /* Split-screen / medium widths (~960px): hide text labels, keep icons */
-@media (max-width: 960px) {
+/* With labels the action bar needs ~1260px of viewport (web build, incl. the
+   Home button), so switch to icon-only buttons below that. */
+@media (max-width: 1279px) {
     .action-label {
         display: none;
     }

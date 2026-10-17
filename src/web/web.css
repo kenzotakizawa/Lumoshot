@@ -88,6 +88,21 @@ html, body, #root {
     border-color: #4338ca;
 }
 
+.web-landing-fullpage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: -8px 0 14px;
+    font-size: 12.5px;
+    color: #4f46e5;
+    text-decoration: none;
+}
+
+.web-landing-fullpage:hover {
+    text-decoration: underline;
+}
+
 .web-landing-hint {
     display: flex;
     align-items: center;
